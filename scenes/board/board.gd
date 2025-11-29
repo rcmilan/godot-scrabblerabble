@@ -1,4 +1,4 @@
-extends Node2D
+extends Control
 class_name Board
 
 const CELL_SIZE = 64
@@ -14,6 +14,12 @@ const CELL_SIZE = 64
 # Placeholder visual: a label showing board status
 @onready var status_label: Label = Label.new()
 
+# Placed tiles dictionary
+var placed_tiles: Dictionary = {}  # Vector2i -> Node2D
+
+# Highlight sprite for cursor
+@onready var highlight_sprite: Sprite2D = Sprite2D.new()
+
 func _ready() -> void:
 	add_child(status_label)
 	status_label.text = "Board initialized. Tiles placed: 0"
@@ -25,6 +31,13 @@ func _ready() -> void:
 			cell_sprite.texture = load("res://assets/sprites/boardcell.png")
 			cell_sprite.position = Vector2(i * CELL_SIZE, j * CELL_SIZE)
 			add_child(cell_sprite)
+
+	# Add highlight sprite
+	highlight_sprite.texture = load("res://assets/sprites/boardcell.png")
+	highlight_sprite.modulate = Color(1, 1, 0.5, 1)
+	highlight_sprite.scale = Vector2(1.2, 1.2)
+	highlight_sprite.visible = false
+	add_child(highlight_sprite)
 
 # Public interface to place a tile (delegates to model)
 func place_tile(tile_visual: Node2D, grid_pos: Vector2i) -> bool:
@@ -51,3 +64,17 @@ func update_status() -> void:
 func add_tile_visual(tile: Node2D, grid_pos: Vector2i) -> void:
 	tile.position = grid_pos * CELL_SIZE
 	add_child(tile)
+	placed_tiles[grid_pos] = tile
+
+# Get the tile at the given position
+func get_tile_at(pos: Vector2i) -> Node2D:
+	return placed_tiles.get(pos, null)
+
+# Highlight the cell at the given position
+func highlight_cell(pos: Vector2i) -> void:
+	highlight_sprite.position = pos * CELL_SIZE
+	highlight_sprite.visible = true
+
+# Clear all highlights
+func clear_highlights() -> void:
+	highlight_sprite.visible = false

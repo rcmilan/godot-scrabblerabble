@@ -1,4 +1,4 @@
-extends Node2D
+extends Control
 
 ## Rack class for managing player's tile rack in Scrabble
 ## Handles tile storage, selection, and visual arrangement
@@ -25,10 +25,11 @@ func _ready() -> void:
 	# Initialize with empty rack
 	update_visuals()
 
+
 ## Add a tile to the rack
 ## tile_model: The TileModel to add
 func add_tile(tile_model: TileModel) -> void:
-	var tile_instance: Control = TileScene.instantiate()
+	var tile_instance := TileScene.instantiate() 
 	tile_instance.set_tile_model(tile_model)
 	tile_instance.connect("tile_selected", Callable(self, "_on_tile_selected"))
 	add_child(tile_instance)
@@ -100,6 +101,7 @@ func clear_rack() -> void:
 	selected_index = -1
 	update_visuals()
 
+
 ## Update the visual positions of tiles in a horizontal row
 func update_visuals() -> void:
 	for i in range(tiles.size()):
@@ -117,6 +119,26 @@ func update_selection() -> void:
 	if selected_index >= 0 and selected_index < tiles.size():
 		tiles[selected_index].select_tile()
 		emit_signal("tile_selected", tiles[selected_index])
+
+## Get the number of tiles in the rack
+func get_tile_count() -> int:
+	return tiles.size()
+
+## Get the tile at the given index
+func get_tile_at(index: int) -> Control:
+	if index >= 0 and index < tiles.size():
+		return tiles[index]
+	return null
+
+## Highlight the tile at the given index using scale
+func highlight_tile(index: int) -> void:
+	if index >= 0 and index < tiles.size():
+		tiles[index].scale = Vector2(1.2, 1.2)
+
+## Clear all highlights by resetting scale
+func clear_highlights() -> void:
+	for tile in tiles:
+		tile.scale = Vector2(1, 1)
 
 ## Handle tile selection from individual tiles
 func _on_tile_selected(tile: Control) -> void:

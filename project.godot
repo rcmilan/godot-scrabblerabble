@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 GameManager="*res://autoload/game_manager.gd"
 TileBag="*res://autoload/tile_bag.gd"
 EventBus="*res://autoload/event_bus.gd"
+SelectionManager="*res://autoload/SelectionManager.gd"
 
 [dotnet]
 
