@@ -105,8 +105,20 @@ func update_board_highlight() -> void:
 	board.clear_highlights()
 	board.highlight_cell(board_cursor)
 
+func reset_selection_state() -> void:
+	selected_tile = null
+	selected_from_rack = false
+	selected_original_pos = Vector2i(-1, -1)
+	current_mode = Mode.RACK
+	board.clear_highlights()
+	rack.selected_index = rack_cursor; rack.update_selection()  # CHANGED: Sync rack's selected_index and update selection highlight
+	print("Selection state reset after tile placement")
+	assert(selected_tile == null, "selected_tile should be null after reset")
+
 func place_tile() -> void:
 	print("SelectionManager place_tile: selected_tile ", selected_tile.name if selected_tile else "null", " cursor ", board_cursor, " from_rack ", selected_from_rack)
+	if not board or not rack:  # CHANGED: Guard clause to avoid null references
+		return
 	if not selected_tile or not is_instance_valid(selected_tile):
 		print("DEBUG: Invalid state - place_tile called with null or invalid selected_tile")
 		return
@@ -136,18 +148,11 @@ func place_tile() -> void:
 			if selected_from_rack:
 				rack.tiles.erase(selected_tile)
 				rack.update_visuals()
-			selected_tile = null
-			selected_from_rack = false
-			board.clear_highlights()
-			update_board_highlight()
+			reset_selection_state()
 		else:
 			print("Placement failed: no tile to place or cell occupied.")
 			if selected_tile and is_instance_valid(selected_tile):
 				selected_tile.deselect_tile()
 			if selected_tile and not selected_from_rack and is_instance_valid(selected_tile):
 				board.place_tile(selected_tile, selected_original_pos)
-			selected_tile = null
-			selected_from_rack = false
-			current_mode = Mode.RACK
-			board.clear_highlights()
-			update_rack_highlight()
+			reset_selection_state()
