@@ -18,7 +18,7 @@ const TileModel = preload("res://scripts/core/tile_model.gd")
 # Rack properties
 var tiles: Array[Control] = []  # Array of Tile instances
 var selected_index: int = -1  # Index of currently selected tile (-1 means none)
-const TILE_SPACING: int = 10  # Spacing between tiles in pixels
+const TILE_SPACING: int = TILE_SIZE + 10  # Spacing between tiles in pixels
 const TILE_SIZE: int = 64     # Size of each tile
 
 func _ready() -> void:
