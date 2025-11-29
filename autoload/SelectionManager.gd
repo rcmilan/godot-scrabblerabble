@@ -1,10 +1,18 @@
 extends Node
 
+# SelectionManager handles tile selection and placement logic.
+# Tile selection: In RACK mode, use A/D to select tiles from rack. In BOARD mode, select tiles already placed on board by pressing SPACE on occupied cell.
+# Placement flow: Select tile from rack or board, switch to BOARD mode, move cursor with WASD, place with SPACE.
+# Highlight management: Highlights current selection in rack or board cursor position on board.
+
 enum Mode { RACK, BOARD }
 
 var current_mode: Mode = Mode.RACK
 var rack_cursor: int = 0
 var board_cursor: Vector2i = Vector2i(7, 7)
+var selected_tile: Node2D = null
+var selected_from_rack: bool = false
+var selected_original_pos: Vector2i
 
 @onready var rack: Node2D = get_node("/root/Main/Rack")
 @onready var board: Node2D = get_node("/root/Main/Board")
@@ -31,11 +39,15 @@ func handle_rack_input(event: InputEventKey) -> void:
 		KEY_W:
 			# Switch to board mode
 			current_mode = Mode.BOARD
+			selected_tile = rack.get_tile_at(rack_cursor)
+			selected_from_rack = true
 			rack.clear_highlights()
 			update_board_highlight()
 		KEY_SPACE:
 			# Switch to board mode
 			current_mode = Mode.BOARD
+			selected_tile = rack.get_tile_at(rack_cursor)
+			selected_from_rack = true
 			rack.clear_highlights()
 			update_board_highlight()
 
@@ -63,7 +75,14 @@ func handle_board_input(event: InputEventKey) -> void:
 			# Place tile
 			place_tile()
 		KEY_TAB:
-			# Switch back to rack
+			# Cancel
+			if selected_tile:
+				selected_tile.deselect_tile()
+				if selected_from_rack:
+					pass  # do nothing
+				else:
+					board.place_tile(selected_tile, selected_original_pos)
+			selected_tile = null
 			current_mode = Mode.RACK
 			board.clear_highlights()
 			update_rack_highlight()
@@ -78,13 +97,37 @@ func update_board_highlight() -> void:
 	board.highlight_cell(board_cursor)
 
 func place_tile() -> void:
-	var tile = rack.get_tile_at(rack_cursor)
-	if tile and board.place_tile(tile, board_cursor):
-		rack.remove_tile(rack_cursor, true)
-		rack_cursor = clamp(rack_cursor, 0, rack.get_tile_count() - 1)
-		update_rack_highlight()
+	print("SelectionManager place_tile: selected_tile ", selected_tile.name if selected_tile else "null", " cursor ", board_cursor, " from_rack ", selected_from_rack)
+	var tile_at_cursor = board.get_tile_at(board_cursor)
+	if tile_at_cursor:
+		# Select the tile from board
+		selected_tile = board.remove_tile(board_cursor)
+		selected_tile.select_tile()
+		selected_from_rack = false
+		selected_original_pos = board_cursor
+		current_mode = Mode.BOARD
+		update_board_highlight()
 	else:
-		print("Cannot place tile: cell is occupied or invalid position.")
-		current_mode = Mode.RACK
-		board.clear_highlights()
-		update_rack_highlight()
+		# Place the selected tile
+		print("Before placement: selected_tile parent: ", selected_tile.get_parent() if selected_tile else "null")
+		if selected_from_rack:
+			selected_tile.get_parent().remove_child(selected_tile)
+		if selected_tile and board.place_tile(selected_tile, board_cursor):
+			print("Placement successful: tile placed at ", board_cursor)
+			selected_tile.deselect_tile()
+			if selected_from_rack:
+				rack.tiles.erase(selected_tile)
+				rack.update_visuals()
+			selected_tile = null
+			board.clear_highlights()
+			update_board_highlight()
+		else:
+			print("Placement failed: no tile to place or cell occupied.")
+			if selected_tile:
+				selected_tile.deselect_tile()
+			if selected_tile and not selected_from_rack:
+				board.place_tile(selected_tile, selected_original_pos)
+			selected_tile = null
+			current_mode = Mode.RACK
+			board.clear_highlights()
+			update_rack_highlight()

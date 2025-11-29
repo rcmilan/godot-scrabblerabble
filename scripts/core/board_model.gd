@@ -26,11 +26,25 @@ func _init() -> void:
 # Places a tile at the given grid position if valid and empty.
 # Returns true if placement succeeded, false otherwise.
 func place_tile(tile: TileModel, grid_pos: Vector2i) -> bool:
+	print("BoardModel place_tile at ", grid_pos, " tile letter ", tile.letter if tile else "null")
 	if not _is_valid_position(grid_pos):
+		print("Invalid position")
 		return false
 	if grid[grid_pos.x][grid_pos.y] != null:
+		print("Position occupied")
 		return false
 	grid[grid_pos.x][grid_pos.y] = tile
+	print("Tile placed successfully")
+	return true
+
+# Removes a tile from the given grid position if it exists.
+# Returns true if removal succeeded, false otherwise.
+func remove_tile(grid_pos: Vector2i) -> bool:
+	if not _is_valid_position(grid_pos):
+		return false
+	if grid[grid_pos.x][grid_pos.y] == null:
+		return false
+	grid[grid_pos.x][grid_pos.y] = null
 	return true
 
 # Checks if the position is within the board bounds.

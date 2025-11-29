@@ -47,6 +47,8 @@ func remove_tile(index: int, keep_alive: bool = false) -> Variant:
 
 	var tile: Node2D = tiles[index]
 	tiles.remove_at(index)
+	if keep_alive:
+		print("Removing tile from rack, keeping alive: ", tile.name)
 	if not keep_alive:
 		tile.queue_free()
 
