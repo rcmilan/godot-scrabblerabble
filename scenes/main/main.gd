@@ -11,12 +11,12 @@ func _ready():
 	# Apply scaling
 	$Board.scale = Vector2(scale_factor, scale_factor)
 	$Rack.scale = Vector2(scale_factor, scale_factor)
-	$HUD.scale = Vector2(scale_factor, scale_factor)
+	$CanvasLayer/HUD.scale = Vector2(scale_factor, scale_factor)
 	
 	# Adjust positions with scaling
 	$Board.position = Vector2((screen_size.x - 960 * scale_factor) / 2, (screen_size.y - 960 * scale_factor - 100 * scale_factor) / 2)
 	$Rack.position = Vector2((screen_size.x - 720 * scale_factor) / 2, $Board.position.y + 960 * scale_factor + 20)
-	$HUD.position = Vector2($Board.position.x + 960 * scale_factor + 20, $Board.position.y)
+	$CanvasLayer/HUD.position = Vector2($Board.position.x + 960 * scale_factor + 20, $Board.position.y)
 
 	# Start the game when the scene is ready
 	GameManager.start_game()

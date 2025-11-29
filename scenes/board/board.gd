@@ -1,4 +1,4 @@
-extends Control
+extends Node2D
 class_name Board
 
 const CELL_SIZE = 64
@@ -38,6 +38,7 @@ func _ready() -> void:
 	highlight_sprite.scale = Vector2(1.2, 1.2)
 	highlight_sprite.visible = false
 	add_child(highlight_sprite)
+	highlight_sprite.z_index = 5
 
 # Public interface to place a tile (delegates to model)
 func place_tile(tile_visual: Node2D, grid_pos: Vector2i) -> bool:

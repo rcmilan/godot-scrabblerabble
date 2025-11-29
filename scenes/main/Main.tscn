@@ -14,5 +14,8 @@ position = Vector2(0, 0)
 [node name="Rack" parent="." instance=ExtResource("2")]
 position = Vector2(0, 960)
 
-[node name="HUD" parent="." instance=ExtResource("3")]
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 1
+
+[node name="HUD" parent="CanvasLayer" instance=ExtResource("3")]
 position = Vector2(960, 0)

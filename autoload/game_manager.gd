@@ -67,7 +67,7 @@ func place_tile(tile: Node2D, pos: Vector2i) -> void:
 		# Remove from rack
 		var index = rack.tiles.find(tile)
 		if index >= 0:
-			rack.remove_tile(index)
+			rack.remove_tile(index, true)
 		# Check if all tiles placed
 		if tiles_placed_this_turn >= tiles_per_turn:
 			on_all_tiles_placed()
