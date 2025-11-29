@@ -1,0 +1,14 @@
+apple
+banana
+cat
+dog
+run
+house
+car
+tree
+book
+pen
+hat
+box
+sun
+moon

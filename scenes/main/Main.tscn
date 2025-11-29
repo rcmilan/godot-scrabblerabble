@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/main/main.gd" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/board/Board.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/rack/Rack.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3"]
+
+[node name="Main" type="Node"]
+script = ExtResource("4")
+
+[node name="Board" parent="." instance=ExtResource("1")]
+position = Vector2(0, 0)
+
+[node name="Rack" parent="." instance=ExtResource("2")]
+position = Vector2(0, 960)
+
+[node name="HUD" parent="." instance=ExtResource("3")]
+position = Vector2(960, 0)
