@@ -38,18 +38,26 @@ func handle_rack_input(event: InputEventKey) -> void:
 			update_rack_highlight()
 		KEY_W:
 			# Switch to board mode
-			current_mode = Mode.BOARD
-			selected_tile = rack.get_tile_at(rack_cursor)
-			selected_from_rack = true
-			rack.clear_highlights()
-			update_board_highlight()
+			var tile = rack.get_tile_at(rack_cursor)
+			if tile and is_instance_valid(tile):
+				current_mode = Mode.BOARD
+				selected_tile = tile
+				selected_from_rack = true
+				rack.clear_highlights()
+				update_board_highlight()
+			else:
+				print("DEBUG: No valid tile at rack cursor to select")
 		KEY_SPACE:
 			# Switch to board mode
-			current_mode = Mode.BOARD
-			selected_tile = rack.get_tile_at(rack_cursor)
-			selected_from_rack = true
-			rack.clear_highlights()
-			update_board_highlight()
+			var tile = rack.get_tile_at(rack_cursor)
+			if tile and is_instance_valid(tile):
+				current_mode = Mode.BOARD
+				selected_tile = tile
+				selected_from_rack = true
+				rack.clear_highlights()
+				update_board_highlight()
+			else:
+				print("DEBUG: No valid tile at rack cursor to select")
 
 func handle_board_input(event: InputEventKey) -> void:
 	match event.keycode:
@@ -76,13 +84,14 @@ func handle_board_input(event: InputEventKey) -> void:
 			place_tile()
 		KEY_TAB:
 			# Cancel
-			if selected_tile:
+			if selected_tile and is_instance_valid(selected_tile):
 				selected_tile.deselect_tile()
 				if selected_from_rack:
 					pass  # do nothing
 				else:
 					board.place_tile(selected_tile, selected_original_pos)
 			selected_tile = null
+			selected_from_rack = false
 			current_mode = Mode.RACK
 			board.clear_highlights()
 			update_rack_highlight()
@@ -98,10 +107,16 @@ func update_board_highlight() -> void:
 
 func place_tile() -> void:
 	print("SelectionManager place_tile: selected_tile ", selected_tile.name if selected_tile else "null", " cursor ", board_cursor, " from_rack ", selected_from_rack)
+	if not selected_tile or not is_instance_valid(selected_tile):
+		print("DEBUG: Invalid state - place_tile called with null or invalid selected_tile")
+		return
 	var tile_at_cursor = board.get_tile_at(board_cursor)
 	if tile_at_cursor:
 		# Select the tile from board
 		selected_tile = board.remove_tile(board_cursor)
+		if not selected_tile or not is_instance_valid(selected_tile):
+			print("DEBUG: No valid tile at board cursor to select")
+			return
 		selected_tile.select_tile()
 		selected_from_rack = false
 		selected_original_pos = board_cursor
@@ -109,25 +124,30 @@ func place_tile() -> void:
 		update_board_highlight()
 	else:
 		# Place the selected tile
-		print("Before placement: selected_tile parent: ", selected_tile.get_parent() if selected_tile else "null")
+		if not selected_tile or not is_instance_valid(selected_tile):
+			print("DEBUG: selected_tile became null or invalid before placement")
+			return
+		print("Before placement: selected_tile parent: ", selected_tile.get_parent())
 		if selected_from_rack:
 			selected_tile.get_parent().remove_child(selected_tile)
-		if selected_tile and board.place_tile(selected_tile, board_cursor):
+		if board.place_tile(selected_tile, board_cursor):
 			print("Placement successful: tile placed at ", board_cursor)
 			selected_tile.deselect_tile()
 			if selected_from_rack:
 				rack.tiles.erase(selected_tile)
 				rack.update_visuals()
 			selected_tile = null
+			selected_from_rack = false
 			board.clear_highlights()
 			update_board_highlight()
 		else:
 			print("Placement failed: no tile to place or cell occupied.")
-			if selected_tile:
+			if selected_tile and is_instance_valid(selected_tile):
 				selected_tile.deselect_tile()
-			if selected_tile and not selected_from_rack:
+			if selected_tile and not selected_from_rack and is_instance_valid(selected_tile):
 				board.place_tile(selected_tile, selected_original_pos)
 			selected_tile = null
+			selected_from_rack = false
 			current_mode = Mode.RACK
 			board.clear_highlights()
 			update_rack_highlight()

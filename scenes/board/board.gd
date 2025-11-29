@@ -53,7 +53,7 @@ func _ready() -> void:
 	add_child(ghost_preview)
 
 func _process(delta: float) -> void:
-	if selection_manager.selected_tile and selection_manager.current_mode == selection_manager.Mode.BOARD:
+	if selection_manager.selected_tile and is_instance_valid(selection_manager.selected_tile) and selection_manager.current_mode == selection_manager.Mode.BOARD:
 		ghost_preview.visible = true
 		ghost_preview.texture = selection_manager.selected_tile.get_node("Sprite2D").texture
 		ghost_preview.position = selection_manager.board_cursor * CELL_SIZE
