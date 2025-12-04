@@ -1,0 +1,9 @@
+extends Node
+
+# EventBus: A central hub for signals to decouple game components.
+
+signal tile_placed(tile_data, grid_position)
+signal turn_started(turn_number)
+signal turn_ended(turn_number)
+signal game_over(final_score)
+signal score_updated(new_score)

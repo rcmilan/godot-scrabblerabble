@@ -10,10 +10,21 @@ config_version=5
 
 [application]
 
-config/name="scrabblerabble"
-config/features=PackedStringArray("4.5", "Forward Plus")
-config/icon="res://icon.svg"
+config/name="Wordatro"
+config/version="0.1"
+run/main_scene="res://scenes/debug/Debug.tscn"
+config/features=PackedStringArray("4.5")
 
-[dotnet]
+[autoload]
 
-project/assembly_name="scrabblerabble"
+EventBus="*res://autoload/event_bus.gd"
+GameManager="*res://autoload/game_manager.gd"
+TileBag="*res://autoload/tile_bag.gd"
+
+[display]
+
+window/size/width=1536
+window/size/height=864
+window/test_width=1536
+window/test_height=864
+window/resizable=true

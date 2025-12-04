@@ -1,0 +1,17 @@
+[gd_scene load_steps=5 format=3 uid="uid://c6g8f7j1v2w3x"]
+
+[ext_resource type="PackedScene" uid="uid://b1y2x3k4l5m6n" path="res://scenes/board/Board.tscn" id="1_abcde"]
+[ext_resource type="PackedScene" uid="uid://bd1cu4kvxwocs" path="res://scenes/rack/Rack.tscn" id="2_fghij"]
+[ext_resource type="PackedScene" uid="uid://blbk1u34ldh5s" path="res://scenes/ui/HUD.tscn" id="3_klmno"]
+[ext_resource type="Script" uid="uid://dgufq34t86vo3" path="res://scenes/main/main.gd" id="4_pqrst"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("4_pqrst")
+
+[node name="Board" parent="." instance=ExtResource("1_abcde")]
+position = Vector2(100, 100)
+
+[node name="Rack" parent="." instance=ExtResource("2_fghij")]
+position = Vector2(100, 700)
+
+[node name="HUD" parent="." instance=ExtResource("3_klmno")]
