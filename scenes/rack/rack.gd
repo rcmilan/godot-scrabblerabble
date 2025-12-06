@@ -51,6 +51,9 @@ func _on_tile_selected(selected_tile):
 	_selected_tile = selected_tile
 	# The tile itself handles the visual selection feedback.
 	# The rack just needs to know which one is active.
+	# Emit hand selection on the EventBus so other systems (e.g., debug UI) can react
+	if EventBus and _selected_tile and _selected_tile.tile_data:
+		EventBus.emit_signal("hand_letter_selected", _selected_tile.tile_data.letter)
 
 func _on_tile_placed(placed_tile, grid_pos):
 	# Remove the visual tile from the rack list if it exists there
@@ -66,5 +69,17 @@ func _on_tile_placed(placed_tile, grid_pos):
 func _on_turn_started(turn_number):
 	# Draw a new hand when a new turn starts
 	draw_new_hand()
+
+
+func remove_one_tile_by_letter(letter: String) -> bool:
+	# Find the first tile in the rack with the given letter and remove it
+	for t in _tiles:
+		if t and t.tile_data and t.tile_data.letter == letter:
+			# remove from tracking and free the node
+			_tiles.erase(t)
+			if is_instance_valid(t):
+				t.queue_free()
+			return true
+	return false
 
 # TODO: Implement logic to remove a tile from the rack when it's placed on the board.

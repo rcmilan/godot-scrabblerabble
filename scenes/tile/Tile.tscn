@@ -2,5 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/tile/tile.gd" id="1_vwxyz"]
 
-[node name="Tile" type="Node2D"]
+[node name="Tile" type="Button"]
+custom_minimum_size = Vector2(50, 50)
+text = "?"
 script = ExtResource("1_vwxyz")

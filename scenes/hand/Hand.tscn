@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://handscene"]
+
+[ext_resource path="res://scripts/hand/hand.gd" type="Script" id=1]
+
+[node name="Hand" type="HBoxContainer"]
+script = ExtResource( 1 )
+custom_minimum_size = Vector2(700, 60)
+alignment = 1
