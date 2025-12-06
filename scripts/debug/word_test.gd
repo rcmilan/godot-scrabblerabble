@@ -5,6 +5,19 @@ extends Node
 # var wt = get_tree().get_current_scene().get_node("WordTest")
 # wt.validate_word("hello")
 # wt.place_tile_for_test("A", 7, 7)
+
+# Terminology:
+# - `rack` in older code refers to the deck / tile bag (the pool of available tiles).
+#   To avoid ambiguity, think of the rack as the tile bag/deck (server-side resource).
+# - `HAND` refers to a player's drawn tiles displayed in the UI (a short-lived UI node).
+#   In code: the `Hand` scene handles drawn tiles; `tile_bag` / `TileBag` is the rack/deck.
+#
+# Tile State Management Design:
+# - Hand tiles and board tiles are the SAME object instances (mapped via pos_to_hand_tile)
+# - States: unselected (default) → selected (blue tint) → placed (greyed, disabled)
+# - State transitions are bidirectional: placed tiles can be removed and restored to hand
+# - This design supports future drag-and-drop: tile instance moves from hand to board visually
+# - All state changes propagate through the tile object (set_temp_used, select, deselect)
 # wt.print_board()
 
 var BoardModel = preload("res://scripts/core/board_model.gd")
@@ -24,6 +37,10 @@ var board_view = null
 
 var last_overall_valid: bool = false
 var last_valid_ranges: Array = []
+var selected_hand_tile = null
+var pos_to_hand_tile = {}
+var hand_tile_to_pos = {}
+var current_score: int = 0
 
 func _ready():
 	board = BoardModel.new()
@@ -34,6 +51,21 @@ func _ready():
 	add_child(scoring)
 	# Ensure Debug UI (editor scene) is available before choosing the BoardView.
 	_create_debug_ui()
+	
+	# Instance HUD to display score
+	var hud_path = "res://scenes/ui/HUD.tscn"
+	if FileAccess.file_exists(hud_path):
+		var hud_packed = load(hud_path)
+		if hud_packed and hud_packed is PackedScene:
+			var hud_inst = hud_packed.instantiate()
+			var scene_root = get_tree().get_current_scene()
+			if scene_root:
+				scene_root.add_child(hud_inst)
+			else:
+				add_child(hud_inst)
+	
+	# Emit initial score
+	EventBus.score_updated.emit(current_score)
 
 	# board view (visual) - prefer an editor-provided BoardView under DebugUI
 	var existing_board = _find_debug("BoardView")
@@ -45,6 +77,12 @@ func _ready():
 
 	board_view.connect("cell_clicked", Callable(self, "_on_board_cell_clicked"))
 	board_view.connect("cell_right_clicked", Callable(self, "_on_board_cell_right_clicked"))
+	# Listen for rack/hand selection events
+	if EventBus:
+		if not EventBus.is_connected("hand_letter_selected", Callable(self, "_on_hand_letter_selected")):
+			EventBus.connect("hand_letter_selected", Callable(self, "_on_hand_letter_selected"))
+		if not EventBus.is_connected("hand_tile_selected", Callable(self, "_on_hand_tile_selected")):
+			EventBus.connect("hand_tile_selected", Callable(self, "_on_hand_tile_selected"))
 	var loader = DictionaryLoader.new()
 	dictionary = loader.load_dictionary()
 	print("[word_test] Ready. Dictionary size: ", dictionary.size())
@@ -59,7 +97,7 @@ func validate_word(word: String) -> bool:
 		return false
 	return dictionary.has(word.to_lower())
 
-func place_tile_for_test(letter: String, x: int, y: int) -> bool:
+func place_tile_for_test(letter: String, x: int, y: int, hand_tile_node: Node = null) -> bool:
 	# Create a simple TileModel-like object (use the preloaded TileModelClass)
 	var tile = TileModelClass.new(letter, 1)
 	var grid_pos = Vector2i(x, y)
@@ -68,6 +106,30 @@ func place_tile_for_test(letter: String, x: int, y: int) -> bool:
 
 	# After placing, run incremental validation for the current temp placements
 	_run_incremental_validation()
+
+	# If this placement came from a concrete hand tile node, mark mappings
+	if ok:
+		if hand_tile_node != null:
+			pos_to_hand_tile[grid_pos] = hand_tile_node
+			hand_tile_to_pos[hand_tile_node] = grid_pos
+			if hand_tile_node.has_method("set_temp_used"):
+				hand_tile_node.set_temp_used(true)
+			if hand_tile_node.has_method("deselect"):
+				hand_tile_node.deselect()
+			selected_hand_tile = null
+		else:
+			# If we succeeded in placing a temp tile, attempt to remove that tile from any on-screen Rack
+			var scene_root = get_tree().get_current_scene()
+			if scene_root:
+				var rack = _find_node_compat(scene_root, "Rack")
+				if rack and rack.has_method("remove_one_tile_by_letter"):
+					var removed = rack.remove_one_tile_by_letter(letter)
+					print("[word_test] removed from rack ->", removed)
+			else:
+				# fallback: look locally under this node
+				var rack2 = _find_node_compat(self, "Rack")
+				if rack2 and rack2.has_method("remove_one_tile_by_letter"):
+					rack2.remove_one_tile_by_letter(letter)
 
 	return ok
 
@@ -251,8 +313,23 @@ func _on_remove_button_pressed() -> void:
 
 
 func _on_remove_all_pressed() -> void:
+	# Clear all temp tiles from board
 	board.clear_temp_tiles()
 	print("[word_test] cleared all temp tiles")
+	
+	# Reset all hand tiles that were placed back to unplaced/unselected state
+	for pos in pos_to_hand_tile.keys():
+		var h = pos_to_hand_tile[pos]
+		if h and h.has_method("set_temp_used"):
+			h.set_temp_used(false)
+		if h and h.has_method("deselect"):
+			h.deselect()
+	
+	# Clear mappings
+	pos_to_hand_tile.clear()
+	hand_tile_to_pos.clear()
+	selected_hand_tile = null
+	
 	_run_incremental_validation()
 	print_board()
 	var eval_btn = _find_debug("EvaluateBtn")
@@ -260,6 +337,31 @@ func _on_remove_all_pressed() -> void:
 		eval_btn.disabled = true
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
+
+
+func _on_redraw_hand_pressed() -> void:
+	# Clear all temp tiles from board first (placed hand tiles)
+	board.clear_temp_tiles()
+	if board_view:
+		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
+	
+	# Clear mappings since we're resetting everything
+	pos_to_hand_tile.clear()
+	hand_tile_to_pos.clear()
+	selected_hand_tile = null
+	
+	# Find Hand and call redraw_hand_returning to return tiles to bag and draw new hand
+	var scene_root = get_tree().get_current_scene()
+	var ui_root = null
+	if scene_root:
+		ui_root = scene_root.get_node_or_null("DebugUI")
+	if not ui_root:
+		ui_root = get_node_or_null("DebugUI")
+	if ui_root:
+		var hand = ui_root.get_node_or_null("Hand")
+		if hand and hand.has_method("redraw_hand_returning"):
+			hand.redraw_hand_returning()
+			print("[word_test] board cleared and hand redrawn")
 
 
 func _on_evaluate_pressed() -> void:
@@ -272,6 +374,12 @@ func _on_evaluate_pressed() -> void:
 	var breakdown = scoring.evaluate_board_with_breakdown(combined)
 	print("[word_test] scoring breakdown:")
 	print(breakdown)
+	
+	# Update score and emit signal
+	var turn_score = breakdown.get("total_score", 0)
+	current_score += turn_score
+	EventBus.score_updated.emit(current_score)
+	print("[word_test] turn score: ", turn_score, " | total score: ", current_score)
 
 	# Commit temp tiles as the score is being accepted (use turn 0 for debug)
 	board.commit_temp_tiles(0)
@@ -301,14 +409,22 @@ func _on_check_word_pressed() -> void:
 
 
 func _on_board_cell_clicked(pos: Vector2i) -> void:
-	# Place a tile at the clicked position using the letter from the UI (or default 'A')
-	var letter_node = _find_debug("LetterInput")
-	var letter = "A"
-	if letter_node:
-		var text = letter_node.text.strip_edges()
-		if text != "":
-			letter = text.to_upper()[0]
+	# If a concrete hand tile is selected, place that tile; otherwise use LetterInput
+	if selected_hand_tile != null:
+		if selected_hand_tile.tile_data:
+			place_tile_for_test(selected_hand_tile.tile_data.letter, pos.x, pos.y, selected_hand_tile)
+		return
 
+	# No hand tile selected — only place if the LetterInput explicitly contains a letter.
+	var letter_node = _find_debug("LetterInput")
+	if not letter_node or not (letter_node is LineEdit):
+		# No explicit letter selected; ignore click.
+		return
+	var text = letter_node.text.strip_edges()
+	if text == "":
+		# empty input -> ignore click
+		return
+	var letter = text.to_upper()[0]
 	place_tile_for_test(str(letter), pos.x, pos.y)
 
 	var eval_btn = _find_debug("EvaluateBtn")
@@ -329,10 +445,43 @@ func _on_alphabet_pressed(letter: String) -> void:
 		lbl.text = "Selected: " + str(letter)
 
 
+func _on_hand_letter_selected(letter: String) -> void:
+	# Mirror rack selection into the debug UI input controls
+	_on_alphabet_pressed(letter)
+
+
+func _on_hand_tile_selected(tile_node) -> void:
+	# Deselect the previously selected tile (only one tile can be selected at a time)
+	if selected_hand_tile and selected_hand_tile != tile_node:
+		if selected_hand_tile.has_method("deselect"):
+			selected_hand_tile.deselect()
+	
+	# Store the concrete selected hand tile node for placement mapping
+	selected_hand_tile = tile_node
+	# Update debug UI selected label
+	var lbl = _find_debug("SelectedLetterLabel")
+	if lbl and lbl is Label and selected_hand_tile and selected_hand_tile.tile_data:
+		lbl.text = "Selected: " + str(selected_hand_tile.tile_data.letter)
+
+
 func _on_board_cell_right_clicked(pos: Vector2i) -> void:
 	# Right-click removes a temp tile at the clicked position
 	board.remove_temp_tile(pos)
 	_run_incremental_validation()
+
+	# If there was a mapped hand tile, restore it to available state
+	if pos in pos_to_hand_tile:
+		var h = pos_to_hand_tile[pos]
+		if h:
+			# Restore tile to clickable, unselected state
+			if h.has_method("set_temp_used"):
+				h.set_temp_used(false)
+			if h.has_method("deselect"):
+				h.deselect()
+			print("[word_test] Restored hand tile: ", h.tile_data.letter if h.tile_data else "?")
+		# Clear mappings
+		hand_tile_to_pos.erase(h)
+		pos_to_hand_tile.erase(pos)
 
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
@@ -414,15 +563,29 @@ func _finalize_ui_layout() -> void:
 	if ui_root.has_node("PlacementPanel"):
 		placement_panel = ui_root.get_node("PlacementPanel")
 
-	# position it to the right of the board_view (fallback to panel if board_view missing)
-	var board_pos = Vector2(10, 10)
+	# Anchor the board to the top of the scene with padding and keep tiles relative
+	var top_padding = 12
+	var left_padding = 10
 	if panel:
-		board_pos = Vector2(panel.position.x + panel.size.x + 20, panel.position.y + 10)
-	elif board_view:
-		board_pos = Vector2(board_view.position.x + board_size.x + 16, 10)
+		left_padding = panel.position.x + panel.size.x + 20
+
+	var viewport_size = get_viewport().get_visible_rect().size
+	var board_x = max(8, (viewport_size.x - board_size.x) * 0.5)
+	# If we have a placement_panel, avoid centering under it by centering in available area
+	if placement_panel:
+		var right_limit = viewport_size.x
+		right_limit = placement_panel.position.x - 16
+		var avail_w = right_limit - left_padding
+		if avail_w > 0:
+			board_x = left_padding + max(0, (avail_w - board_size.x) * 0.5)
+
+	var board_pos = Vector2(board_x, top_padding)
+	if board_view:
+		board_view.position = board_pos
 
 	if placement_panel:
-		placement_panel.position = board_pos
+		# place placement panel to the right of the board
+		placement_panel.position = Vector2(board_pos.x + board_size.x + 16, board_pos.y)
 		if panel:
 			placement_panel.position.y = panel.position.y + (panel.size.y - placement_panel.size.y) * 0.5
 
@@ -459,6 +622,37 @@ func _finalize_ui_layout() -> void:
 	# Wire controls for any panels we found/instantiated
 	_wire_ui_controls(layer)
 
+	# Hand: prefer an editor-provided Hand under DebugUI; otherwise instantiate the default Hand.tscn
+	var hand_viewport = null
+	if ui_root.has_node("Hand"):
+		hand_viewport = ui_root.get_node("Hand")
+	else:
+		var hand_path = "res://scenes/hand/Hand.tscn"
+		if FileAccess.file_exists(hand_path):
+			var hs = load(hand_path)
+			if hs and hs is PackedScene:
+				hand_viewport = hs.instantiate()
+				hand_viewport.name = "Hand"
+				ui_root.add_child(hand_viewport)
+
+	# Position hand centered directly below the board
+	if hand_viewport and board_view:
+		var hand_w = 700  # expected width for 10 tiles at 60px spacing
+		var hand_h = 120
+		if "rect_min_size" in hand_viewport:
+			hand_w = hand_viewport.rect_min_size.x
+			hand_h = hand_viewport.rect_min_size.y
+		elif "size" in hand_viewport:
+			hand_w = hand_viewport.size.x
+			hand_h = hand_viewport.size.y
+
+		# Center hand horizontally relative to board
+		var board_center_x = board_view.position.x + board_size.x * 0.5
+		var hand_x = board_center_x - hand_w * 0.5
+		var hand_y = board_view.position.y + board_size.y + 16
+		hand_viewport.position = Vector2(hand_x, hand_y)
+
+
 
 func _wire_ui_controls(ui_root: Node) -> void:
 	if not ui_root:
@@ -489,6 +683,7 @@ func _wire_ui_controls(ui_root: Node) -> void:
 	_connect_pressed(ui_root, "Print", "_on_print_board")
 	_connect_pressed(ui_root, "RemoveAll", "_on_remove_all_pressed")
 	_connect_pressed(ui_root, "EvaluateBtn", "_on_evaluate_pressed")
+	_connect_pressed(ui_root, "Redraw", "_on_redraw_hand_pressed")
 	# Placement controls
 	_connect_pressed(ui_root, "Place", "_on_place_button_pressed")
 	_connect_pressed(ui_root, "Remove", "_on_remove_button_pressed")
@@ -568,3 +763,14 @@ func _connect_pressed(ui_root: Node, node_name: String, method_name: String) -> 
 	if b and b is Button:
 		if not b.is_connected("pressed", Callable(self, method_name)):
 			b.connect("pressed", Callable(self, method_name))
+
+
+func _find_node_compat(root: Node, name: String) -> Node:
+	# Some Node subclasses in various runtimes may not expose find_node; use it when available,
+	# otherwise fall back to our BFS descendant search.
+	if not root:
+		return null
+	if root.has_method("find_node"):
+		# prefer the built-in (name, recursive=true, owned=false)
+		return root.find_node(name, true, false)
+	return _find_descendant(root, name)

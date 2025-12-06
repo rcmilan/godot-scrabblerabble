@@ -6,25 +6,40 @@
 script = ExtResource("1_ijklm")
 
 [node name="TurnLabel" type="Label" parent="."]
-offset_left = 20.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
 offset_top = 20.0
-offset_right = 120.0
+offset_right = -20.0
 offset_bottom = 43.0
+grow_horizontal = 0
 text = "Turn: 1"
+horizontal_alignment = 2
 
 [node name="ScoreLabel" type="Label" parent="."]
-offset_left = 20.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
 offset_top = 50.0
-offset_right = 120.0
+offset_right = -20.0
 offset_bottom = 73.0
+grow_horizontal = 0
 text = "Score: 0"
+horizontal_alignment = 2
 
 [node name="TargetLabel" type="Label" parent="."]
-offset_left = 20.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
 offset_top = 80.0
-offset_right = 120.0
+offset_right = -20.0
 offset_bottom = 103.0
+grow_horizontal = 0
 text = "Target: 100"
+horizontal_alignment = 2
 
 [node name="GameOverLabel" type="Label" parent="."]
 anchors_preset = 8

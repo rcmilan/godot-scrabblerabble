@@ -84,3 +84,11 @@ offset_right = 122.0
 offset_bottom = 388.0
 disabled = true
 text = "Evaluate"
+
+[node name="LeftActions#Redraw" type="Button" parent="."]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 439.0
+offset_right = 122.0
+offset_bottom = 474.0
+text = "Redraw "
