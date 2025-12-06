@@ -1,0 +1,44 @@
+
+; Backup of previous project.godot
+; This was captured before attempting to rewrite autoload entries.
+; Use this file to restore the previous state if necessary.
+
+config_version=5
+
+[application]
+
+config/name="Wordatro"
+config/version="0.1"
+run/main_scene="res://scenes/main/Main.tscn"
+config/features=PackedStringArray("4.5")
+
+[autoload]
+
+EventBus="*res://autoload/event_bus.gd"
+EventBus/Enabled=true
+EventBus/NodeName="EventBus"
+GameManager="*res://autoload/game_manager.gd"
+GameManager/Enabled=true
+GameManager/NodeName="GameManager"
+TileBag="*res://autoload/tile_bag.gd"
+TileBag/Enabled=true
+TileBag/NodeName="TileBag"
+"#NOTE:SomeGodoteditorsexpectautoloadentriesinaspecificformat.#Ifyouseeerrorsaboutfailingtoinstantiateautoloads,register#thefollowingsingletonsfromtheGodoteditorProject>ProjectSettings>Autoload#withthesepaths:#-EventBus->res://autoload/event_bus.gd#-GameManager->res://autoload/game_manager.gd#-TileBag->res://autoload/tile_bag.gd#TheeditorwillwritethecorrectformatforyourversionofGodot.[description]name"="Wordatro - Scrabble-like MVP"
+author=""
+version="0.1"
+license=""
+
+[description]
+
+name="Wordatro - Scrabble-like MVP"
+author=""
+version="0.1"
+license=""
+
+[display]
+
+window/size/width=1280
+window/size/height=720
+window/test_width=1280
+window/test_height=720
+window/resizable=true

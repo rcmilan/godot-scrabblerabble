@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://36g2gf7ulme7"]
+
+[ext_resource type="Script" uid="uid://byyivub0ihq06" path="res://scripts/debug/word_test.gd" id="1"]
+
+[node name="WordTest" type="Node"]
+script = ExtResource("1")

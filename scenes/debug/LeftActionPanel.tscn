@@ -1,0 +1,86 @@
+[gd_scene format=3 uid="uid://ru328m1mgpqe"]
+
+[node name="LeftActionPanel" type="Panel"]
+
+[node name="LeftActionPanel#LeftActions" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 0
+offset_top = 183.0
+offset_right = 180.0
+offset_bottom = 390.0
+
+[node name="LeftActions#WordRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 87.0
+offset_top = 209.0
+offset_right = 87.0
+offset_bottom = 209.0
+
+[node name="WordRow#Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 82.0
+offset_top = 196.0
+offset_right = 129.0
+offset_bottom = 219.0
+text = "Word:"
+
+[node name="WordRow#WordInput" type="LineEdit" parent="."]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 0
+offset_top = 191.0
+offset_right = 80.0
+offset_bottom = 222.0
+placeholder_text = "type a word"
+
+[node name="WordRow#Check" type="Button" parent="."]
+custom_minimum_size = Vector2(46, 22)
+layout_mode = 0
+offset_left = 123.0
+offset_top = 358.0
+offset_right = 178.0
+offset_bottom = 389.0
+text = "Check"
+
+[node name="LeftActions#Validate" type="Button" parent="."]
+custom_minimum_size = Vector2(120, 20)
+layout_mode = 0
+offset_left = 2.0
+offset_top = 325.0
+offset_right = 122.0
+offset_bottom = 356.0
+text = "Validate"
+
+[node name="LeftActions#PlaceA" type="Button" parent="."]
+custom_minimum_size = Vector2(120, 20)
+layout_mode = 0
+offset_top = 223.0
+offset_right = 120.0
+offset_bottom = 254.0
+text = "Place A"
+
+[node name="LeftActions#Print" type="Button" parent="."]
+custom_minimum_size = Vector2(120, 20)
+layout_mode = 0
+offset_left = 1.0
+offset_top = 258.0
+offset_right = 121.0
+offset_bottom = 289.0
+text = "Print"
+
+[node name="LeftActions#RemoveAll" type="Button" parent="."]
+custom_minimum_size = Vector2(120, 20)
+layout_mode = 0
+offset_top = 293.0
+offset_right = 120.0
+offset_bottom = 324.0
+text = "Remove All"
+
+[node name="LeftActions#EvaluateBtn" type="Button" parent="."]
+custom_minimum_size = Vector2(120, 20)
+layout_mode = 0
+offset_left = 2.0
+offset_top = 357.0
+offset_right = 122.0
+offset_bottom = 388.0
+disabled = true
+text = "Evaluate"
