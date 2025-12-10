@@ -6,3 +6,11 @@
 script = ExtResource( 1 )
 custom_minimum_size = Vector2(700, 60)
 alignment = 1
+
+[node name="HandCountLabel" type="Label" parent="."]
+offset_left = 0.0
+offset_top = 70.0
+offset_right = 700.0
+offset_bottom = 93.0
+text = "Hand: 0"
+horizontal_alignment = 1

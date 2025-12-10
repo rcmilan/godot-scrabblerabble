@@ -43,6 +43,7 @@ var selected_hand_tile = null
 var pos_to_hand_tile = {}
 var hand_tile_to_pos = {}
 var current_score: int = 0
+var discard_count: int = 0
 
 func _ready():
 	board = BoardModel.new()
@@ -370,7 +371,7 @@ func _on_remove_all_pressed() -> void:
 
 
 func _on_discard_pressed() -> void:
-	# Discard the currently selected tile (if any) and draw a replacement.
+	# Discard currently selected tile(s) and draw replacements.
 	if not selected_hand_tile:
 		print("[word_test] No tile selected to discard")
 		return
@@ -381,14 +382,14 @@ func _on_discard_pressed() -> void:
 		return
 	
 	var hand_node = _find_debug("Hand")
-	if hand_node and hand_node.has_method("discard_selected_tile"):
-		var discarded = hand_node.discard_selected_tile(selected_hand_tile)
-		if discarded:
+	if hand_node and hand_node.has_method("discard_tiles"):
+		# For now, discard single selected tile (future: support multi-select)
+		var tiles_to_discard = [selected_hand_tile]
+		var discarded = hand_node.discard_tiles(tiles_to_discard)
+		if discarded > 0:
+			discard_count += discarded
+			print("[word_test] Total discards: ", discard_count)
 			selected_hand_tile = null
-			# Refill immediately
-			if hand_node.has_method("refill_hand"):
-				var refilled = hand_node.refill_hand()
-				print("[word_test] Discarded tile and drew ", refilled, " replacement(s)")
 		else:
 			print("[word_test] Failed to discard tile")
 	else:
@@ -768,6 +769,7 @@ func _wire_ui_controls(ui_root: Node) -> void:
 	_connect_pressed(ui_root, "PlaceA", "_on_place_A")
 	_connect_pressed(ui_root, "Print", "_on_print_board")
 	_connect_pressed(ui_root, "PrintRack", "_on_print_rack_pressed")
+	_connect_pressed(ui_root, "Discard", "_on_discard_pressed")
 	_connect_pressed(ui_root, "RemoveAll", "_on_remove_all_pressed")
 	_connect_pressed(ui_root, "EvaluateBtn", "_on_evaluate_pressed")
 	_connect_pressed(ui_root, "Redraw", "_on_redraw_hand_pressed")
@@ -781,25 +783,36 @@ func _wire_ui_controls(ui_root: Node) -> void:
 	if eval_btn and eval_btn is Button:
 		eval_btn.disabled = not last_overall_valid
 
-	# Alphabet mini-keyboard: create buttons A-Z under LeftActionPanel if not present
-	var left_panel = _find_descendant(ui_root, "LeftActionPanel")
-	if left_panel:
-		var alpha = _find_descendant(left_panel, "Alphabet")
-		if not alpha:
-			alpha = GridContainer.new()
-			alpha.name = "Alphabet"
-			alpha.columns = 7
-			left_panel.add_child(alpha)
-			# Create buttons A-Z
-			for i in range(26):
-				var ch = char(65 + i) # ASCII A..Z
-				var b = Button.new()
-				b.name = "Key_" + ch
-				b.text = ch
-				b.custom_minimum_size = Vector2(28, 28)
-				# connect pressed with bound letter
-				b.connect("pressed", Callable(self, "_on_alphabet_pressed").bind(ch))
-				alpha.add_child(b)
+	# TODO: Alphabet mini-keyboard will be moved to a toggleable debug panel
+	# in the bottom-left corner of the screen. This will be part of an expanded
+	# debug UI system that can be shown/hidden via a toggle button.
+	# For now, this feature is commented out to clean up the UI.
+	
+	# Future implementation:
+	# - Create a DebugTogglePanel in bottom-left corner with anchor/offset
+	# - Add a "Show Debug Keyboard" toggle button
+	# - Move alphabet grid creation into that toggleable panel
+	# - Allow quick letter placement for testing without hand tiles
+	
+	## Alphabet mini-keyboard: create buttons A-Z (COMMENTED OUT)
+	#var left_panel = _find_descendant(ui_root, "LeftActionPanel")
+	#if left_panel:
+	#	var alpha = _find_descendant(left_panel, "Alphabet")
+	#	if not alpha:
+	#		alpha = GridContainer.new()
+	#		alpha.name = "Alphabet"
+	#		alpha.columns = 7
+	#		left_panel.add_child(alpha)
+	#		# Create buttons A-Z
+	#		for i in range(26):
+	#			var ch = char(65 + i) # ASCII A..Z
+	#			var b = Button.new()
+	#			b.name = "Key_" + ch
+	#			b.text = ch
+	#			b.custom_minimum_size = Vector2(28, 28)
+	#			# connect pressed with bound letter
+	#			b.connect("pressed", Callable(self, "_on_alphabet_pressed").bind(ch))
+	#			alpha.add_child(b)
 
 
 func _find_descendant(root: Node, target_name: String) -> Node:

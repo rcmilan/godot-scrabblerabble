@@ -1,94 +1,72 @@
 [gd_scene format=3 uid="uid://ru328m1mgpqe"]
 
 [node name="LeftActionPanel" type="Panel"]
+custom_minimum_size = Vector2(150, 500)
 
-[node name="LeftActionPanel#LeftActions" type="VBoxContainer" parent="."]
-custom_minimum_size = Vector2(140, 0)
-layout_mode = 0
-offset_top = 183.0
-offset_right = 180.0
-offset_bottom = 390.0
+[node name="MainVBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = -5.0
 
-[node name="LeftActions#WordRow" type="HBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 87.0
-offset_top = 209.0
-offset_right = 87.0
-offset_bottom = 209.0
-
-[node name="WordRow#Label" type="Label" parent="."]
-layout_mode = 0
-offset_left = 82.0
-offset_top = 196.0
-offset_right = 129.0
-offset_bottom = 219.0
+[node name="WordLabel" type="Label" parent="MainVBox"]
+layout_mode = 2
 text = "Word:"
 
-[node name="WordRow#WordInput" type="LineEdit" parent="."]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 0
-offset_top = 191.0
-offset_right = 80.0
-offset_bottom = 222.0
+[node name="WordInput" type="LineEdit" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
 placeholder_text = "type a word"
 
-[node name="WordRow#Check" type="Button" parent="."]
-custom_minimum_size = Vector2(46, 22)
-layout_mode = 0
-offset_left = 123.0
-offset_top = 358.0
-offset_right = 178.0
-offset_bottom = 389.0
+[node name="Check" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
 text = "Check"
 
-[node name="LeftActions#Validate" type="Button" parent="."]
-custom_minimum_size = Vector2(120, 20)
-layout_mode = 0
-offset_left = 2.0
-offset_top = 325.0
-offset_right = 122.0
-offset_bottom = 356.0
-text = "Validate"
+[node name="Spacer1" type="Control" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
 
-[node name="LeftActions#PlaceA" type="Button" parent="."]
-custom_minimum_size = Vector2(120, 20)
-layout_mode = 0
-offset_top = 223.0
-offset_right = 120.0
-offset_bottom = 254.0
+[node name="PlaceA" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
 text = "Place A"
 
-[node name="LeftActions#Print" type="Button" parent="."]
-custom_minimum_size = Vector2(120, 20)
-layout_mode = 0
-offset_left = 1.0
-offset_top = 258.0
-offset_right = 121.0
-offset_bottom = 289.0
+[node name="Print" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
 text = "Print"
 
-[node name="LeftActions#RemoveAll" type="Button" parent="."]
-custom_minimum_size = Vector2(120, 20)
-layout_mode = 0
-offset_top = 293.0
-offset_right = 120.0
-offset_bottom = 324.0
+[node name="Discard" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Discard"
+
+[node name="RemoveAll" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
 text = "Remove All"
 
-[node name="LeftActions#EvaluateBtn" type="Button" parent="."]
-custom_minimum_size = Vector2(120, 20)
-layout_mode = 0
-offset_left = 2.0
-offset_top = 357.0
-offset_right = 122.0
-offset_bottom = 388.0
+[node name="Validate" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Validate"
+
+[node name="EvaluateBtn" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
 disabled = true
 text = "Evaluate"
 
-[node name="LeftActions#Redraw" type="Button" parent="."]
-layout_mode = 0
-offset_left = 3.0
-offset_top = 439.0
-offset_right = 122.0
-offset_bottom = 474.0
-text = "Redraw "
+[node name="Spacer2" type="Control" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="Redraw" type="Button" parent="MainVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Redraw"

@@ -3,6 +3,8 @@ extends HBoxContainer
 # Hand: renders the player's current hand of tiles and handles selection.
 # Uses HBoxContainer for automatic horizontal layout of Button tiles.
 
+signal hand_count_changed(current, max_size)
+
 const HAND_SIZE: int = 10
 var TileScene = preload("res://scenes/tile/Tile.tscn")
 
@@ -11,9 +13,17 @@ var _tile_models: Array = [] # TileModel objects backing the hand
 
 func _ready():
 	print("[hand] HBoxContainer ready")
+	# Connect to EventBus for right-click discard
+	if EventBus and EventBus.has_signal("hand_tile_right_clicked"):
+		EventBus.connect("hand_tile_right_clicked", Callable(self, "_on_tile_right_clicked"))
 	# Request initial hand from TileBag (if available)
 	if TileBag:
 		draw_new_hand()
+
+func _on_tile_right_clicked(tile_node):
+	# Handle right-click on a hand tile to discard it
+	print("[hand] Tile right-clicked for discard")
+	discard_tiles([tile_node])
 
 func draw_new_hand():
 	clear_hand()
@@ -35,6 +45,7 @@ func draw_new_hand():
 			_tiles_nodes.append(tnode)
 			print("[hand] Added tile ", i, " letter: ", m.letter)
 	print("[hand] Drew ", _tiles_nodes.size(), " tiles total")
+	_update_hand_count_display()
 
 func clear_hand():
 	for n in _tiles_nodes:
@@ -42,6 +53,7 @@ func clear_hand():
 			n.queue_free()
 	_tiles_nodes.clear()
 	_tile_models.clear()
+	_update_hand_count_display()
 
 func redraw_hand_returning():
 	# Return current tile models to TileBag, then draw a fresh hand
@@ -59,6 +71,7 @@ func remove_one_tile_by_node(node) -> bool:
 			_tile_models.remove_at(idx)
 		if is_instance_valid(node):
 			node.queue_free()
+		_update_hand_count_display()
 		return true
 	return false
 
@@ -89,31 +102,63 @@ func refill_hand() -> int:
 			_tile_models.append(m)
 	
 	print("[hand] Refilled ", drawn.size(), " tiles. Hand now: ", _tiles_nodes.size())
+	_update_hand_count_display()
 	return drawn.size()
 
 func get_current_hand_size() -> int:
 	return _tiles_nodes.size()
 
-func discard_selected_tile(tile_node) -> bool:
-	# Discard a specific tile from hand to the discard pile (via TileBag).
-	# Returns true if successfully discarded.
-	if not tile_node or not tile_node in _tiles_nodes:
-		print("[hand] Cannot discard - tile not in hand")
-		return false
+
+
+func discard_tiles(tile_nodes: Array) -> int:
+	# Discard multiple tiles and draw replacements.
+	# Returns the number of tiles successfully discarded.
+	var discarded_count = 0
+	var discarded_models = []
 	
-	var idx = _tiles_nodes.find(tile_node)
-	var tile_model = null
-	if idx >= 0 and idx < _tile_models.size():
-		tile_model = _tile_models[idx]
+	for tile_node in tile_nodes:
+		if not tile_node or not tile_node in _tiles_nodes:
+			continue
+		
+		var idx = _tiles_nodes.find(tile_node)
+		if idx >= 0 and idx < _tile_models.size():
+			var tile_model = _tile_models[idx]
+			discarded_models.append(tile_model)
+			remove_one_tile_by_node(tile_node)
+			discarded_count += 1
 	
-	if tile_model and TileBag and TileBag.has_method("discard_tiles"):
-		TileBag.discard_tiles([tile_model])
-		remove_one_tile_by_node(tile_node)
-		print("[hand] Discarded tile: ", tile_model.letter)
-		return true
-	else:
-		print("[hand] Failed to discard tile")
-		return false
+	# Send all discarded tiles to TileBag discard pile
+	if discarded_models.size() > 0 and TileBag and TileBag.has_method("discard_tiles"):
+		TileBag.discard_tiles(discarded_models)
+		print("[hand] Discarded ", discarded_count, " tile(s)")
+	
+	# Draw replacement tiles
+	if discarded_count > 0 and TileBag and TileBag.has_method("draw_tiles"):
+		var drawn_tiles = TileBag.draw_tiles(discarded_count)
+		for tile_model in drawn_tiles:
+			add_single_tile(tile_model)
+		print("[hand] Drew ", drawn_tiles.size(), " replacement tile(s)")
+	
+	return discarded_count
+
+func add_single_tile(tile_model) -> void:
+	# Add a single tile to the hand (used for discards and refills)
+	var tnode = TileScene.instantiate()
+	if tnode and tnode.has_method("set_tile_data"):
+		if not tnode.is_connected("tile_selected", Callable(self, "_on_tile_selected")):
+			tnode.connect("tile_selected", Callable(self, "_on_tile_selected"))
+		add_child(tnode)
+		tnode.set_tile_data(tile_model)
+		_tiles_nodes.append(tnode)
+		_tile_models.append(tile_model)
+		_update_hand_count_display()
+
+func _update_hand_count_display():
+	var current = _tiles_nodes.size()
+	emit_signal("hand_count_changed", current, HAND_SIZE)
+	var label = get_node_or_null("HandCountLabel")
+	if label:
+		label.text = "Hand: %d" % current
 
 func _on_tile_selected(tile_node):
 	# Tile already emits to EventBus directly in tile.gd select() method
