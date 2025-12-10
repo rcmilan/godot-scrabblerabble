@@ -62,6 +62,59 @@ func remove_one_tile_by_node(node) -> bool:
 		return true
 	return false
 
+func refill_hand() -> int:
+	# Draw tiles from TileBag to fill hand back to HAND_SIZE.
+	# Returns the number of tiles drawn.
+	var current_size = _tiles_nodes.size()
+	if current_size >= HAND_SIZE:
+		print("[hand] Hand is already full (", current_size, "/", HAND_SIZE, ")")
+		return 0
+	
+	var needed = HAND_SIZE - current_size
+	if not TileBag:
+		print("[hand] TileBag not available for refill")
+		return 0
+	
+	var drawn = TileBag.draw_tiles(needed)
+	print("[hand] Refilling hand: need ", needed, ", drew ", drawn.size())
+	
+	for m in drawn:
+		var tnode = TileScene.instantiate()
+		if tnode and tnode.has_method("set_tile_data"):
+			if not tnode.is_connected("tile_selected", Callable(self, "_on_tile_selected")):
+				tnode.connect("tile_selected", Callable(self, "_on_tile_selected"))
+			add_child(tnode)
+			tnode.set_tile_data(m)
+			_tiles_nodes.append(tnode)
+			_tile_models.append(m)
+	
+	print("[hand] Refilled ", drawn.size(), " tiles. Hand now: ", _tiles_nodes.size())
+	return drawn.size()
+
+func get_current_hand_size() -> int:
+	return _tiles_nodes.size()
+
+func discard_selected_tile(tile_node) -> bool:
+	# Discard a specific tile from hand to the discard pile (via TileBag).
+	# Returns true if successfully discarded.
+	if not tile_node or not tile_node in _tiles_nodes:
+		print("[hand] Cannot discard - tile not in hand")
+		return false
+	
+	var idx = _tiles_nodes.find(tile_node)
+	var tile_model = null
+	if idx >= 0 and idx < _tile_models.size():
+		tile_model = _tile_models[idx]
+	
+	if tile_model and TileBag and TileBag.has_method("discard_tiles"):
+		TileBag.discard_tiles([tile_model])
+		remove_one_tile_by_node(tile_node)
+		print("[hand] Discarded tile: ", tile_model.letter)
+		return true
+	else:
+		print("[hand] Failed to discard tile")
+		return false
+
 func _on_tile_selected(tile_node):
 	# Tile already emits to EventBus directly in tile.gd select() method
 	# This handler is kept for potential future Hand-specific logic

@@ -34,6 +34,8 @@ var ScoringClass = preload("res://scripts/logic/scoring.gd")
 var scoring = null
 var BoardViewClass = preload("res://scripts/ui/board_view.gd")
 var board_view = null
+var RoundManagerClass = preload("res://scripts/logic/round_manager.gd")
+var round_manager = null
 
 var last_overall_valid: bool = false
 var last_valid_ranges: Array = []
@@ -49,6 +51,12 @@ func _ready():
 	# scoring instance (add as child so its _ready runs and it can add its helpers)
 	scoring = ScoringClass.new()
 	add_child(scoring)
+	
+	# round manager for gameplay loop
+	round_manager = RoundManagerClass.new()
+	add_child(round_manager)
+	round_manager.start_round(1, 100, 10)  # Round 1, target 100, 10 plays
+	
 	# Ensure Debug UI (editor scene) is available before choosing the BoardView.
 	_create_debug_ui()
 	
@@ -254,6 +262,28 @@ func _on_place_A() -> void:
 func _on_print_board() -> void:
 	print_board()
 
+func _on_print_rack_pressed() -> void:
+	# Print current rack state to debug console
+	if not TileBag:
+		print("[word_test] TileBag not available")
+		return
+	
+	var total_count = TileBag.get_remaining_tile_count()
+	var discard_count = TileBag.get_discarded_tile_count()
+	var tile_counts = TileBag.get_tile_counts_by_letter()
+	
+	print("=== RACK STATE ===")
+	print("Total tiles in rack: ", total_count)
+	print("Discarded tiles: ", discard_count)
+	print("Tiles by letter:")
+	
+	# Sort letters alphabetically for consistent output
+	var letters = tile_counts.keys()
+	letters.sort()
+	for letter in letters:
+		print("  ", letter, ": ", tile_counts[letter])
+	print("==================")
+
 
 func _on_place_button_pressed() -> void:
 	var letter_node = _find_debug("LetterInput")
@@ -339,6 +369,32 @@ func _on_remove_all_pressed() -> void:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
 
 
+func _on_discard_pressed() -> void:
+	# Discard the currently selected tile (if any) and draw a replacement.
+	if not selected_hand_tile:
+		print("[word_test] No tile selected to discard")
+		return
+	
+	# Check if the selected tile is already placed on board
+	if selected_hand_tile in hand_tile_to_pos:
+		print("[word_test] Cannot discard - tile is placed on board. Remove it first.")
+		return
+	
+	var hand_node = _find_debug("Hand")
+	if hand_node and hand_node.has_method("discard_selected_tile"):
+		var discarded = hand_node.discard_selected_tile(selected_hand_tile)
+		if discarded:
+			selected_hand_tile = null
+			# Refill immediately
+			if hand_node.has_method("refill_hand"):
+				var refilled = hand_node.refill_hand()
+				print("[word_test] Discarded tile and drew ", refilled, " replacement(s)")
+		else:
+			print("[word_test] Failed to discard tile")
+	else:
+		print("[word_test] Hand node or discard method not found")
+
+
 func _on_redraw_hand_pressed() -> void:
 	# Clear all temp tiles from board first (placed hand tiles)
 	board.clear_temp_tiles()
@@ -381,10 +437,40 @@ func _on_evaluate_pressed() -> void:
 	EventBus.score_updated.emit(current_score)
 	print("[word_test] turn score: ", turn_score, " | total score: ", current_score)
 
+	# Count how many tiles were used (for refill)
+	var tiles_used = pos_to_hand_tile.size()
+	print("[word_test] Committing ", tiles_used, " tiles to board")
+
 	# Commit temp tiles as the score is being accepted (use turn 0 for debug)
 	board.commit_temp_tiles(0)
 	print("[word_test] committed temp tiles")
 	print_board()
+	
+	# Remove committed tiles from hand (they're now on the board permanently)
+	# Note: We don't return them to bag or discard - they stay on board
+	for tile_node in pos_to_hand_tile.values():
+		if is_instance_valid(tile_node):
+			# Remove from hand's internal tracking
+			var hand_node = _find_debug("Hand")
+			if hand_node and hand_node.has_method("remove_one_tile_by_node"):
+				hand_node.remove_one_tile_by_node(tile_node)
+	
+	# Clear mappings
+	pos_to_hand_tile.clear()
+	hand_tile_to_pos.clear()
+	selected_hand_tile = null
+	
+	# Refill hand from tile bag
+	var hand_node = _find_debug("Hand")
+	if hand_node and hand_node.has_method("refill_hand"):
+		var refilled = hand_node.refill_hand()
+		print("[word_test] Refilled ", refilled, " tiles to hand")
+		EventBus.tiles_committed.emit(tiles_used)
+	
+	# Notify round manager of completed play
+	if round_manager:
+		round_manager.complete_play(turn_score, current_score)
+	
 	# Clear last validation
 	last_overall_valid = false
 	last_valid_ranges = []
@@ -681,9 +767,11 @@ func _wire_ui_controls(ui_root: Node) -> void:
 	_connect_pressed(ui_root, "Validate", "_on_validate_hello")
 	_connect_pressed(ui_root, "PlaceA", "_on_place_A")
 	_connect_pressed(ui_root, "Print", "_on_print_board")
+	_connect_pressed(ui_root, "PrintRack", "_on_print_rack_pressed")
 	_connect_pressed(ui_root, "RemoveAll", "_on_remove_all_pressed")
 	_connect_pressed(ui_root, "EvaluateBtn", "_on_evaluate_pressed")
 	_connect_pressed(ui_root, "Redraw", "_on_redraw_hand_pressed")
+	_connect_pressed(ui_root, "Discard", "_on_discard_pressed")
 	# Placement controls
 	_connect_pressed(ui_root, "Place", "_on_place_button_pressed")
 	_connect_pressed(ui_root, "Remove", "_on_remove_button_pressed")

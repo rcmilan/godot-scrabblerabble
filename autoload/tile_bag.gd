@@ -1,8 +1,12 @@
 extends Node
 
 # TileBag: Generates and provides letter tiles.
+# Tracks both the active tile pool and discarded tiles for round-based gameplay.
 
 signal tiles_drawn(new_tiles)
+signal tiles_discarded(discarded_tiles)
+signal hand_refilled(refill_count)
+signal rack_count_changed(total_count)
 
 # Letter distribution: vowels (A,E,I,O,U) = 3 copies, common letters = 2 copies, high-point letters = 1 copy
 # Point values remain standard Scrabble-like scoring
@@ -17,6 +21,7 @@ const LETTER_DISTRIBUTION = {
 }
 
 var _tile_pool = []
+var _discarded_tiles = []  # Tiles that have been discarded this round
 
 func _ready():
 	_initialize_tile_pool()
@@ -42,6 +47,7 @@ func draw_tiles(count: int):
 		drawn_tiles.append(_tile_pool.pop_front())
 	
 	emit_signal("tiles_drawn", drawn_tiles)
+	emit_signal("rack_count_changed", _tile_pool.size())
 	return drawn_tiles
 
 
@@ -51,8 +57,35 @@ func return_tiles(tiles: Array) -> void:
 		if t != null:
 			_tile_pool.append(t)
 	_tile_pool.shuffle()
+	emit_signal("rack_count_changed", _tile_pool.size())
+
+func discard_tiles(tiles: Array) -> void:
+	# Discard tiles - they go to discard pile, not back to the active pool.
+	# Discarded tiles are removed from play for the current round.
+	for t in tiles:
+		if t != null:
+			_discarded_tiles.append(t)
+	emit_signal("tiles_discarded", tiles)
+	print("[tile_bag] Discarded ", tiles.size(), " tiles. Discard pile: ", _discarded_tiles.size())
 
 func get_remaining_tile_count() -> int:
 	return _tile_pool.size()
 
-# TODO: Add functionality to return tiles to the bag if needed.
+func get_discarded_tile_count() -> int:
+	return _discarded_tiles.size()
+
+func get_tile_counts_by_letter() -> Dictionary:
+	# Returns a dictionary with letter counts currently in the rack (tile pool)
+	var counts = {}
+	for tile in _tile_pool:
+		if tile and tile.letter:
+			if not counts.has(tile.letter):
+				counts[tile.letter] = 0
+			counts[tile.letter] += 1
+	return counts
+
+func reset_round() -> void:
+	# Reset for a new round: return discarded tiles to pool and reinitialize.
+	print("[tile_bag] Resetting round. Returning ", _discarded_tiles.size(), " discarded tiles to pool.")
+	_initialize_tile_pool()
+	emit_signal("rack_count_changed", _tile_pool.size())
