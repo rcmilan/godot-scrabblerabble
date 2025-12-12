@@ -4,28 +4,76 @@ Session progress snapshot
 Session progress snapshot
 ========================
 
-Date: 2025-11-27
+Date: 2025-12-12 (Latest Session)
 
-Work completed in this session (safe, minimal changes):
-- Added a non-destructive debug prototype: `scenes/debug/Debug.tscn` and `scripts/debug/word_test.gd` exposing console helpers `validate_word`, `place_tile_for_test`, and `print_board`.
-- Created a small runtime debug UI (CanvasLayer -> Panel -> VBox -> Buttons) so the helpers can be invoked by clicking when the Editor Evaluator is unavailable.
-- Fixed several Godot 4 API mismatches that caused runtime/parser errors:
-  - Replaced `String.empty()` with `String.is_empty()` in `scripts/debug/word_test.gd`.
-  - Replaced `Array.empty()` with `Array.is_empty()` in `autoload/tile_bag.gd`.
-  - Updated Control property usage for Godot 4 (`rect_position`/`rect_size` -> `position`/`size`) used in the runtime UI.
-- Made small, defensive scoring/FuncRef changes to avoid engine-specific `funcref()` typing issues (see `scripts/logic/scoring.gd`).
-- Created/maintained safe backups when the `project.godot` file was edited during import troubleshooting.
+Work completed in this session (major architecture improvements):
 
-What works now (how to reproduce quickly):
-1. Open the project in Godot 4 and run `scenes/debug/Debug.tscn`.
-2. Use the on-screen debug panel (top-left) to validate words, place a tile at (7,7), and print the board.
-3. Debug prints appear in the Output/Debugger console (example: `[word_test] Ready. Dictionary size: 5`).
+**1. Board Architecture Refactoring**
+- Centralized BoardModel management inside `scenes/board/board.gd`
+- board.gd now owns a BoardModel instance and delegates all operations (place_tile, remove_temp_tile, get_temp_positions, etc.)
+- Eliminated duplicate BoardModel instantiation in Main and Debug scenes
+- Fixed parameter mismatches: `temporary` (not `is_temp`), `turn_id` (not `turn_number`), `remove_temp_tile()` returns void (not bool)
+- Added BoardModel as child node so `_ready()` runs and initializes grid
 
-Remaining warnings & recommended cleanup (options for next session):
-1. Repository hygiene (low-risk): replace any remaining `.empty()` usages with `.is_empty()` and normalize `.gd` indentation to 4 spaces; add an `.editorconfig`.
-2. Iterative repair (medium effort): address remaining warnings (unused parameters/variables, shadowed names like `owner`, duplicate local names like `TileModel`) — either rename or prefix unused ones with `_`.
-3. Make the debug UI persistent in `scenes/debug/Debug.tscn` (so it can be styled and edited in the Editor), or add input fields so you can type arbitrary words/coords from the running UI.
-4. (Optional) Create a small branch/PR with all low-risk fixes so they can be reviewed before merging into the main team repo.
+**2. Debug Overlay System**
+- Created DebugManager autoload with F12/tilde toggle
+- Split old HUD into MainHUD (production) + DebugOverlay (debug tools)
+- DebugOverlay (layer 100): Check Word, Remove All, Redraw Hand, Print Rack buttons
+- MainHUD (layer 0): Plays, Score, Target, Rack, Hand, Discards counters + Play/Discard buttons
+- F12 toggle works in both Main and Debug scenes
+
+**3. Main Scene Full Implementation**
+- Ported complete game logic from word_test.gd to main.gd:
+  - RoundManager instantiation and initialization
+  - Score tracking with EventBus emission
+  - Full discard logic (_on_discard_pressed)
+  - Full play/evaluate logic (_on_evaluate_pressed)
+  - Tile placement and removal with validation
+- Fixed validation logic: proper "any valid + all tiles covered" checking (not just "all ranges valid")
+- Added word_checker as child so dictionary loads correctly
+- Added debug compatibility methods (validate_word, _on_remove_all_pressed, _on_redraw_hand_pressed, _on_print_rack_pressed)
+
+**4. Signal Architecture & EventBus**
+- Tiles emit via EventBus.hand_tile_selected (not direct Hand signal)
+- Both Main and Debug connect to EventBus for tile selection
+- Consistent signal handling across scenes
+
+**5. UI Positioning & Layout**
+- Board: 11×11 cells at 48px = 528×528px
+- Centered board in Main.tscn with proper absolute positioning
+- Hand positioned below board with 10px gap
+- Play/Discard buttons positioned relative to Hand (25px offset left/right)
+- Created `.github/game-configuration.md` with canonical dimensions
+
+**6. Code Quality**
+- Fixed indentation errors in main.gd
+- Verified no legacy Godot 3 code (all using Godot 4 syntax)
+- Ensured proper parameter naming consistency across delegation methods
+
+What works now (how to reproduce):
+1. Open project in Godot 4 and run `scenes/debug/Debug.tscn` OR `scenes/main/Main.tscn`
+2. Both scenes fully functional with complete game logic
+3. Click tiles in hand to select, click board to place, right-click board to remove
+4. Play button enables when valid words formed, disables after playing
+5. Press F12 in either scene to toggle debug overlay
+6. Debug overlay: Check Word, Remove All, Redraw Hand, Print Rack all working
+7. Discard button: select tile in hand, click Discard, tile returns to bag and draws new one
+8. Play button: validates words, calculates score, commits tiles, refills hand, updates round manager
+
+Remaining TODO items (from checklist):
+1. **Change refill behavior to 3 tiles** - currently refills to max (10 tiles)
+2. **Update round manager for 3-play limit** - currently 10 plays per round
+3. **Add consecutive wins counter** - track wins across rounds
+4. **Implement full reset on win/loss** - clear board, reset hand, reset counters
+5. **Update HUD plays display** - adjust for 3-play limit
+6. **Test and adjust UI positioning** - final polish after mechanics complete
+
+Architecture notes for next session:
+- Main and Debug scenes now share identical game logic
+- Both scenes compatible with DebugOverlay (F12 toggle)
+- Board operations centralized in board.gd (single source of truth)
+- Components communicate via EventBus signals (scene-agnostic)
+- All game logic entities (WordChecker, Scoring, RoundManager) must be added as children so `_ready()` runs
 
 Notes about saving context between sessions:
 - This repository is the single-source of truth for resuming work: commit the changes (or create a branch) before switching machines or sharing with the team.
