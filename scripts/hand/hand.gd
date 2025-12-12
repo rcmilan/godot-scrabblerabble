@@ -163,9 +163,6 @@ func add_single_tile(tile_model) -> void:
 func _update_hand_count_display():
 	var current = _tiles_nodes.size()
 	emit_signal("hand_count_changed", current, HAND_SIZE)
-	var label = get_node_or_null("HandCountLabel")
-	if label:
-		label.text = "Hand: %d" % current
 
 func _on_tile_selected(tile_node):
 	# Tile already emits to EventBus directly in tile.gd select() method

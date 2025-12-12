@@ -20,7 +20,7 @@ extends Node
 # - All state changes propagate through the tile object (set_temp_used, select, deselect)
 # wt.print_board()
 
-var BoardModel = preload("res://scripts/core/board_model.gd")
+var BoardScene = preload("res://scenes/board/Board.tscn")
 var DictionaryLoader = preload("res://scripts/util/dictionary_loader.gd")
 var TileModelClass = preload("res://scripts/core/tile_model.gd")
 var LETTER_VALUES = {
@@ -36,6 +36,7 @@ var BoardViewClass = preload("res://scripts/ui/board_view.gd")
 var board_view = null
 var RoundManagerClass = preload("res://scripts/logic/round_manager.gd")
 var round_manager = null
+var main_hud = null
 
 var last_overall_valid: bool = false
 var last_valid_ranges: Array = []
@@ -46,7 +47,8 @@ var current_score: int = 0
 var discard_count: int = 0
 
 func _ready():
-	board = BoardModel.new()
+	# Instantiate Board scene (which manages BoardModel internally)
+	board = BoardScene.instantiate()
 	add_child(board)
 
 	# scoring instance (add as child so its _ready runs and it can add its helpers)
@@ -61,8 +63,8 @@ func _ready():
 	# Ensure Debug UI (editor scene) is available before choosing the BoardView.
 	_create_debug_ui()
 	
-	# Instance HUD to display score
-	var hud_path = "res://scenes/ui/HUD.tscn"
+	# Instance MainHUD to display score and game state
+	var hud_path = "res://scenes/ui/MainHUD.tscn"
 	if FileAccess.file_exists(hud_path):
 		var hud_packed = load(hud_path)
 		if hud_packed and hud_packed is PackedScene:
@@ -72,6 +74,12 @@ func _ready():
 				scene_root.add_child(hud_inst)
 			else:
 				add_child(hud_inst)
+			# Store MainHUD reference
+			main_hud = hud_inst
+			# Connect hand counter signal to MainHUD
+			var hand_node = _find_debug("Hand")
+			if hand_node and hand_node.has_signal("hand_count_changed"):
+				hand_node.connect("hand_count_changed", Callable(hud_inst, "_on_hand_count_changed"))
 	
 	# Emit initial score
 	EventBus.score_updated.emit(current_score)
@@ -200,9 +208,9 @@ func _run_incremental_validation() -> void:
 	last_overall_valid = overall_valid
 	last_valid_ranges = valid_ranges
 
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = not last_overall_valid
+	# Update Play button state in MainHUD
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(last_overall_valid)
 
 	# update board view visual
 	if board_view:
@@ -302,10 +310,9 @@ func _on_place_button_pressed() -> void:
 	var x = int(xs)
 	var y = int(ys)
 	place_tile_for_test(letter, x, y)
-	# update Evaluate button state
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = not last_overall_valid
+	# update Play button state
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(last_overall_valid)
 
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
@@ -338,9 +345,9 @@ func _on_remove_button_pressed() -> void:
 	print_board()
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = not last_overall_valid
+	# Update Play button state
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(last_overall_valid)
 
 
 func _on_remove_all_pressed() -> void:
@@ -363,9 +370,9 @@ func _on_remove_all_pressed() -> void:
 	
 	_run_incremental_validation()
 	print_board()
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = true
+	# Disable Play button (no tiles placed)
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(false)
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
 
@@ -472,12 +479,11 @@ func _on_evaluate_pressed() -> void:
 	if round_manager:
 		round_manager.complete_play(turn_score, current_score)
 	
-	# Clear last validation
+	# Clear last validation and disable Play button
 	last_overall_valid = false
 	last_valid_ranges = []
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = true
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(false)
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
 
@@ -514,9 +520,9 @@ func _on_board_cell_clicked(pos: Vector2i) -> void:
 	var letter = text.to_upper()[0]
 	place_tile_for_test(str(letter), pos.x, pos.y)
 
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = not last_overall_valid
+	# Update Play button state
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(last_overall_valid)
 
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
@@ -573,9 +579,9 @@ func _on_board_cell_right_clicked(pos: Vector2i) -> void:
 	if board_view:
 		board_view.show_combined_grid(board.get_combined_grid_view(), board.get_temp_positions())
 
-	var eval_btn = _find_debug("EvaluateBtn")
-	if eval_btn:
-		eval_btn.disabled = not last_overall_valid
+	# Update Play button state
+	if main_hud and main_hud.has_method("set_play_button_enabled"):
+		main_hud.set_play_button_enabled(last_overall_valid)
 
 
 func _score_word_string(word: String) -> int:
@@ -746,42 +752,12 @@ func _wire_ui_controls(ui_root: Node) -> void:
 		return
 
 
-	# Debug: list ui_root children and expected controls for verification
-	var child_names: Array = []
-	for c in ui_root.get_children():
-		child_names.append(c.name)
-	print("[word_test][ui] wiring under:", ui_root, " children:", child_names)
+	# Old UI controls removed - now in DebugOverlay or MainHUD
+	# Minimal wiring needed here
 
-	var expected_controls = ["LetterInput", "Check", "Validate", "PlaceA", "Print", "RemoveAll", "EvaluateBtn", "Place", "Remove", "SelectedLetterLabel", "XInput", "YInput", "WordInput"]
-	for en in expected_controls:
-		var found = _find_descendant(ui_root, en)
-		print("[word_test][ui] lookup ->", en, "->", (found != null))
+	# Note: Most UI controls are now in DebugOverlay (F12 toggle)
+	# or removed entirely. This wiring is minimal now.
 
-	# Connect lineedit text_changed
-	var letter_le = _find_descendant(ui_root, "LetterInput")
-	if letter_le and letter_le is LineEdit:
-		if not letter_le.is_connected("text_changed", Callable(self, "_on_letter_changed")):
-			letter_le.connect("text_changed", Callable(self, "_on_letter_changed"))
-
-	# Connect WordInput check button (Check) if present
-	_connect_pressed(ui_root, "Check", "_on_check_word_pressed")
-	_connect_pressed(ui_root, "Validate", "_on_validate_hello")
-	_connect_pressed(ui_root, "PlaceA", "_on_place_A")
-	_connect_pressed(ui_root, "Print", "_on_print_board")
-	_connect_pressed(ui_root, "PrintRack", "_on_print_rack_pressed")
-	_connect_pressed(ui_root, "Discard", "_on_discard_pressed")
-	_connect_pressed(ui_root, "RemoveAll", "_on_remove_all_pressed")
-	_connect_pressed(ui_root, "EvaluateBtn", "_on_evaluate_pressed")
-	_connect_pressed(ui_root, "Redraw", "_on_redraw_hand_pressed")
-	_connect_pressed(ui_root, "Discard", "_on_discard_pressed")
-	# Placement controls
-	_connect_pressed(ui_root, "Place", "_on_place_button_pressed")
-	_connect_pressed(ui_root, "Remove", "_on_remove_button_pressed")
-
-	# Ensure Evaluate button disabled state matches last validation
-	var eval_btn = _find_descendant(ui_root, "EvaluateBtn")
-	if eval_btn and eval_btn is Button:
-		eval_btn.disabled = not last_overall_valid
 
 	# TODO: Alphabet mini-keyboard will be moved to a toggleable debug panel
 	# in the bottom-left corner of the screen. This will be part of an expanded
