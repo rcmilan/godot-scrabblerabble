@@ -388,7 +388,7 @@ func _on_discard_pressed() -> void:
 		var discarded = hand_node.discard_tiles(tiles_to_discard)
 		if discarded > 0:
 			discard_count += discarded
-			print("[word_test] Total discards: ", discard_count)
+			print("[word_test] Discard button handled by hand.gd")
 			selected_hand_tile = null
 		else:
 			print("[word_test] Failed to discard tile")

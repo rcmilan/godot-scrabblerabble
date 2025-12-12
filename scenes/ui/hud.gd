@@ -7,16 +7,22 @@ extends CanvasLayer
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var rack_label: Label = $RackLabel
+@onready var discard_label: Label = $DiscardLabel
+@onready var discard_pile_label: Label = $DiscardPileLabel
 @onready var game_over_label: Label = $GameOverLabel
 
 func _ready():
 	EventBus.connect("score_updated", Callable(self, "_on_score_updated"))
+	EventBus.connect("discard_count_changed", Callable(self, "_on_discard_count_changed"))
+	EventBus.connect("discard_pile_changed", Callable(self, "_on_discard_pile_changed"))
 	
 	# Connect to TileBag for rack count updates
 	if TileBag:
 		TileBag.connect("rack_count_changed", Callable(self, "_on_rack_count_changed"))
 		# Set initial rack count
 		_on_rack_count_changed(TileBag.get_remaining_tile_count())
+		# Set initial discard pile count
+		_on_discard_pile_changed(TileBag.get_discarded_tile_count())
 	
 	game_over_label.hide()
 	
@@ -49,6 +55,12 @@ func _on_score_updated(new_score: int):
 
 func _on_rack_count_changed(count: int):
 	rack_label.text = "Rack: %d" % count
+
+func _on_discard_count_changed(total_discards: int):
+	discard_label.text = "Discards: %d" % total_discards
+
+func _on_discard_pile_changed(pile_size: int):
+	discard_pile_label.text = "Pile: %d" % pile_size
 
 func _on_game_won():
 	game_over_label.show()

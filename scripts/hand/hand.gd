@@ -7,6 +7,7 @@ signal hand_count_changed(current, max_size)
 
 const HAND_SIZE: int = 10
 var TileScene = preload("res://scenes/tile/Tile.tscn")
+var _discard_count: int = 0  # Total discards this session
 
 var _tiles_nodes: Array = [] # nodes (Tile instances)
 var _tile_models: Array = [] # TileModel objects backing the hand
@@ -131,6 +132,12 @@ func discard_tiles(tile_nodes: Array) -> int:
 	if discarded_models.size() > 0 and TileBag and TileBag.has_method("discard_tiles"):
 		TileBag.discard_tiles(discarded_models)
 		print("[hand] Discarded ", discarded_count, " tile(s)")
+		
+		# Update discard count and emit signals
+		_discard_count += discarded_count
+		EventBus.emit_signal("discard_count_changed", _discard_count)
+		EventBus.emit_signal("discard_pile_changed", TileBag.get_discarded_tile_count())
+		print("[hand] Total discards: ", _discard_count)
 	
 	# Draw replacement tiles
 	if discarded_count > 0 and TileBag and TileBag.has_method("draw_tiles"):
