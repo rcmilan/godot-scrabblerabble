@@ -21,15 +21,17 @@ extends Node
 # wt.print_board()
 
 var BoardScene = preload("res://scenes/board/Board.tscn")
-var DictionaryLoader = preload("res://scripts/util/dictionary_loader.gd")
 var TileModelClass = preload("res://scripts/core/tile_model.gd")
+var WordCheckerClass = preload("res://scripts/core/word_checker.gd")
+var ValidationHelperClass = preload("res://scripts/logic/validation_helper.gd")
 var LETTER_VALUES = {
 	"A":1,"B":3,"C":3,"D":2,"E":1,"F":4,"G":2,"H":4,"I":1,"J":8,"K":5,"L":1,"M":3,
 	"N":1,"O":1,"P":3,"Q":10,"R":1,"S":1,"T":1,"U":1,"V":4,"W":4,"X":8,"Y":4,"Z":10
 }
 
 var board: Node = null
-var dictionary = {}
+var word_checker = null
+var validation_helper = null
 var ScoringClass = preload("res://scripts/logic/scoring.gd")
 var scoring = null
 var BoardViewClass = preload("res://scripts/ui/board_view.gd")
@@ -51,6 +53,13 @@ func _ready():
 	board = BoardScene.instantiate()
 	add_child(board)
 
+	# Initialize word checker (add as child so dictionary loads in _ready)
+	word_checker = WordCheckerClass.new()
+	add_child(word_checker)
+	
+	# Initialize validation helper with word checker
+	validation_helper = ValidationHelperClass.new(word_checker)
+	
 	# scoring instance (add as child so its _ready runs and it can add its helpers)
 	scoring = ScoringClass.new()
 	add_child(scoring)
@@ -100,19 +109,18 @@ func _ready():
 			EventBus.connect("hand_letter_selected", Callable(self, "_on_hand_letter_selected"))
 		if not EventBus.is_connected("hand_tile_selected", Callable(self, "_on_hand_tile_selected")):
 			EventBus.connect("hand_tile_selected", Callable(self, "_on_hand_tile_selected"))
-	var loader = DictionaryLoader.new()
-	dictionary = loader.load_dictionary()
-	print("[word_test] Ready. Dictionary size: ", dictionary.size())
+	
+	print("[word_test] Ready")
 
 	# Create a small runtime UI so you can click debug helpers when the Evaluator is unavailable.
 	# This is non-destructive: it only adds UI nodes at runtime and does not change scenes on disk.
 	_create_debug_ui()
 
 func validate_word(word: String) -> bool:
-	# GDScript String uses is_empty(); avoid calling non-existent member `empty()`
+	# Validate a word against the dictionary (for debug overlay compatibility)
 	if word.is_empty():
 		return false
-	return dictionary.has(word.to_lower())
+	return word_checker.is_valid_word(word)
 
 func place_tile_for_test(letter: String, x: int, y: int, hand_tile_node: Node = null) -> bool:
 	# Create a simple TileModel-like object (use the preloaded TileModelClass)
@@ -156,57 +164,22 @@ func _run_incremental_validation() -> void:
 		print("[word_test] no temp positions")
 		return
 
-	var ranges = board.get_candidate_ranges_for_positions(temp_positions)
+	# Use validation helper to perform validation
+	var result = validation_helper.run_incremental_validation(board, temp_positions)
 	var combined = board.get_combined_grid_view()
-
-	var any_valid = false
-	var valid_ranges = []
-
-	# Evaluate each candidate range
+	
+	# Log validation results for each range (for debugging)
+	var ranges = board.get_candidate_ranges_for_positions(temp_positions)
 	for r in ranges:
-		var s = r.start
-		var e = r.end
-		var word = ""
-		if s.y == e.y:
-			for x in range(s.x, e.x + 1):
-				var t = combined[s.y][x]
-				word += (t.letter if t else "")
-		else:
-			for y in range(s.y, e.y + 1):
-				var t = combined[y][s.x]
-				word += (t.letter if t else "")
-
-		var is_valid = validate_word(word)
-		print("[word_test] candidate: ", word, " -> valid:", is_valid, " range:", s, e)
-		if is_valid:
-			any_valid = true
-			valid_ranges.append(r)
-
-	# Now check that every temp tile is part of at least one valid range
-	var all_temp_covered = true
-	for pos in temp_positions:
-		var covered = false
-		for vr in valid_ranges:
-			var s = vr.start
-			var e = vr.end
-			if s.y == e.y:
-				if pos.y == s.y and pos.x >= s.x and pos.x <= e.x:
-					covered = true
-					break
-			else:
-				if pos.x == s.x and pos.y >= s.y and pos.y <= e.y:
-					covered = true
-					break
-		if not covered:
-			all_temp_covered = false
-			break
-
-	var overall_valid = any_valid and all_temp_covered
-	print("[word_test] incremental validation -> any_valid:", any_valid, " all_temp_covered:", all_temp_covered, " overall_valid:", overall_valid)
+		var word = validation_helper.extract_word_from_range(combined, r.start, r.end)
+		var is_valid = word_checker.is_valid_word(word)
+		print("[word_test] candidate: ", word, " -> valid:", is_valid, " range:", r.start, r.end)
+	
+	print("[word_test] incremental validation -> any_valid:", result.any_valid, " all_temp_covered:", result.all_temp_covered, " overall_valid:", result.is_valid)
 
 	# store last validation state for UI and evaluate button
-	last_overall_valid = overall_valid
-	last_valid_ranges = valid_ranges
+	last_overall_valid = result.is_valid
+	last_valid_ranges = result.valid_ranges
 
 	# Update Play button state in MainHUD
 	if main_hud and main_hud.has_method("set_play_button_enabled"):
