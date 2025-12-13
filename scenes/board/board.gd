@@ -8,8 +8,8 @@ extends Node2D
 # - Optionally snap tile visuals to cell centers
 # - Provide a centralized API for board operations
 
-const BOARD_WIDTH := 15
-const BOARD_HEIGHT := 15
+const BOARD_WIDTH := 11
+const BOARD_HEIGHT := 11
 @export var cell_size: int = 60 # pixels per cell; keep consistent with Rack TILE_SPACING
 
 # Board model instance
