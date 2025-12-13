@@ -6,6 +6,7 @@ extends Node
 var word_checker = null
 
 func _init(checker):
+	assert(checker != null, "ValidationHelper requires a valid word_checker instance")
 	word_checker = checker
 
 func run_incremental_validation(board: Node, temp_positions: Array) -> Dictionary:

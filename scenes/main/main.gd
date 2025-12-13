@@ -266,13 +266,13 @@ func _update_board_view() -> void:
 # ============================================================================
 
 func validate_word(word: String) -> bool:
-	"""Validate a word against the dictionary (for debug overlay)"""
+	# Validate a word against the dictionary (for debug overlay)
 	if word.is_empty():
 		return false
 	return word_checker.is_valid_word(word)
 
 func _on_remove_all_pressed() -> void:
-	"""Remove all temp tiles from board (debug overlay)"""
+	# Remove all temp tiles from board (debug overlay)
 	board.clear_temp_tiles()
 	print("[main] cleared all temp tiles")
 	
@@ -294,7 +294,7 @@ func _on_remove_all_pressed() -> void:
 	_update_board_view()
 
 func _on_redraw_hand_pressed() -> void:
-	"""Redraw hand (return tiles to bag and draw new ones) (debug overlay)"""
+	# Redraw hand (return tiles to bag and draw new ones) (debug overlay)
 	# Clear all temp tiles from board first (placed hand tiles)
 	board.clear_temp_tiles()
 	_update_board_view()
@@ -312,7 +312,7 @@ func _on_redraw_hand_pressed() -> void:
 		print("[main] Hand node or redraw method not found")
 
 func _on_print_rack_pressed() -> void:
-	"""Print current rack state to debug console (debug overlay)"""
+	# Print current rack state to debug console (debug overlay)
 	if not TileBag:
 		print("[main] TileBag not available")
 		return
