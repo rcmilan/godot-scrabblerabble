@@ -20,6 +20,10 @@ func _ready():
 	gui_input.connect(_on_gui_input)
 
 func _on_gui_input(event: InputEvent):
+	# Prevent input handling on disabled or temporarily used tiles
+	if disabled or used_temp:
+		return
+	
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			print("[tile] Right-clicked tile: ", tile_data.letter if tile_data else "?")
