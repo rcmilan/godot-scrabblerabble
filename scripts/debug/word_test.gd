@@ -117,7 +117,7 @@ func _ready():
 	_create_debug_ui()
 
 func validate_word(word: String) -> bool:
-	"""Validate a word against the dictionary (for debug overlay compatibility)"""
+	# Validate a word against the dictionary (for debug overlay compatibility)
 	if word.is_empty():
 		return false
 	return word_checker.is_valid_word(word)

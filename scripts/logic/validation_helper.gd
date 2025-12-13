@@ -5,7 +5,7 @@ extends Node
 
 var word_checker = null
 
-func _init(checker = null):
+func _init(checker):
 	word_checker = checker
 
 func run_incremental_validation(board: Node, temp_positions: Array) -> Dictionary:
