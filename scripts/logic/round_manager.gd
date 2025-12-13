@@ -29,7 +29,7 @@ func start_round(round_num: int = 1, target: int = DEFAULT_TARGET_SCORE, plays: 
 	print("[round_manager] Starting round ", current_round, " with target ", target_score, " and ", plays_remaining, " plays")
 	emit_signal("round_started", current_round)
 
-func complete_play(score_earned: int, current_total_score: int) -> void:
+func complete_play(_score_earned: int, current_total_score: int) -> void:
 	# Called after a successful evaluate/commit
 	plays_remaining -= 1
 	print("[round_manager] Play completed. Plays remaining: ", plays_remaining, " | Score: ", current_total_score, "/", target_score)
