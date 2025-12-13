@@ -47,4 +47,4 @@ Core game parameters and constants used throughout the project.
 - **Debug Scene**: `res://scenes/debug/Debug.tscn` (development/testing)
 - **Main Scene**: `res://scenes/main/Main.tscn` (production gameplay)
 - **Shared Components**: MainHUD, Hand, Board, BoardView
-- **Main Scene** set to Debug in project.godot for development workflow
+- **Main scene** set to Debug in project.godot for development workflow
