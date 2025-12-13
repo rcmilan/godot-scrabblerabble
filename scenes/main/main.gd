@@ -52,6 +52,11 @@ func _ready():
 	if hand and hand.has_signal("hand_count_changed"):
 		hand.connect("hand_count_changed", Callable(main_hud, "_on_hand_count_changed"))
 	
+	# Connect MainHUD button signals
+	if main_hud:
+		main_hud.connect("discard_requested", Callable(self, "_on_discard_pressed"))
+		main_hud.connect("play_requested", Callable(self, "_on_evaluate_pressed"))
+	
 	# Wire board interaction signals
 	if board_view:
 		board_view.connect("cell_clicked", Callable(self, "_on_board_cell_clicked"))
