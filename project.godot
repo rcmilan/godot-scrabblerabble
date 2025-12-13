@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Wordatro"
 config/version="0.1"
-run/main_scene="res://scenes/debug/Debug.tscn"
+run/main_scene="uid://36g2gf7ulme7"
 config/features=PackedStringArray("4.5")
 
 [autoload]
@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.5")
 EventBus="*res://autoload/event_bus.gd"
 GameManager="*res://autoload/game_manager.gd"
 TileBag="*res://autoload/tile_bag.gd"
+DebugManager="*res://autoload/debug_manager.gd"
 
 [display]
 
@@ -28,3 +29,7 @@ window/size/height=864
 window/test_width=1536
 window/test_height=864
 window/resizable=true
+
+[dotnet]
+
+project/assembly_name="Wordatro"

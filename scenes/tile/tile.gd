@@ -6,6 +6,7 @@ extends Button
 
 signal tile_selected(tile)
 signal tile_placed(tile, board_pos)
+signal tile_right_clicked(tile)
 
 var tile_data: TileModel
 var is_selected: bool = false
@@ -15,20 +16,29 @@ func _ready():
 	print("[tile] _ready called as Button")
 	# Connect button pressed signal
 	pressed.connect(_on_pressed)
-	# Set initial visual state
-	if tile_data:
-		text = tile_data.letter
-		print("[tile] Button text set to: ", tile_data.letter)
+	# Enable gui_input for right-click detection
+	gui_input.connect(_on_gui_input)
+
+func _on_gui_input(event: InputEvent):
+	# Prevent input handling on disabled or temporarily used tiles
+	if disabled or used_temp:
+		return
+	
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			print("[tile] Right-clicked tile: ", tile_data.letter if tile_data else "?")
+			emit_signal("tile_right_clicked", self)
+			# Emit via EventBus so hand can listen
+			if EventBus and EventBus.has_signal("hand_tile_right_clicked"):
+				EventBus.emit_signal("hand_tile_right_clicked", self)
 
 func _on_pressed():
-	print("[tile] Button pressed!")
 	if not used_temp:
 		select()
 
 func set_tile_data(p_tile_data: TileModel):
 	tile_data = p_tile_data
 	text = tile_data.letter if tile_data else "?"
-	print("[tile] set_tile_data called, letter: ", tile_data.letter if tile_data else "NONE")
 
 func select():
 	print("[tile] select() called for letter: ", tile_data.letter if tile_data else "NO DATA")
