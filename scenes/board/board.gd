@@ -48,47 +48,47 @@ func snap_tile_to_grid(tile_node: Node2D, grid_pos: Vector2i) -> void:
 # ============================================================================
 
 func place_tile(tile_data, grid_pos: Vector2i, temporary: bool = false) -> bool:
-	"""Place a tile on the board (delegates to model)"""
+    # Place a tile on the board (delegates to model)
 	if not model:
 		print("[board] Error: model not initialized")
 		return false
 	return model.place_tile(tile_data, grid_pos, temporary)
 
 func remove_temp_tile(grid_pos: Vector2i) -> void:
-	"""Remove a temporary tile from the board (delegates to model)"""
+    # Remove a temporary tile from the board (delegates to model)
 	if model:
 		model.remove_temp_tile(grid_pos)
 
 func clear_temp_tiles() -> void:
-	"""Clear all temporary tiles (delegates to model)"""
+    # Clear all temporary tiles (delegates to model)
 	if model:
 		model.clear_temp_tiles()
 
 func commit_temp_tiles(turn_id: int) -> void:
-	"""Commit temporary tiles to permanent (delegates to model)"""
+    # Commit temporary tiles to permanent (delegates to model)
 	if model:
 		model.commit_temp_tiles(turn_id)
 
 func get_temp_positions() -> Array:
-	"""Get all temporary tile positions (delegates to model)"""
+    # Get all temporary tile positions (delegates to model)
 	if not model:
 		return []
 	return model.get_temp_positions()
 
 func get_combined_grid_view() -> Array:
-	"""Get combined view of permanent and temporary tiles (delegates to model)"""
+    # Get combined view of permanent and temporary tiles (delegates to model)
 	if not model:
 		return []
 	return model.get_combined_grid_view()
 
 func get_candidate_ranges_for_positions(positions: Array) -> Array:
-	"""Get candidate word ranges for given positions (delegates to model)"""
+    # Get candidate word ranges for given positions (delegates to model)
 	if not model:
 		return []
 	return model.get_candidate_ranges_for_positions(positions)
 
 func get_grid_state() -> Array:
-	"""Get the permanent grid state (delegates to model)"""
+    # Get the permanent grid state (delegates to model)
 	if not model:
 		return []
 	return model.get_grid_state()

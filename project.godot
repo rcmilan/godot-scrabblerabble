@@ -29,3 +29,7 @@ window/size/height=864
 window/test_width=1536
 window/test_height=864
 window/resizable=true
+
+[dotnet]
+
+project/assembly_name="Wordatro"
