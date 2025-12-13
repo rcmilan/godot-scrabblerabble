@@ -9,14 +9,12 @@ func _init(checker = null):
 	word_checker = checker
 
 func run_incremental_validation(board: Node, temp_positions: Array) -> Dictionary:
-	"""
-	Validates current temp placements and returns validation state.
-	Returns a dictionary with keys:
-		- is_valid: bool (overall validity)
-		- valid_ranges: Array (ranges that form valid words)
-		- any_valid: bool (at least one valid word found)
-		- all_temp_covered: bool (all temp tiles are part of valid words)
-	"""
+	# Validates current temp placements and returns validation state.
+	# Returns a dictionary with keys:
+	#   - is_valid: bool (overall validity)
+	#   - valid_ranges: Array (ranges that form valid words)
+	#   - any_valid: bool (at least one valid word found)
+	#   - all_temp_covered: bool (all temp tiles are part of valid words)
 	if temp_positions.size() == 0:
 		return {
 			"is_valid": false,
@@ -70,10 +68,8 @@ func run_incremental_validation(board: Node, temp_positions: Array) -> Dictionar
 
 
 func extract_word_from_range(grid: Array, start: Vector2i, end: Vector2i) -> String:
-	"""
-	Extracts a word from the grid given a start and end position.
-	Handles both horizontal and vertical ranges.
-	"""
+	# Extracts a word from the grid given a start and end position.
+	# Handles both horizontal and vertical ranges.
 	var word = ""
 	if start.y == end.y:  # Horizontal
 		for x in range(start.x, end.x + 1):
