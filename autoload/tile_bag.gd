@@ -87,5 +87,10 @@ func get_tile_counts_by_letter() -> Dictionary:
 func reset_round() -> void:
 	# Reset for a new round: return discarded tiles to pool and reinitialize.
 	print("[tile_bag] Resetting round. Returning ", _discarded_tiles.size(), " discarded tiles to pool.")
+	# Return discarded tiles to the pool before reinitializing
+	for t in _discarded_tiles:
+		if t != null:
+			_tile_pool.append(t)
+	_discarded_tiles.clear()
 	_initialize_tile_pool()
 	emit_signal("rack_count_changed", _tile_pool.size())
