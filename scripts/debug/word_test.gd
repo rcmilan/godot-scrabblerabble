@@ -89,6 +89,9 @@ func _ready():
 			var hand_node = _find_debug("Hand")
 			if hand_node and hand_node.has_signal("hand_count_changed"):
 				hand_node.connect("hand_count_changed", Callable(hud_inst, "_on_hand_count_changed"))
+			# Connect MainHUD button signals
+			hud_inst.connect("discard_requested", Callable(self, "_on_discard_pressed"))
+			hud_inst.connect("play_requested", Callable(self, "_on_evaluate_pressed"))
 	
 	# Emit initial score
 	EventBus.score_updated.emit(current_score)

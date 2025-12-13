@@ -4,6 +4,8 @@ extends CanvasLayer
 # Scene-agnostic: works in both Debug.tscn and Main.tscn.
 
 signal play_button_state_changed(enabled: bool)
+signal discard_requested
+signal play_requested
 
 @onready var plays_label: Label = $PlaysLabel
 @onready var score_label: Label = $ScoreLabel
@@ -165,18 +167,9 @@ func _find_hand_node():
 	return null
 
 func _on_discard_button_pressed():
-	# Emit signal or call game logic for discard
-	# For now, try to find current scene and call handler
-	var scene = get_tree().get_current_scene()
-	if scene and scene.has_method("_on_discard_pressed"):
-		scene._on_discard_pressed()
-	else:
-		print("[main_hud] Discard button pressed - no handler found")
+	# Emit signal for scenes to handle discard logic
+	discard_requested.emit()
 
 func _on_play_button_pressed():
-	# Emit signal or call game logic for play/evaluate
-	var scene = get_tree().get_current_scene()
-	if scene and scene.has_method("_on_evaluate_pressed"):
-		scene._on_evaluate_pressed()
-	else:
-		print("[main_hud] Play button pressed - no handler found")
+	# Emit signal for scenes to handle play/evaluate logic
+	play_requested.emit()
