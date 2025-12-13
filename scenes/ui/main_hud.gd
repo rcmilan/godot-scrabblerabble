@@ -3,7 +3,6 @@ extends CanvasLayer
 # MainHUD: Production game UI displaying core game state.
 # Scene-agnostic: works in both Debug.tscn and Main.tscn.
 
-signal play_button_state_changed(enabled: bool)
 signal discard_requested
 signal play_requested
 
