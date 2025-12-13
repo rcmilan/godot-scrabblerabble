@@ -110,7 +110,6 @@ func get_current_hand_size() -> int:
 	return _tiles_nodes.size()
 
 
-
 func discard_tiles(tile_nodes: Array) -> int:
 	# Discard multiple tiles and draw replacements.
 	# Returns the number of tiles successfully discarded.
