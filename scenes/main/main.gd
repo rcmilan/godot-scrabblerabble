@@ -11,9 +11,11 @@ extends Node2D
 var WordCheckerClass = preload("res://scripts/core/word_checker.gd")
 var ScoringClass = preload("res://scripts/logic/scoring.gd")
 var RoundManagerClass = preload("res://scripts/logic/round_manager.gd")
+var ValidationHelperClass = preload("res://scripts/logic/validation_helper.gd")
 var word_checker = null
 var scoring = null
 var round_manager = null
+var validation_helper = null
 var current_score: int = 0
 
 # Note: board is now the Board scene (board.gd) which manages BoardModel internally
@@ -31,6 +33,9 @@ func _ready():
 	add_child(word_checker)  # Add as child so dictionary loads in _ready
 	scoring = ScoringClass.new()
 	add_child(scoring)  # Add as child so _ready runs
+	
+	# Initialize validation helper with word checker
+	validation_helper = ValidationHelperClass.new(word_checker)
 	
 	# Initialize round manager for gameplay loop
 	round_manager = RoundManagerClass.new()
@@ -230,62 +235,25 @@ func _run_incremental_validation() -> void:
 			main_hud.set_play_button_enabled(false)
 		return
 	
-	# Get candidate word ranges from board
-	var ranges = board.get_candidate_ranges_for_positions(temp_positions)
+	# Use validation helper to perform validation
+	var result = validation_helper.run_incremental_validation(board, temp_positions)
 	var combined = board.get_combined_grid_view()
 	
-	var any_valid = false
-	var valid_ranges = []
-	
-	# Evaluate each candidate range
+	# Log validation results for each range (for debugging)
+	var ranges = board.get_candidate_ranges_for_positions(temp_positions)
 	for r in ranges:
-		var word = _extract_word_from_range(combined, r.start, r.end)
+		var word = validation_helper.extract_word_from_range(combined, r.start, r.end)
 		var is_valid = word_checker.is_valid_word(word)
 		print("[main] candidate: '", word, "' -> valid:", is_valid, " range:", r.start, r.end)
-		if is_valid:
-			any_valid = true
-			valid_ranges.append(r)
 	
-	# Check that every temp tile is part of at least one valid range
-	var all_temp_covered = true
-	for pos in temp_positions:
-		var covered = false
-		for vr in valid_ranges:
-			var s = vr.start
-			var e = vr.end
-			if s.y == e.y:  # Horizontal range
-				if pos.y == s.y and pos.x >= s.x and pos.x <= e.x:
-					covered = true
-					break
-			else:  # Vertical range
-				if pos.x == s.x and pos.y >= s.y and pos.y <= e.y:
-					covered = true
-					break
-		if not covered:
-			all_temp_covered = false
-			break
+	print("[main] validation -> any_valid:", result.any_valid, " all_temp_covered:", result.all_temp_covered, " overall_valid:", result.is_valid)
 	
-	var overall_valid = any_valid and all_temp_covered
-	print("[main] validation -> any_valid:", any_valid, " all_temp_covered:", all_temp_covered, " overall_valid:", overall_valid)
-	
-	last_overall_valid = overall_valid
+	last_overall_valid = result.is_valid
 	
 	# Update Play button state
 	if main_hud and main_hud.has_method("set_play_button_enabled"):
 		main_hud.set_play_button_enabled(last_overall_valid)
 
-
-func _extract_word_from_range(grid: Array, start: Vector2i, end: Vector2i) -> String:
-	var word = ""
-	if start.y == end.y:  # Horizontal
-		for x in range(start.x, end.x + 1):
-			var tile = grid[start.y][x]
-			word += (tile.letter if tile else "")
-	else:  # Vertical
-		for y in range(start.y, end.y + 1):
-			var tile = grid[y][start.x]
-			word += (tile.letter if tile else "")
-	return word
 
 
 func _update_board_view() -> void:
