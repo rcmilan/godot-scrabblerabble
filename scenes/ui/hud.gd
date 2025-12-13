@@ -30,20 +30,37 @@ func _ready():
 	call_deferred("_connect_round_manager")
 
 func _connect_round_manager():
-	var word_test = get_tree().get_current_scene().get_node_or_null("WordTest")
-	if word_test:
-		var rm = word_test.get_node_or_null("RoundManager")
-		if rm:
-			rm.connect("round_started", Callable(self, "_on_round_started"))
-			rm.connect("play_completed", Callable(self, "_on_play_completed"))
-			rm.connect("game_won", Callable(self, "_on_game_won"))
-			rm.connect("game_lost", Callable(self, "_on_game_lost"))
-			print("[hud] Connected to RoundManager")
-			# Initial display
-			_on_round_started(rm.get_current_round())
-			_on_play_completed(rm.get_plays_remaining())
-			set_target_score(rm.get_target_score())
+	var rm = _find_round_manager()
+	if rm:
+		rm.connect("round_started", Callable(self, "_on_round_started"))
+		rm.connect("play_completed", Callable(self, "_on_play_completed"))
+		rm.connect("game_won", Callable(self, "_on_game_won"))
+		rm.connect("game_lost", Callable(self, "_on_game_lost"))
+		print("[hud] Connected to RoundManager")
+		# Initial display
+		_on_round_started(rm.get_current_round())
+		_on_play_completed(rm.get_plays_remaining())
+		set_target_score(rm.get_target_score())
+	else:
+		push_warning("[hud] Could not find RoundManager in scene tree or GameManager.")
 
+# Attempts to find the RoundManager node in several common locations.
+func _find_round_manager():
+	var scene = get_tree().get_current_scene()
+	# 1. Direct child of the current scene
+	if scene.has_node("RoundManager"):
+		return scene.get_node("RoundManager")
+	# 2. Child of a node named "WordTest"
+	if scene.has_node("WordTest/RoundManager"):
+		return scene.get_node("WordTest/RoundManager")
+	# 3. GameManager singleton (autoload)
+	if Engine.has_singleton("GameManager"):
+		var gm = Engine.get_singleton("GameManager")
+		if gm.has_node("RoundManager"):
+			return gm.get_node("RoundManager")
+		elif gm.has_method("get_round_manager"):
+			return gm.get_round_manager()
+	return null
 func _on_round_started(round_number: int):
 	game_over_label.hide()
 
