@@ -11,20 +11,18 @@ config_version=5
 [application]
 
 config/name="Wordatro"
-config/version="0.1"
-run/main_scene="res://scenes/debug/Debug.tscn"
-config/features=PackedStringArray("4.5")
+run/main_scene="uid://ddchieu337gsy"
+config/features=PackedStringArray("4.5", "Mobile")
+config/icon="res://icon.svg"
 
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
 GameManager="*res://autoload/game_manager.gd"
+DebugManager="*res://autoload/debug_manager.gd"
 TileBag="*res://autoload/tile_bag.gd"
+HandManager="*res://autoload/hand_manager.gd"
 
-[display]
+[rendering]
 
-window/size/width=1536
-window/size/height=864
-window/test_width=1536
-window/test_height=864
-window/resizable=true
+renderer/rendering_method="mobile"

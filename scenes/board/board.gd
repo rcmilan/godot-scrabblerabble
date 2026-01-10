@@ -1,37 +1,66 @@
-extends Node2D
+extends Control
+class_name Board
 
-# Board: Visual/scene wrapper for the logical BoardModel.
-# Responsibilities:
-# - Convert world/global positions to grid coordinates
-# - Optionally snap tile visuals to cell centers
-# - Provide a small API used by Tile nodes and other UI code
+@export var debug_hover := false
+@export var debug_interval_frames := 30
 
-const BOARD_WIDTH := 15
-const BOARD_HEIGHT := 15
-@export var cell_size: int = 60 # pixels per cell; keep consistent with Rack TILE_SPACING
+var _debug_frame_counter := 0
 
-func _ready():
-	# No heavy logic here; BoardModel (data) is handled by GameManager/BoardModel
-	pass
+@onready var grid := $GridContainer
+var hovered_cell: BoardCell = null
 
-func world_to_grid(global_pos: Vector2) -> Vector2i:
-	# Convert a global position (tile.global_position) into a Vector2i grid coordinate
-	var local = to_local(global_pos)
-	var gx = int(floor(local.x / cell_size))
-	var gy = int(floor(local.y / cell_size))
-	return Vector2i(gx, gy)
 
-func grid_to_world(grid_pos: Vector2i) -> Vector2:
-	# Return the world position for the center of a cell
-	var local_x = grid_pos.x * cell_size + cell_size * 0.5
-	var local_y = grid_pos.y * cell_size + cell_size * 0.5
-	return to_global(Vector2(local_x, local_y))
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
 
-func is_valid_grid_pos(grid_pos: Vector2i) -> bool:
-	return grid_pos.x >= 0 and grid_pos.x < BOARD_WIDTH and grid_pos.y >= 0 and grid_pos.y < BOARD_HEIGHT
 
-func snap_tile_to_grid(tile_node: Node2D, grid_pos: Vector2i) -> void:
-	# Move the tile node to the center of the given grid cell
-	var world = grid_to_world(grid_pos)
-	tile_node.global_position = world
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	var mouse_pos := get_global_mouse_position()
+	var cell := get_cell_at_position(mouse_pos)
+	
+	# Debug snapshot
+	if debug_hover:
+		_debug_frame_counter += 1
+		if _debug_frame_counter % debug_interval_frames == 0:
+			if cell:
+				print(
+					"[BOARD HOVER DEBUG]",
+					"Mouse: ", mouse_pos,
+					"| Cell: ", cell.name,
+					"| Occupied: ", cell.occupied
+				)
+			else:
+				print(
+					"[BOARD HOVER DEBUG]",
+					"Mouse: ", mouse_pos,
+					"| No cell under cursor"
+				)
+	
+	if cell != hovered_cell:
+		if hovered_cell:
+			hovered_cell.clear_hover()
+			
+		hovered_cell = cell
+		
+		if hovered_cell:
+			update_cell_hover(hovered_cell)
+			
 
+func get_cell_at_position(pos: Vector2) -> BoardCell:
+	for cell in grid.get_children():
+		if cell.get_global_rect().has_point(pos):
+			return cell
+	
+	return null
+
+
+func update_cell_hover(cell: BoardCell) -> void:
+	if get_node("/root/Main").selected_tile == null:
+		return
+		
+	if cell.occupied:
+		cell.show_invalid_hover()
+	else:
+		cell.show_valid_hover()

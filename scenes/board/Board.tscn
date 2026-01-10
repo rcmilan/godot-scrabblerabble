@@ -1,6 +1,286 @@
-[gd_scene load_steps=2 format=3 uid="uid://b1y2x3k4l5m6n"]
+[gd_scene load_steps=3 format=3 uid="uid://6mhb0a0g3kj8"]
 
-[ext_resource type="Script" path="res://scenes/board/board.gd" id="1_abcde"]
+[ext_resource type="Script" uid="uid://dpqhtavtawnb5" path="res://Scenes/Board/board.gd" id="1_v1rvb"]
+[ext_resource type="PackedScene" uid="uid://c6h3ep2nj7tvx" path="res://Scenes/Board/BoardCell.tscn" id="1_vy4eb"]
 
-[node name="Board" type="Node2D"]
-script = ExtResource("1_abcde")
+[node name="Board" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_v1rvb")
+
+[node name="GridContainer" type="GridContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -134.0
+offset_top = -32.0
+offset_right = 134.0
+offset_bottom = 32.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 8
+
+[node name="BoardCell" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell2" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell3" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell4" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell5" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell6" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell7" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell8" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell9" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell10" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell11" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell12" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell13" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell14" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell15" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell16" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell17" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell18" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell19" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell20" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell21" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell22" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell23" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell24" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell25" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell26" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell27" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell28" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell29" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell30" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell31" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell32" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell33" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell34" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell35" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell36" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell37" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell38" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell39" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell40" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell41" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell42" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell43" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell44" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell45" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell46" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell47" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell48" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell49" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell50" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell51" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell52" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell53" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell54" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell55" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell56" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell57" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell58" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell59" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell60" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell61" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell62" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell63" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="BoardCell64" parent="GridContainer" instance=ExtResource("1_vy4eb")]
+layout_mode = 2
+metadata/_edit_use_anchors_ = true

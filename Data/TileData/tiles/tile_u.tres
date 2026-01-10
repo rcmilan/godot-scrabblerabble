@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="LetterTileData" load_steps=3 format=3 uid="uid://che3sreuj7ndu"]
+
+[ext_resource type="Script" uid="uid://b4ytc5recc55s" path="res://Data/TileData/tile_data.gd" id="1_4tqd5"]
+[ext_resource type="Texture2D" uid="uid://crcpv2ww8nxlr" path="res://Assets/Tiles/letter_U.png" id="2_2rlsh"]
+
+[resource]
+script = ExtResource("1_4tqd5")
+letter = " U"
+texture = ExtResource("2_2rlsh")
+metadata/_custom_type_script = "uid://b4ytc5recc55s"
