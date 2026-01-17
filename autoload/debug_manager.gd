@@ -1,45 +1,142 @@
 extends Node
 
-# DebugManager: Controls toggleable debug overlay for development and testing.
-# Press F12 or ` (tilde/grave) to toggle debug overlay in any scene.
 
-signal debug_overlay_toggled(visible: bool)
+##This script handles debugging functions and logic
+##The current debug system uses a console 
+##Debug functionality is centralized here to avoid making main.gd difficult to maintain and contextually sane
 
-var _overlay_visible: bool = false
-var _debug_overlay_scene = preload("res://scenes/ui/DebugOverlay.tscn")
-var _debug_overlay_instance = null
+# Referencing game systems
+var main_scene: Node = null
+var tile_scene: PackedScene = preload("res://Scenes/Tile/Tile.tscn")
 
-func _ready():
-	# Auto-instantiate in debug builds
-	if OS.is_debug_build():
-		call_deferred("_instantiate_overlay")
+# Console callback
+var console_print: Callable
 
-func _input(event):
-	# Toggle with F12 or tilde/grave key
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F12 or event.keycode == KEY_QUOTELEFT:
-			toggle_overlay()
-			get_viewport().set_input_as_handled()
-
-func toggle_overlay():
-	if not _debug_overlay_instance:
-		_instantiate_overlay()
+func _ready() -> void:
+	#Getting main scene reference
+	await get_tree().process_frame
+	main_scene = get_tree().root.get_node("Main")
+	print("[DebugManager] is Ready")
 	
-	_overlay_visible = !_overlay_visible
-	if _debug_overlay_instance:
-		_debug_overlay_instance.visible = _overlay_visible
-	emit_signal("debug_overlay_toggled", _overlay_visible)
-	print("[DebugManager] Debug overlay: ", "visible" if _overlay_visible else "hidden")
+#Parse and execute a console command
+func execute_command(command: String) -> void:
+	var parts = command.split(" ", false)
+	if parts.is_empty():
+		return
+		
+	var cmd = parts[0].to_lower()
+	var args = parts.slice(1)
+	
+	match cmd:
+		"help":
+			cmd_help()
+		"close", "exit":
+			cmd_close()
+		"spawn":
+			cmd_spawn(args)
+		"clear_board":
+			cmd_clear_board()
+		"draw":
+			cmd_draw(args)
+		_:
+			log_output("Unkown command: %s (type help for commands available.)" % cmd)
 
-func _instantiate_overlay():
-	if _debug_overlay_instance:
+
+#commands
+
+
+##help
+func cmd_help() -> void:
+	log_output("Available commands: ")
+	log_output("  help - Shows debug helper menu")
+	log_output("  close (or exit) - Hide the console")
+	log_output("  spawn <letter> [count] - Spawn tile(s) (e.g., 'spawn A' or 'spawn Q 3')")
+	log_output("  draw [count] - Draw tile(s) from bag (e.g., 'draw' or 'draw 5')")
+	log_output("  clear_board - Remove all tiles from board")
+
+##close console
+func cmd_close() -> void:
+	# Access the console through the scene tree
+	var console = get_tree().root.get_node("Main/DebugConsole")
+	if console:
+		console.hide_console()
+	else:
+		log_output("Error: Console not found")
+	
+##spawn a tile for a specific letter in the hand
+func cmd_spawn(args: Array) -> void:
+	if args.is_empty():
+		log_output("Please give a letter as argument: spawn <letter> [count]")
 		return
 	
-	_debug_overlay_instance = _debug_overlay_scene.instantiate()
-	# Add to root so it persists across scene changes
-	get_tree().root.add_child(_debug_overlay_instance)
-	_debug_overlay_instance.visible = _overlay_visible
-	print("[DebugManager] Debug overlay instantiated")
+	var letter = args[0].to_upper()
+	var count = int(args[1]) if args.size() > 1 else 1
+	
+	if letter.length() != 1 or not letter.unicode_at(0) >= 65 or not letter.unicode_at(0) <= 90:
+		log_output("Error: Must be a valid letter from the English alphabet")
+		return
+	
+	spawn_tile(letter, count)
+	
+#board clearer
+func cmd_clear_board() -> void:
+	if main_scene == null:
+		log_output("Error: main scene not found.")
+		return
+		
+	var board = main_scene.get_node("Board/GridContainer")
+	var tiles_cleared = 0
+	
+	for cell in board.get_children():
+		if cell.occupied and cell.tile != null:
+			main_scene.return_tile_to_hand(cell.tile)
+			tiles_cleared += 1
+	
+	log_output("Cleared %d tiles from board" % tiles_cleared)
 
-func is_overlay_visible() -> bool:
-	return _overlay_visible
+
+#creating tile spawning function
+func spawn_tile(letter: String, count: int = 1) -> void:
+	if main_scene == null:
+		log_output("Error: Main scene not found.")
+		return
+		
+	var letter_lower = letter.to_lower()
+	var data_path = "res://Data/TileData/tiles/tile_%s.tres" % letter_lower
+	var tile_data = load(data_path)
+	
+	if tile_data == null:
+		log_output("Error: failed to load tile data for letter: %s" % letter)
+		return
+	
+	var hand_container = main_scene.get_node("Hand/TileContainer")
+	
+	for i in count:
+		var new_tile = tile_scene.instantiate()
+		hand_container.add_child(new_tile)
+		new_tile.initialize(tile_data)
+		
+		#connects tile signals
+		new_tile.tile_selected.connect(main_scene._on_tile_selected)
+		new_tile.tile_right_clicked.connect(main_scene._on_tile_right_clicked)
+		new_tile.tile_drag_ended.connect(main_scene._on_tile_drag_ended)
+	
+	log_output("Spawned %d x %s Tile(s)" % [count,letter])
+
+##debug draw command
+func cmd_draw(args: Array) -> void:
+	var count = int(args[0]) if args.size() > 0 else 1
+	
+	if count < 1:
+		log_output("Error: Count must be at least 1")
+		return
+	
+	HandManager.draw_tiles(count)
+	
+
+
+#logging to console
+func log_output(message: String) -> void:
+	print("[Debug] %s" % message)
+	if console_print.is_valid():
+		console_print.call(message)

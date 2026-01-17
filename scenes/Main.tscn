@@ -1,0 +1,17 @@
+[gd_scene load_steps=5 format=3 uid="uid://ddchieu337gsy"]
+
+[ext_resource type="PackedScene" uid="uid://6mhb0a0g3kj8" path="res://Scenes/Board/Board.tscn" id="1_idj7w"]
+[ext_resource type="Script" uid="uid://mpe2jq6utcpi" path="res://Scenes/main.gd" id="1_kln2b"]
+[ext_resource type="PackedScene" uid="uid://cheurswfn12g" path="res://Scenes/Hand/Hand.tscn" id="2_kln2b"]
+[ext_resource type="PackedScene" uid="uid://b7137nxmc3c7y" path="res://Scenes/Debug/DebugConsole.tscn" id="5_pbw6q"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_kln2b")
+
+[node name="Board" parent="." instance=ExtResource("1_idj7w")]
+
+[node name="Hand" parent="." instance=ExtResource("2_kln2b")]
+layout_direction = 0
+
+[node name="DebugConsole" parent="." instance=ExtResource("5_pbw6q")]
+visible = false

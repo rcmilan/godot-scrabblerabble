@@ -1,8 +1,45 @@
-[gd_scene load_steps=2 format=3 uid="uid://d2o3p4q5r6s7t"]
+[gd_scene load_steps=4 format=3 uid="uid://ljhh63qjf5cg"]
 
-[ext_resource type="Script" path="res://scenes/tile/tile.gd" id="1_vwxyz"]
+[ext_resource type="Texture2D" uid="uid://cbdqjfwfeyp16" path="res://Assets/letter.png" id="1_5kclj"]
+[ext_resource type="Script" uid="uid://qspae3s7qlw6" path="res://Scenes/Tile/tile.gd" id="1_vb0gs"]
 
-[node name="Tile" type="Button"]
-custom_minimum_size = Vector2(50, 50)
-text = "?"
-script = ExtResource("1_vwxyz")
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vb0gs"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.11350792, 0.60272574, 0.19527751, 1)
+
+[node name="Tile" type="Control"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 64.0
+offset_bottom = 64.0
+script = ExtResource("1_vb0gs")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 256.0
+offset_bottom = 256.0
+scale = Vector2(0.25, 0.25)
+mouse_filter = 2
+texture = ExtResource("1_5kclj")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Border" type="Panel" parent="."]
+visible = false
+z_index = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_vb0gs")
+
+[connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]

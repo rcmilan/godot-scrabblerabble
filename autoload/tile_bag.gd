@@ -1,96 +1,65 @@
 extends Node
 
-# TileBag: Generates and provides letter tiles.
-# Tracks both the active tile pool and discarded tiles for round-based gameplay.
+## tile pool manager
+## handles tile flow -> drawing from bag, shuffling, refilling/refreshing bag after round is over, etc.
 
-signal tiles_drawn(new_tiles)
-signal tiles_discarded(discarded_tiles)
-signal hand_refilled(refill_count)
-signal rack_count_changed(total_count)
+var available_tiles: Array[Tile] = []
+var tile_scene: PackedScene = preload("res://Scenes/Tile/Tile.tscn")
 
-# Letter distribution: vowels (A,E,I,O,U) = 3 copies, common letters = 2 copies, high-point letters = 1 copy
-# Point values remain standard Scrabble-like scoring
-const LETTER_DISTRIBUTION = {
-	"A": {"value": 1, "count": 3}, "B": {"value": 3, "count": 2}, "C": {"value": 3, "count": 2}, "D": {"value": 2, "count": 2},
-	"E": {"value": 1, "count": 3}, "F": {"value": 4, "count": 2}, "G": {"value": 2, "count": 2}, "H": {"value": 4, "count": 2},
-	"I": {"value": 1, "count": 3}, "J": {"value": 8, "count": 1}, "K": {"value": 5, "count": 1}, "L": {"value": 1, "count": 2},
-	"M": {"value": 3, "count": 2}, "N": {"value": 1, "count": 2}, "O": {"value": 1, "count": 3}, "P": {"value": 3, "count": 2},
-	"Q": {"value": 10, "count": 1}, "R": {"value": 1, "count": 2}, "S": {"value": 1, "count": 2}, "T": {"value": 1, "count": 2},
-	"U": {"value": 1, "count": 3}, "V": {"value": 4, "count": 1}, "W": {"value": 4, "count": 1}, "X": {"value": 8, "count": 1},
-	"Y": {"value": 4, "count": 2}, "Z": {"value": 10, "count": 1}
-}
+##points to current bag configuration
+var current_distribution: BagDistribution = null
 
-var _tile_pool = []
-var _discarded_tiles = []  # Tiles that have been discarded this round
 
-func _ready():
-	_initialize_tile_pool()
-
-func _initialize_tile_pool():
-	_tile_pool.clear()
-	# Create tiles based on distribution: vowels (3), common letters (2), high-point letters (1)
-	for letter in LETTER_DISTRIBUTION:
-		var data = LETTER_DISTRIBUTION[letter]
-		var count = data.get("count", 1)
-		for i in range(count):
-			_tile_pool.append(TileModel.new(letter, data["value"]))
-
-	_tile_pool.shuffle()
-
-func draw_tiles(count: int):
-	var drawn_tiles = []
-	for i in range(count):
-		# Use Array.is_empty() in Godot 4; `empty()` is not a method on Array
-		if _tile_pool.is_empty():
-			# TODO: Handle empty tile bag scenario (e.g., end game)
-			break
-		drawn_tiles.append(_tile_pool.pop_front())
+func _ready() -> void:
+	print("[TileBag] is ready")
 	
-	emit_signal("tiles_drawn", drawn_tiles)
-	emit_signal("rack_count_changed", _tile_pool.size())
-	return drawn_tiles
+func populate_bag(distribution: BagDistribution) -> void:
+	if not distribution or not distribution.is_valid():
+		push_error("[TileBag] Invalid distribution provided!")
+		return
+	
+	current_distribution = distribution
+	available_tiles.clear()
+	
+	## Creating tiles
+	for letter in distribution.distribution.keys():
+		var count = distribution.distribution[letter]
+		var tile_data_path = "res://Data/TileData/tiles/tile_%s.tres" % letter.to_lower()
+		var tile_data = load(tile_data_path) as LetterTileData
+		
+		if tile_data == null:
+			push_error("[TileBag] failed to load the tile data for letter: %s" % letter)
+			continue
+		
+		##Create count tiles for letter
+		for i in count:
+			var tile = tile_scene.instantiate() as Tile
+			tile.initialize(tile_data)
+			tile.location = Tile.TileLocation.IN_BAG
+			available_tiles.append(tile)
+			
+	shuffle_bag()
+	print("[TileBag] Populated with %d Tiles" % available_tiles.size())
 
-
-func return_tiles(tiles: Array) -> void:
-	# Return an array of TileModel instances back into the pool and reshuffle.
-	for t in tiles:
-		if t != null:
-			_tile_pool.append(t)
-	_tile_pool.shuffle()
-	emit_signal("rack_count_changed", _tile_pool.size())
-
-func discard_tiles(tiles: Array) -> void:
-	# Discard tiles - they go to discard pile, not back to the active pool.
-	# Discarded tiles are removed from play for the current round.
-	for t in tiles:
-		if t != null:
-			_discarded_tiles.append(t)
-	emit_signal("tiles_discarded", tiles)
-	print("[tile_bag] Discarded ", tiles.size(), " tiles. Discard pile: ", _discarded_tiles.size())
-
-func get_remaining_tile_count() -> int:
-	return _tile_pool.size()
-
-func get_discarded_tile_count() -> int:
-	return _discarded_tiles.size()
-
-func get_tile_counts_by_letter() -> Dictionary:
-	# Returns a dictionary with letter counts currently in the rack (tile pool)
-	var counts = {}
-	for tile in _tile_pool:
-		if tile and tile.letter:
-			if not counts.has(tile.letter):
-				counts[tile.letter] = 0
-			counts[tile.letter] += 1
-	return counts
-
-func reset_round() -> void:
-	# Reset for a new round: return discarded tiles to pool and reinitialize.
-	print("[tile_bag] Resetting round. Returning ", _discarded_tiles.size(), " discarded tiles to pool.")
-	# Return discarded tiles to the pool before reinitializing
-	for t in _discarded_tiles:
-		if t != null:
-			_tile_pool.append(t)
-	_discarded_tiles.clear()
-	_initialize_tile_pool()
-	emit_signal("rack_count_changed", _tile_pool.size())
+##Shuffle the bag
+func shuffle_bag() -> void:
+	available_tiles.shuffle()
+	
+##Draw a tile
+func draw_tile() -> Tile:
+	if available_tiles.is_empty():
+		print("[TileBag] is empty, cannot draw.")
+		return null
+	
+	var tile = available_tiles.pop_back()
+	EventBus.tile_drawn.emit(tile)
+	print("[TileBag] Drawing Tile: %s (Remaining %d)" % [tile.letter, available_tiles.size()])
+	return tile
+	
+##get count for remaining tiles
+func tiles_remaining() -> int:
+	return available_tiles.size()
+	
+##check if bag is empty
+func is_empty() -> bool:
+	return available_tiles.is_empty()

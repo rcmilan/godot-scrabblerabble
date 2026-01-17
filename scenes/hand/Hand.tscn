@@ -1,12 +1,28 @@
-[gd_scene load_steps=2 format=3 uid="uid://handscene"]
+[gd_scene load_steps=2 format=3 uid="uid://cheurswfn12g"]
 
-[ext_resource type="Script" uid="uid://cr0dahtmlejy8" path="res://scripts/hand/hand.gd" id="1"]
+[ext_resource type="Script" uid="uid://y4pckr5v7iuy" path="res://Scenes/Hand/hand.gd" id="1_fo6ib"]
 
-[node name="Hand" type="HBoxContainer"]
-custom_minimum_size = Vector2(700, 60)
-offset_left = 211.0
-offset_top = 574.0
-offset_right = 911.0
-offset_bottom = 634.0
-alignment = 1
-script = ExtResource("1")
+[node name="Hand" type="Control"]
+custom_minimum_size = Vector2(524, 84)
+layout_direction = 2
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -262.0
+offset_top = -84.0
+offset_right = 262.0
+grow_horizontal = 2
+grow_vertical = 0
+size_flags_vertical = 4
+script = ExtResource("1_fo6ib")
+
+[node name="TileContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
