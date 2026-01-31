@@ -57,6 +57,15 @@ signal discard_count_changed(count: int)
 ## Emitted when discard pile is modified.
 signal discard_pile_changed(tiles: Array)
 
+## Emitted when discard confirmation is requested.
+signal discard_confirmation_requested(tile_count: int)
+
+## Emitted when discard is confirmed by user.
+signal discard_confirmed()
+
+## Emitted when discard is cancelled by user.
+signal discard_cancelled()
+
 # =============================================================================
 # ROUND/TURN EVENTS
 # =============================================================================
