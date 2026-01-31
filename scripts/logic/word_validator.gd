@@ -300,7 +300,9 @@ func _collect_word_between(board: Board, start: Vector2i, end: Vector2i, directi
 		var cell: BoardCell = board.get_cell(current.y, current.x)
 		if cell and cell.is_occupied():
 			var tile: Tile = cell.tile
-			word += tile.letter
+			# Strip whitespace from letter to handle any data inconsistencies
+			var clean_letter: String = tile.letter.strip_edges() if tile.letter else ""
+			word += clean_letter
 			tiles.append(tile)
 			cells.append(cell)
 			positions.append(current)

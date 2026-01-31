@@ -97,15 +97,23 @@ func _gui_input(event: InputEvent) -> void:
 func initialize(data: LetterTileData) -> void:
 	if data == null:
 		push_error("[Tile] initialize() called with null data!")
+		name = "Tile_ERROR_NULL_%d" % get_instance_id()
 		return
 
-	if data.letter.is_empty():
-		push_error("[Tile] LetterTileData has empty letter!")
+	# Strip whitespace from letter to handle data inconsistencies
+	var clean_letter: String = data.letter.strip_edges() if data.letter else ""
+
+	if clean_letter.is_empty():
+		push_error("[Tile] LetterTileData has empty letter! Raw value: '%s'" % data.letter)
+		name = "Tile_ERROR_EMPTY_%d" % get_instance_id()
 		return
 
 	tile_data = data
-	letter = data.letter
+	letter = clean_letter
 	base_points = data.base_points
+
+	# Set unique name using instance ID to avoid Godot auto-renaming duplicates
+	name = "Tile_%s_%d" % [letter, get_instance_id()]
 
 	# Apply texture now if node is ready, otherwise store for _ready()
 	if data.texture:
@@ -116,7 +124,6 @@ func initialize(data: LetterTileData) -> void:
 	else:
 		push_warning("[Tile] Letter '%s' is missing texture" % letter)
 
-	name = "Tile_%s" % letter
 	print("[Tile] Initialized: %s (%d pts)" % [letter, base_points])
 
 
