@@ -7,7 +7,7 @@ extends Node
 
 # Referencing game systems
 var main_scene: Node = null
-var tile_scene: PackedScene = preload("res://Scenes/Tile/Tile.tscn")
+var tile_scene: PackedScene = preload("res://scenes/tile/Tile.tscn")
 
 # Console callback
 var console_print: Callable
@@ -39,7 +39,7 @@ func execute_command(command: String) -> void:
 		"draw":
 			cmd_draw(args)
 		_:
-			log_output("Unkown command: %s (type help for commands available.)" % cmd)
+			log_output("Unknown command: %s (type 'help' for available commands)" % cmd)
 
 
 #commands
@@ -81,18 +81,18 @@ func cmd_spawn(args: Array) -> void:
 #board clearer
 func cmd_clear_board() -> void:
 	if main_scene == null:
-		log_output("Error: main scene not found.")
+		log_output("Error: Main scene not found.")
 		return
-		
-	var board = main_scene.get_node("Board/GridContainer")
+
+	var board = main_scene.get_node("Board")
 	var tiles_cleared = 0
-	
-	for cell in board.get_children():
-		if cell.occupied and cell.tile != null:
+
+	for cell in board.get_all_cells():
+		if cell.is_occupied() and cell.tile != null:
 			main_scene.return_tile_to_hand(cell.tile)
 			tiles_cleared += 1
-	
-	log_output("Cleared %d tiles from board" % tiles_cleared)
+
+	log_output("Cleared %d tile(s) from board" % tiles_cleared)
 
 
 #creating tile spawning function
@@ -100,28 +100,28 @@ func spawn_tile(letter: String, count: int = 1) -> void:
 	if main_scene == null:
 		log_output("Error: Main scene not found.")
 		return
-		
+
 	var letter_lower = letter.to_lower()
 	var data_path = "res://Data/TileData/tiles/tile_%s.tres" % letter_lower
 	var tile_data = load(data_path)
-	
+
 	if tile_data == null:
-		log_output("Error: failed to load tile data for letter: %s" % letter)
+		log_output("Error: Failed to load tile data for letter: %s" % letter)
 		return
-	
-	var hand_container = main_scene.get_node("Hand/TileContainer")
-	
+
+	var hand = main_scene.get_node("Hand")
+
 	for i in count:
 		var new_tile = tile_scene.instantiate()
-		hand_container.add_child(new_tile)
 		new_tile.initialize(tile_data)
-		
-		#connects tile signals
+		hand.add_tile(new_tile)
+
+		# Connect tile signals to main scene
 		new_tile.tile_selected.connect(main_scene._on_tile_selected)
 		new_tile.tile_right_clicked.connect(main_scene._on_tile_right_clicked)
 		new_tile.tile_drag_ended.connect(main_scene._on_tile_drag_ended)
-	
-	log_output("Spawned %d x %s Tile(s)" % [count,letter])
+
+	log_output("Spawned %d x '%s' tile(s)" % [count, letter])
 
 ##debug draw command
 func cmd_draw(args: Array) -> void:
