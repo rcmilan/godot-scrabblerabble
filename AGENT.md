@@ -15,6 +15,7 @@ Wordatro/
 │   ├── hand_manager.gd     # Hand operations
 │   ├── tile_bag.gd         # Tile pool (deck)
 │   ├── selection_manager.gd # Selection state
+│   ├── tile_animator.gd    # Animation coordinator
 │   └── debug_manager.gd    # Debug tools
 │
 ├── scenes/                 # Game scenes
@@ -27,6 +28,7 @@ Wordatro/
 │   └── debug/              # Debug tools
 │
 ├── scripts/                # Utility scripts
+│   ├── animation/          # Animation strategies
 │   └── logic/              # Game logic services
 │
 ├── Data/                   # Game data resources
@@ -57,6 +59,7 @@ Wordatro/
 | **Tile** | Letter tiles with drag-and-drop |
 | **Hand** | Player's available tiles (max 10) |
 | **SelectionManager** | Single/multi-select state |
+| **TileAnimator** | Animation coordination |
 | **EventBus** | Decoupled signal communication |
 | **GameManager** | Game state and phase control |
 | **TileBag** | Tile pool (deck) management |
@@ -136,6 +139,7 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [x] HUD with game stats
 - [x] Tile bag with distributions
 - [x] Hand refill after discard
+- [x] Tile draw animations (rise from bottom)
 - [x] Debug console
 
 ### Future
@@ -186,4 +190,5 @@ Each component has an `AGENT.md` file with detailed documentation:
 
 ### Other
 - [scripts/AGENT.md](scripts/AGENT.md) - Utility scripts
+- [scripts/animation/AGENT.md](scripts/animation/AGENT.md) - Animation system
 - [Assets/AGENT.md](Assets/AGENT.md) - Visual assets

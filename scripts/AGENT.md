@@ -6,8 +6,11 @@ Contains utility scripts and game logic services that aren't tied to specific sc
 ## Structure
 ```
 scripts/
+├── animation/
+│   ├── tile_animation_strategy.gd   # Base animation strategy (Resource)
+│   └── draw_tile_animation.gd       # Draw animation implementation
 └── logic/
-    └── word_validator.gd   # Word validation and scoring service
+    └── word_validator.gd            # Word validation and scoring service
 ```
 
 ---
@@ -135,7 +138,25 @@ var score = validator.calculate_placement_score(placed_tiles, cells)
 
 ---
 
+## Animation System
+
+See [animation/AGENT.md](animation/AGENT.md) for detailed documentation.
+
+### Quick Reference
+- **TileAnimationStrategy** - Base class for animation behaviors
+- **DrawTileAnimation** - Tiles animate into hand from below
+
+### Usage
+```gdscript
+# Animations are triggered via TileAnimator autoload
+TileAnimator.animate_draw_batch(tiles)
+```
+
+---
+
 ## Future Scripts
+- `animation/discard_tile_animation.gd` - Discard animation
+- `animation/place_tile_animation.gd` - Board placement animation
 - `deck_manager.gd` - Deck building and management
 - `modifier_system.gd` - Tile/cell modifier effects
 - `achievement_tracker.gd` - Achievement system
