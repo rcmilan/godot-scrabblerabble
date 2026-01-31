@@ -72,7 +72,7 @@ func is_animating() -> bool:
 func cancel_all() -> void:
 	for tile in _active_tweens.keys():
 		var tween: Tween = _active_tweens[tile]
-		if tween and tween.is_valid():
+		if is_instance_valid(tween):
 			tween.kill()
 	_active_tweens.clear()
 	_is_animating = false
@@ -82,7 +82,7 @@ func cancel_all() -> void:
 func cancel_tile_animation(tile: Tile) -> void:
 	if _active_tweens.has(tile):
 		var tween: Tween = _active_tweens[tile]
-		if tween and tween.is_valid():
+		if is_instance_valid(tween):
 			tween.kill()
 		_active_tweens.erase(tile)
 
@@ -110,7 +110,6 @@ func _animate_batch(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void
 
 		# Capture final position after layout
 		var final_position: Vector2 = tile.position
-		var final_global_position: Vector2 = tile.global_position
 
 		# Set starting state
 		var start_offset: Vector2 = strategy.get_start_position_offset()
@@ -122,13 +121,9 @@ func _animate_batch(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void
 		# Notify strategy of animation start
 		strategy.on_animation_start(tile)
 
-		# Create staggered animation
+		# Create staggered animation (parallel tween with per-property delays)
 		var tween: Tween = create_tween()
 		tween.set_parallel(true)
-
-		# Apply delay if needed
-		if delay > 0:
-			tween.tween_interval(delay)
 
 		# Position animation
 		tween.tween_property(tile, "position", final_position, strategy.duration) \
