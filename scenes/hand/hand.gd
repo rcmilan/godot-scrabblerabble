@@ -8,7 +8,6 @@ class_name Hand
 # === Signals ===
 signal tile_added(tile: Tile)
 signal tile_removed(tile: Tile)
-signal selection_changed(selected_tiles: Array[Tile])
 signal hand_empty()
 
 # === Configuration ===
@@ -16,9 +15,6 @@ signal hand_empty()
 
 # === Node References ===
 @onready var tile_container: HBoxContainer = $TileContainer
-
-# === State ===
-var _selected_tiles: Array[Tile] = []
 
 
 func _ready() -> void:
@@ -44,10 +40,8 @@ func remove_tile(tile: Tile) -> bool:
 	if not _has_tile(tile):
 		return false
 
-	# Deselect if selected
-	if tile in _selected_tiles:
-		_selected_tiles.erase(tile)
-		selection_changed.emit(_selected_tiles)
+	# Deselect if selected (via SelectionManager)
+	SelectionManager.deselect_tile(tile)
 
 	tile_container.remove_child(tile)
 	tile_removed.emit(tile)
@@ -61,76 +55,58 @@ func remove_tile(tile: Tile) -> bool:
 ## Removes and returns all tiles from the hand.
 func clear_hand() -> Array[Tile]:
 	var tiles: Array[Tile] = get_tiles()
+
+	# Deselect tiles that are in hand
 	for tile in tiles:
+		SelectionManager.deselect_tile(tile)
 		tile_container.remove_child(tile)
 
-	_selected_tiles.clear()
-	selection_changed.emit(_selected_tiles)
 	hand_empty.emit()
 
 	return tiles
 
 
-# === Public API: Selection ===
+# === Public API: Selection (delegates to SelectionManager) ===
 
-## Selects a single tile, deselecting others.
+## Selects a tile (mode-aware via SelectionManager).
 func select_tile(tile: Tile) -> void:
 	if not _has_tile(tile):
 		return
-
-	# Deselect all others
-	for t in _selected_tiles:
-		t.set_selected(false)
-
-	_selected_tiles.clear()
-	_selected_tiles.append(tile)
-	tile.set_selected(true)
-
-	selection_changed.emit(_selected_tiles)
+	SelectionManager.select_tile(tile)
 
 
 ## Toggles selection state of a tile (for multi-select).
 func toggle_tile_selection(tile: Tile) -> void:
 	if not _has_tile(tile):
 		return
-
-	if tile in _selected_tiles:
-		_selected_tiles.erase(tile)
-		tile.set_selected(false)
-	else:
-		_selected_tiles.append(tile)
-		tile.set_selected(true)
-
-	selection_changed.emit(_selected_tiles)
+	# In multi-select mode, SelectionManager.select_tile toggles
+	SelectionManager.select_tile(tile)
 
 
 ## Deselects all tiles.
 func deselect_all() -> void:
-	for tile in _selected_tiles:
-		tile.set_selected(false)
-
-	_selected_tiles.clear()
-	selection_changed.emit(_selected_tiles)
+	SelectionManager.deselect_all()
 
 
 ## Selects all tiles in the hand.
 func select_all() -> void:
-	_selected_tiles.clear()
 	for tile in get_tiles():
-		tile.set_selected(true)
-		_selected_tiles.append(tile)
-
-	selection_changed.emit(_selected_tiles)
+		SelectionManager.select_tile(tile)
 
 
-## Returns currently selected tiles.
+## Returns currently selected tiles that are in this hand.
 func get_selected_tiles() -> Array[Tile]:
-	return _selected_tiles.duplicate()
+	var all_selected: Array[Tile] = SelectionManager.get_selected_tiles()
+	var in_hand: Array[Tile] = []
+	for tile in all_selected:
+		if _has_tile(tile):
+			in_hand.append(tile)
+	return in_hand
 
 
-## Returns true if any tiles are selected.
+## Returns true if any tiles in hand are selected.
 func has_selection() -> bool:
-	return not _selected_tiles.is_empty()
+	return not get_selected_tiles().is_empty()
 
 
 # === Public API: Queries ===

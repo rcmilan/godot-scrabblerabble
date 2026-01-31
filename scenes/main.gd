@@ -19,14 +19,24 @@ enum InteractionMode {
 var selected_tile: Tile = null
 var interaction_mode: InteractionMode = InteractionMode.IDLE
 
+# === Multi-Drag State ===
+var _dragged_tiles: Array[Tile] = []
+var _drag_original_positions: Dictionary = {}  # Tile -> {parent: Node, index: int}
+var _last_placement_success: bool = false
+
 # === Node References ===
 @onready var board: Board = $Board
-@onready var hand: Control = $Hand
+@onready var hand: Hand = $Hand
 
 
 func _ready() -> void:
 	_connect_board_signals()
 	_start_game()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_multi_select"):
+		SelectionManager.toggle_mode()
 
 
 func _process(_delta: float) -> void:
@@ -56,34 +66,25 @@ func _start_game() -> void:
 func _on_tile_selected(tile: Tile) -> void:
 	print("[Main] Tile selected: %s" % tile.name)
 
-	# Clicking a board tile while holding another tile
-	if interaction_mode == InteractionMode.TILE_SELECTED and tile.location == Tile.TileLocation.ON_BOARD:
+	# Clicking a board tile while we have selection
+	if SelectionManager.has_selection() and tile.location == Tile.TileLocation.ON_BOARD:
 		print("[Main] Cannot stack tiles")
 		return
 
 	# Clicking a tile that's already on the board (info only)
-	if interaction_mode == InteractionMode.IDLE and tile.location == Tile.TileLocation.ON_BOARD:
+	if not SelectionManager.has_selection() and tile.location == Tile.TileLocation.ON_BOARD:
 		print("[Main] Board tile at cell: %s" % tile.current_cell.name)
 		return
 
-	# Toggle selection if clicking the same tile
-	if interaction_mode == InteractionMode.TILE_SELECTED:
-		if selected_tile == tile:
-			_deselect_tile()
-			return
-		# Deselect current tile before selecting new one
-		selected_tile.set_selected(false)
-
-	# Select the new tile
-	selected_tile = tile
-	selected_tile.set_selected(true)
-	interaction_mode = InteractionMode.TILE_SELECTED
-	_set_hand_tiles_hover_enabled(false)
+	# Hand tile - use SelectionManager
+	if tile.location == Tile.TileLocation.IN_HAND:
+		SelectionManager.select_tile(tile)
+		_update_interaction_state()
 
 
 func _on_tile_right_clicked(tile: Tile) -> void:
-	if selected_tile != null:
-		print("[Main] Cannot remove tile while another is selected")
+	if SelectionManager.has_selection():
+		print("[Main] Cannot remove tile while selection active")
 		return
 
 	if tile.current_cell == null:
@@ -93,42 +94,55 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 	return_tile_to_hand(tile)
 
 
+func _on_tile_drag_started(tile: Tile) -> void:
+	# Get all selected tiles for multi-drag
+	_dragged_tiles = SelectionManager.get_selected_tiles()
+
+	# If dragged tile is not in selection, select only it
+	if tile not in _dragged_tiles:
+		SelectionManager.deselect_all()
+		SelectionManager.select_tile(tile)
+		_dragged_tiles = [tile]
+
+	# Store original positions for potential cancellation
+	_store_original_positions()
+
+	if _dragged_tiles.size() > 1:
+		EventBus.multi_drag_started.emit(_dragged_tiles)
+		print("[Main] Multi-drag started with %d tiles" % _dragged_tiles.size())
+
+
 func _on_tile_drag_ended(tile: Tile) -> void:
 	var cell: BoardCell = _get_cell_under_mouse()
 
 	var cell_name: String = String(cell.name) if cell else "none"
-	print("[Main] Drag ended - Tile: %s | Location: %s | Cell: %s" % [
+	print("[Main] Drag ended - Tile: %s | Location: %s | Cell: %s | Multi: %d" % [
 		tile.name,
 		Tile.TileLocation.keys()[tile.location],
-		cell_name
+		cell_name,
+		_dragged_tiles.size()
 	])
 
-	# Dropped outside board
-	if cell == null:
-		if tile.location == Tile.TileLocation.ON_BOARD:
-			_return_to_original_cell(tile)
-		else:
-			_cancel_drag_to_hand(tile)
-		return
+	# Handle multi-tile or single-tile drop
+	if _dragged_tiles.size() > 1:
+		_handle_multi_tile_drop(cell)
+	else:
+		_handle_single_tile_drop(tile, cell)
 
-	# Dropped on occupied cell
-	if cell.is_occupied():
-		print("[Main] Cannot drop on occupied cell: %s" % cell.name)
-		if tile.location == Tile.TileLocation.ON_BOARD:
-			_return_to_original_cell(tile)
-		else:
-			_cancel_drag_to_hand(tile)
-		return
+	# Emit drag ended event
+	if _dragged_tiles.size() > 1:
+		EventBus.multi_drag_ended.emit(_dragged_tiles, _last_placement_success)
 
-	# Valid placement
-	print("[Main] Valid drop on cell: %s" % cell.name)
-	place_tile_on_cell(tile, cell)
+	_dragged_tiles.clear()
+	_drag_original_positions.clear()
 
 
 # === Cell Handlers ===
 
 func _on_cell_clicked(cell: BoardCell) -> void:
-	if selected_tile == null:
+	var selected_tiles: Array[Tile] = SelectionManager.get_selected_tiles()
+
+	if selected_tiles.is_empty():
 		print("[Main] No tile selected")
 		return
 
@@ -136,17 +150,46 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 		print("[Main] Cell occupied: %s" % cell.name)
 		return
 
-	place_tile_on_cell(selected_tile, cell)
+	# Multi-tile click placement
+	if selected_tiles.size() > 1:
+		var cells: Array[BoardCell] = _get_sequential_cells(cell, selected_tiles.size())
+		if cells.is_empty():
+			print("[Main] Cannot place %d tiles starting at %s" % [selected_tiles.size(), cell.name])
+			return
+
+		# Place all tiles
+		for i in selected_tiles.size():
+			_place_tile_on_cell_silent(selected_tiles[i], cells[i])
+
+		SelectionManager.deselect_all()
+		_update_interaction_state()
+		print("[Main] Placed %d tiles starting at %s" % [selected_tiles.size(), cell.name])
+	else:
+		# Single tile placement
+		place_tile_on_cell(selected_tiles[0], cell)
 
 
 func _on_cell_hovered(cell: BoardCell) -> void:
-	if interaction_mode != InteractionMode.TILE_SELECTED:
+	if not SelectionManager.has_selection():
 		return
 
-	if cell.is_occupied():
-		cell.show_invalid_hover()
+	var selected_count: int = SelectionManager.get_selection_count()
+
+	if selected_count > 1:
+		# Multi-tile hover - check if all sequential cells are valid
+		var cells: Array[BoardCell] = _get_sequential_cells(cell, selected_count)
+		if cells.is_empty():
+			cell.show_invalid_hover()
+		else:
+			# Show valid hover on all cells that would be used
+			for c in cells:
+				c.show_valid_hover()
 	else:
-		cell.show_valid_hover()
+		# Single tile hover
+		if cell.is_occupied():
+			cell.show_invalid_hover()
+		else:
+			cell.show_valid_hover()
 
 
 func _on_cell_unhovered(cell: BoardCell) -> void:
@@ -156,6 +199,19 @@ func _on_cell_unhovered(cell: BoardCell) -> void:
 # === Tile Placement ===
 
 func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
+	if cell.is_occupied():
+		return
+
+	_place_tile_on_cell_silent(tile, cell)
+
+	# Deselect and reset interaction
+	SelectionManager.deselect_tile(tile)
+	_update_interaction_state()
+
+
+## Places a tile on a cell without deselecting or updating interaction state.
+## Used for multi-tile placement where we batch the state updates.
+func _place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
 	if cell.is_occupied():
 		return
 
@@ -177,12 +233,6 @@ func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
 	# Update cell state
 	cell.tile = tile
 
-	# Reset interaction state
-	tile.set_selected(false)
-	selected_tile = null
-	interaction_mode = InteractionMode.IDLE
-
-	_set_hand_tiles_hover_enabled(true)
 	_clear_all_cell_hovers()
 
 	EventBus.tile_placed.emit(tile, cell)
@@ -191,6 +241,21 @@ func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
 
 
 func return_tile_to_hand(tile: Tile) -> void:
+	_return_tile_to_hand_internal(tile, false)
+
+
+func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void:
+	if tile.current_cell == null and tile.location != Tile.TileLocation.IN_HAND:
+		# Tile being returned from drag, not from board
+		if tile.get_parent():
+			tile.get_parent().remove_child(tile)
+		hand.add_tile(tile)
+		tile.location = Tile.TileLocation.IN_HAND
+		tile.modulate = Color.WHITE
+		if not preserve_selection:
+			SelectionManager.deselect_tile(tile)
+		return
+
 	if tile.current_cell == null:
 		return
 
@@ -206,9 +271,11 @@ func return_tile_to_hand(tile: Tile) -> void:
 	# Update tile state
 	tile.current_cell = null
 	tile.location = Tile.TileLocation.IN_HAND
-	tile.set_selected(false)
 
-	interaction_mode = InteractionMode.IDLE
+	if not preserve_selection:
+		SelectionManager.deselect_tile(tile)
+
+	_update_interaction_state()
 	_clear_all_cell_hovers()
 
 	EventBus.tile_removed.emit(tile, cell)
@@ -218,14 +285,23 @@ func return_tile_to_hand(tile: Tile) -> void:
 
 # === Private Helpers ===
 
-func _deselect_tile() -> void:
-	if selected_tile != null:
-		selected_tile.set_selected(false)
-		selected_tile = null
+func _update_interaction_state() -> void:
+	var has_selection: bool = SelectionManager.has_selection()
 
-	interaction_mode = InteractionMode.IDLE
-	_clear_all_cell_hovers()
-	_set_hand_tiles_hover_enabled(true)
+	if has_selection:
+		interaction_mode = InteractionMode.TILE_SELECTED
+		selected_tile = SelectionManager.get_selected_tiles()[0] if SelectionManager.get_selection_count() == 1 else null
+		_set_hand_tiles_hover_enabled(false)
+	else:
+		interaction_mode = InteractionMode.IDLE
+		selected_tile = null
+		_set_hand_tiles_hover_enabled(true)
+		_clear_all_cell_hovers()
+
+
+func _deselect_tile() -> void:
+	SelectionManager.deselect_all()
+	_update_interaction_state()
 
 
 func _set_hand_tiles_hover_enabled(enabled: bool) -> void:
@@ -243,8 +319,110 @@ func _clear_all_cell_hovers() -> void:
 		cell.clear_hover()
 
 
+func _store_original_positions() -> void:
+	_drag_original_positions.clear()
+	for tile in _dragged_tiles:
+		var parent: Node = tile.get_parent()
+		var index: int = parent.get_children().find(tile) if parent else -1
+		_drag_original_positions[tile] = {"parent": parent, "index": index}
+
+
+func _handle_single_tile_drop(tile: Tile, cell: BoardCell) -> void:
+	# Dropped outside board
+	if cell == null:
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			_return_to_original_cell(tile)
+		else:
+			_cancel_drag_to_hand(tile)
+		_last_placement_success = false
+		return
+
+	# Dropped on occupied cell
+	if cell.is_occupied():
+		print("[Main] Cannot drop on occupied cell: %s" % cell.name)
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			_return_to_original_cell(tile)
+		else:
+			_cancel_drag_to_hand(tile)
+		_last_placement_success = false
+		return
+
+	# Valid placement
+	print("[Main] Valid drop on cell: %s" % cell.name)
+	place_tile_on_cell(tile, cell)
+	_last_placement_success = true
+
+
+func _handle_multi_tile_drop(start_cell: BoardCell) -> void:
+	if start_cell == null:
+		_cancel_multi_drag_preserve_selection()
+		_last_placement_success = false
+		return
+
+	# Validate all tiles can be placed in sequence
+	var cells: Array[BoardCell] = _get_sequential_cells(start_cell, _dragged_tiles.size())
+	if cells.is_empty():
+		print("[Main] Cannot place %d tiles starting at %s" % [_dragged_tiles.size(), start_cell.name])
+		_cancel_multi_drag_preserve_selection()
+		_last_placement_success = false
+		return
+
+	# Place all tiles
+	for i in _dragged_tiles.size():
+		_place_tile_on_cell_silent(_dragged_tiles[i], cells[i])
+
+	# Deselect all after successful placement
+	SelectionManager.deselect_all()
+	_update_interaction_state()
+	_last_placement_success = true
+	print("[Main] Multi-drop: placed %d tiles starting at %s" % [_dragged_tiles.size(), start_cell.name])
+
+
+func _get_sequential_cells(start: BoardCell, count: int) -> Array[BoardCell]:
+	var cells: Array[BoardCell] = []
+	var pos: Vector2i = start.grid_position
+	var direction: Vector2i = Vector2i.RIGHT  # Future: configurable direction
+
+	for i in count:
+		var cell: BoardCell = board.get_cell(pos.y, pos.x)
+		if cell == null or cell.is_occupied():
+			return []  # Invalid - return empty
+		cells.append(cell)
+		pos += direction
+	return cells
+
+
+func _cancel_multi_drag_preserve_selection() -> void:
+	for tile in _dragged_tiles:
+		_return_tile_to_original_position(tile)
+	# Selection is preserved - tiles remain selected
+	_update_interaction_state()
+	print("[Main] Multi-drag cancelled, selection preserved")
+
+
+func _return_tile_to_original_position(tile: Tile) -> void:
+	if not _drag_original_positions.has(tile):
+		_cancel_drag_to_hand(tile)
+		return
+
+	var original: Dictionary = _drag_original_positions[tile]
+	var parent: Node = original.get("parent")
+
+	if tile.location == Tile.TileLocation.ON_BOARD:
+		# Was on board - return to cell
+		_return_to_original_cell(tile)
+	else:
+		# Was in hand - return to hand preserving selection
+		if tile.get_parent():
+			tile.get_parent().remove_child(tile)
+		hand.add_tile(tile)
+		tile.location = Tile.TileLocation.IN_HAND
+		tile.current_cell = null
+		tile.modulate = Color.WHITE
+		# Don't deselect - preserve selection
+
+
 func _cancel_drag_to_hand(tile: Tile) -> void:
-	"""Returns tile to hand after cancelled drag (tile was never on board)."""
 	if tile.get_parent():
 		tile.get_parent().remove_child(tile)
 
@@ -253,16 +431,18 @@ func _cancel_drag_to_hand(tile: Tile) -> void:
 	tile.location = Tile.TileLocation.IN_HAND
 	tile.current_cell = null
 	tile.modulate = Color.WHITE
-	tile.set_selected(false)
 
-	interaction_mode = InteractionMode.IDLE
+	# Deselect only in single mode or if this is not a multi-drag
+	if not SelectionManager.is_multi_select_enabled() or _dragged_tiles.size() <= 1:
+		SelectionManager.deselect_tile(tile)
+
+	_update_interaction_state()
 	_clear_all_cell_hovers()
 
 	print("[Main] Cancelled drag for tile: %s" % tile.name)
 
 
 func _return_to_original_cell(tile: Tile) -> void:
-	"""Returns dragged board tile back to its current cell."""
 	if tile.current_cell == null:
 		push_error("[Main] Board tile has no current_cell reference!")
 		return

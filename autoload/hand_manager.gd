@@ -222,5 +222,8 @@ func _connect_tile_signals(tile: Tile) -> void:
 	if not tile.tile_right_clicked.is_connected(_main_scene._on_tile_right_clicked):
 		tile.tile_right_clicked.connect(_main_scene._on_tile_right_clicked)
 
+	if not tile.tile_drag_started.is_connected(_main_scene._on_tile_drag_started):
+		tile.tile_drag_started.connect(_main_scene._on_tile_drag_started)
+
 	if not tile.tile_drag_ended.is_connected(_main_scene._on_tile_drag_ended):
 		tile.tile_drag_ended.connect(_main_scene._on_tile_drag_ended)

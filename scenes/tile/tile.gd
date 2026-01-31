@@ -14,6 +14,9 @@ signal tile_drag_ended(tile: Tile)
 # === Constants ===
 const DRAG_THRESHOLD: float = 8.0  # Pixels before drag starts
 const DRAG_Z_INDEX: int = 100      # Z-index while dragging
+const SELECTED_SCALE: Vector2 = Vector2(1.05, 1.05)
+const NORMAL_SCALE: Vector2 = Vector2(1.0, 1.0)
+const SCALE_TWEEN_DURATION: float = 0.1
 
 # === Enums ===
 
@@ -49,6 +52,7 @@ var current_cell: BoardCell = null  # Only valid when ON_BOARD
 # === Selection State ===
 var is_selected: bool = false
 var allow_hover_feedback: bool = true
+var selection_order: int = -1  # -1 = not selected
 
 # === Drag State ===
 var _drag_state: DragState = DragState.IDLE
@@ -120,6 +124,19 @@ func initialize(data: LetterTileData) -> void:
 func set_selected(value: bool) -> void:
 	is_selected = value
 	_update_visual()
+	_animate_selection_scale()
+
+
+## Set the selection order for multi-select.
+func set_selection_order(order: int) -> void:
+	selection_order = order
+
+
+func _animate_selection_scale() -> void:
+	var target_scale: Vector2 = SELECTED_SCALE if is_selected else NORMAL_SCALE
+	var tween: Tween = create_tween()
+	tween.tween_property(self, "scale", target_scale, SCALE_TWEEN_DURATION) \
+		.set_ease(Tween.EASE_OUT)
 
 
 ## Get the total point value including modifiers.
@@ -139,6 +156,8 @@ func reset() -> void:
 	point_modifier = 0
 	current_cell = null
 	location = TileLocation.IN_BAG
+	selection_order = -1
+	scale = NORMAL_SCALE
 	_drag_state = DragState.IDLE
 	_update_visual()
 
