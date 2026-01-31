@@ -182,7 +182,7 @@ func _animate_return_single(tile: Tile, hand: Node, cell: Node, strategy: TileAn
 	strategy.on_animation_start(tile)
 
 	# Clear the cell's tile reference
-	if cell and "tile" in cell:
+	if cell:
 		cell.tile = null
 
 	# Remove tile from its current parent (the cell's tile_anchor)
