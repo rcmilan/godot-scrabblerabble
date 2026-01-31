@@ -94,13 +94,6 @@ text = "Game Over"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="DiscardButton" type="Button" parent="."]
-offset_left = 180.0
-offset_top = 534.0
-offset_right = 280.0
-offset_bottom = 574.0
-text = "Discard"
-
 [node name="PlayButton" type="Button" parent="."]
 offset_left = 865.0
 offset_top = 538.0

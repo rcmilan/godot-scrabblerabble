@@ -27,16 +27,22 @@ var _last_placement_success: bool = false
 # === Node References ===
 @onready var board: Board = $Board
 @onready var hand: Hand = $Hand
+@onready var discard_pile: Control = $DiscardPile
+@onready var discard_dialog: CanvasLayer = $DiscardConfirmationDialog
 
 
 func _ready() -> void:
 	_connect_board_signals()
+	_connect_discard_signals()
 	_start_game()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_multi_select"):
 		SelectionManager.toggle_mode()
+
+	if event.is_action_pressed("discard_tiles"):
+		_request_discard_confirmation()
 
 
 func _process(_delta: float) -> void:
@@ -54,6 +60,13 @@ func _connect_board_signals() -> void:
 	board.cell_clicked.connect(_on_cell_clicked)
 	board.cell_hovered.connect(_on_cell_hovered)
 	board.cell_unhovered.connect(_on_cell_unhovered)
+
+
+func _connect_discard_signals() -> void:
+	discard_pile.tiles_dropped.connect(_on_discard_pile_tiles_dropped)
+	discard_pile.peek_requested.connect(_on_discard_pile_peek_requested)
+	discard_dialog.confirmed.connect(_on_discard_confirmed)
+	discard_dialog.cancelled.connect(_on_discard_cancelled)
 
 
 func _start_game() -> void:
@@ -107,12 +120,24 @@ func _on_tile_drag_started(tile: Tile) -> void:
 	# Store original positions for potential cancellation
 	_store_original_positions()
 
+	# Always emit drag started event for discard pile highlighting
+	EventBus.multi_drag_started.emit(_dragged_tiles)
+
 	if _dragged_tiles.size() > 1:
-		EventBus.multi_drag_started.emit(_dragged_tiles)
 		print("[Main] Multi-drag started with %d tiles" % _dragged_tiles.size())
 
 
 func _on_tile_drag_ended(tile: Tile) -> void:
+	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+
+	# Check if dropped on discard pile first
+	if discard_pile.is_drop_target(mouse_pos):
+		_handle_drop_on_discard_pile()
+		EventBus.multi_drag_ended.emit(_dragged_tiles, false)
+		_dragged_tiles.clear()
+		_drag_original_positions.clear()
+		return
+
 	var cell: BoardCell = _get_cell_under_mouse()
 
 	var cell_name: String = String(cell.name) if cell else "none"
@@ -129,9 +154,8 @@ func _on_tile_drag_ended(tile: Tile) -> void:
 	else:
 		_handle_single_tile_drop(tile, cell)
 
-	# Emit drag ended event
-	if _dragged_tiles.size() > 1:
-		EventBus.multi_drag_ended.emit(_dragged_tiles, _last_placement_success)
+	# Always emit drag ended event for discard pile
+	EventBus.multi_drag_ended.emit(_dragged_tiles, _last_placement_success)
 
 	_dragged_tiles.clear()
 	_drag_original_positions.clear()
@@ -400,6 +424,30 @@ func _cancel_multi_drag_preserve_selection() -> void:
 	print("[Main] Multi-drag cancelled, selection preserved")
 
 
+func _handle_drop_on_discard_pile() -> void:
+	# Filter to only hand tiles
+	var hand_tiles: Array[Tile] = []
+	for tile in _dragged_tiles:
+		if tile.location == Tile.TileLocation.IN_HAND:
+			hand_tiles.append(tile)
+
+	if hand_tiles.is_empty():
+		# Return board tiles to their cells
+		for tile in _dragged_tiles:
+			if tile.location == Tile.TileLocation.ON_BOARD:
+				_return_to_original_cell(tile)
+		print("[Main] Cannot discard board tiles")
+		return
+
+	# Return tiles to hand first (they may be floating during drag)
+	for tile in hand_tiles:
+		_return_tile_to_original_position(tile)
+
+	# Show confirmation dialog
+	discard_dialog.show_confirmation(hand_tiles.size())
+	print("[Main] Dropped %d tiles on discard pile, awaiting confirmation" % hand_tiles.size())
+
+
 func _return_tile_to_original_position(tile: Tile) -> void:
 	if not _drag_original_positions.has(tile):
 		_cancel_drag_to_hand(tile)
@@ -451,3 +499,83 @@ func _return_to_original_cell(tile: Tile) -> void:
 	tile.modulate = Color.WHITE
 
 	print("[Main] Tile %s returned to cell: %s" % [tile.name, tile.current_cell.name])
+
+
+# === Discard Handlers ===
+
+func _request_discard_confirmation() -> void:
+	var selected_tiles: Array[Tile] = SelectionManager.get_selected_tiles()
+
+	# Filter to only hand tiles
+	var hand_tiles: Array[Tile] = []
+	for tile in selected_tiles:
+		if tile.location == Tile.TileLocation.IN_HAND:
+			hand_tiles.append(tile)
+
+	if hand_tiles.is_empty():
+		print("[Main] No hand tiles selected to discard")
+		return
+
+	discard_dialog.show_confirmation(hand_tiles.size())
+	EventBus.discard_confirmation_requested.emit(hand_tiles.size())
+
+
+func _on_discard_confirmed() -> void:
+	var selected_tiles: Array[Tile] = SelectionManager.get_selected_tiles()
+
+	# Filter to only hand tiles
+	var hand_tiles: Array[Tile] = []
+	for tile in selected_tiles:
+		if tile.location == Tile.TileLocation.IN_HAND:
+			hand_tiles.append(tile)
+
+	if hand_tiles.is_empty():
+		return
+
+	# Discard all selected hand tiles
+	_discard_tiles(hand_tiles)
+
+	EventBus.discard_confirmed.emit()
+	print("[Main] Discard confirmed: %d tiles" % hand_tiles.size())
+
+
+func _on_discard_cancelled() -> void:
+	# Selection is preserved when user cancels
+	EventBus.discard_cancelled.emit()
+	print("[Main] Discard cancelled, selection preserved")
+
+
+func _on_discard_pile_tiles_dropped(tiles: Array) -> void:
+	# Filter to only hand tiles
+	var hand_tiles: Array[Tile] = []
+	for tile in tiles:
+		if tile is Tile and tile.location == Tile.TileLocation.IN_HAND:
+			hand_tiles.append(tile)
+
+	if hand_tiles.is_empty():
+		return
+
+	# Show confirmation before discarding
+	discard_dialog.show_confirmation(hand_tiles.size())
+
+
+func _on_discard_pile_peek_requested() -> void:
+	# Future feature: show discard pile contents
+	var pile: Array[Tile] = HandManager.get_discard_pile()
+	print("[Main] Peek requested - Discard pile has %d tiles" % pile.size())
+	# TODO: Show discard pile viewer UI
+
+
+func _discard_tiles(tiles: Array[Tile]) -> void:
+	# Deselect all tiles first
+	SelectionManager.deselect_all()
+
+	# Discard each tile through HandManager
+	for tile in tiles:
+		HandManager.discard_tile(tile)
+
+	# Refill hand from tile bag
+	var refilled: int = HandManager.refill_hand()
+	print("[Main] Discarded %d tiles, refilled %d" % [tiles.size(), refilled])
+
+	_update_interaction_state()

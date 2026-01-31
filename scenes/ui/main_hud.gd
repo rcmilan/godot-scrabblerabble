@@ -4,7 +4,6 @@ extends CanvasLayer
 ## Connects to EventBus for reactive updates.
 
 # === Signals ===
-signal discard_requested
 signal play_requested
 
 # === Node References ===
@@ -15,7 +14,6 @@ signal play_requested
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
 @onready var game_over_label: Label = $GameOverLabel
-@onready var discard_button: Button = $DiscardButton
 @onready var play_button: Button = $PlayButton
 
 
@@ -38,7 +36,6 @@ func _connect_signals() -> void:
 
 
 func _setup_buttons() -> void:
-	discard_button.pressed.connect(_on_discard_button_pressed)
 	play_button.pressed.connect(_on_play_button_pressed)
 	play_button.disabled = true
 
@@ -120,10 +117,6 @@ func _update_discard(count: int) -> void:
 
 
 # === Button Handlers ===
-
-func _on_discard_button_pressed() -> void:
-	discard_requested.emit()
-
 
 func _on_play_button_pressed() -> void:
 	play_requested.emit()
