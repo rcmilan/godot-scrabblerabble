@@ -127,3 +127,19 @@ signal ui_refresh_requested()
 
 ## Emitted when a notification should be shown.
 signal notification_requested(message: String, type: String)
+
+# =============================================================================
+# SELECTION EVENTS
+# =============================================================================
+
+## Emitted when selection mode changes (single <-> multi).
+signal selection_mode_changed(is_multi_select: bool)
+
+## Emitted when selection changes.
+signal selection_changed(selected_tiles: Array)
+
+## Emitted when multi-tile drag starts.
+signal multi_drag_started(tiles: Array)
+
+## Emitted when multi-tile drag ends.
+signal multi_drag_ended(tiles: Array, success: bool)
