@@ -34,8 +34,6 @@ enum CellType {
 }
 
 @export var cell_type: CellType = CellType.NORMAL
-@export var letter_multiplier: int = 1
-@export var word_multiplier: int = 1
 
 
 func _ready() -> void:
