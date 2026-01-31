@@ -29,6 +29,11 @@ var _is_initialized: bool = false
 signal initialized
 
 
+## Returns true if HandManager has been initialized.
+func is_initialized() -> bool:
+	return _is_initialized
+
+
 func _ready() -> void:
 	# Wait for scene tree to be ready, then initialize
 	get_tree().process_frame.connect(_on_first_frame, CONNECT_ONE_SHOT)
