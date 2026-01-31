@@ -1,78 +1,142 @@
 extends Control
 class_name BoardCell
 
-@onready var visual := $ContentLayer/CenterContainer/Sprite2D
-@onready var hover_overlay := $OverlayLayer/HoverOverlay
-@onready var tile_anchor := $ContentLayer/TileAnchor
-@export var occupied := false
+## Individual cell on the game board.
+## Manages tile placement, visual overlays, and user interactions.
 
-signal cell_clicked(cell)
-signal cell_hovered(cell)
-signal cell_unhovered(cell)
+# === Signals ===
+signal cell_clicked(cell: BoardCell)
+signal cell_hovered(cell: BoardCell)
+signal cell_unhovered(cell: BoardCell)
 
+# === Visual Feedback Colors ===
+const COLOR_VALID_HOVER: Color = Color(0, 1, 0, 0.45)
+const COLOR_INVALID_HOVER: Color = Color(1, 0, 0, 0.65)
+const COLOR_SPECIAL_MULTIPLIER: Color = Color(1, 0.84, 0, 0.3)  # Gold for special cells
+
+# === Node References ===
+@onready var visual: TextureRect = $ContentLayer/CenterContainer/Sprite2D
+@onready var hover_overlay: ColorRect = $OverlayLayer/HoverOverlay
+@onready var tile_anchor: Control = $ContentLayer/TileAnchor
+
+# === State ===
 var tile: Tile = null
-var placed_tile: Control = null
+var grid_position: Vector2i = Vector2i.ZERO
 
-# Called when the node enters the scene tree for the first time.
+# === Cell Modifiers (for future features) ===
+enum CellType {
+	NORMAL,
+	DOUBLE_LETTER,
+	TRIPLE_LETTER,
+	DOUBLE_WORD,
+	TRIPLE_WORD,
+	STAR  # Center cell
+}
+
+@export var cell_type: CellType = CellType.NORMAL
+@export var letter_multiplier: int = 1
+@export var word_multiplier: int = 1
+
+
 func _ready() -> void:
-	#hover_overlay.color = Color(1, 0, 0, 0.8)
-	#hover_overlay.visible = true
-	#hover_overlay.move_to_front()
-	print("Overlay size:", hover_overlay.size)
-	pass # Replace with function body.
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	hover_overlay.visible = false
+
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.is_pressed():
-		print("BoardCell clicked: ", name)
-		cell_clicked.emit(self)
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			cell_clicked.emit(self)
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 
+# === Public API ===
+
+## Returns true if this cell has a tile placed on it.
+func is_occupied() -> bool:
+	return tile != null
+
+
+## Returns true if a tile can be placed on this cell.
+func can_place_tile() -> bool:
+	return not is_occupied()
+
+
+## Places a tile on this cell.
+func place_tile(new_tile: Tile) -> bool:
+	if is_occupied():
+		return false
+
+	tile = new_tile
+	return true
+
+
+## Removes and returns the tile from this cell.
+func remove_tile() -> Tile:
+	var removed_tile: Tile = tile
+	tile = null
+	return removed_tile
+
+
+## Clears the tile reference without returning it.
+func clear_tile() -> void:
+	if tile != null:
+		tile.queue_free()
+	tile = null
+
+
+## Shows a valid placement hover indicator.
+func show_valid_hover() -> void:
+	_show_overlay(COLOR_VALID_HOVER)
+
+
+## Shows an invalid placement hover indicator.
+func show_invalid_hover() -> void:
+	_show_overlay(COLOR_INVALID_HOVER)
+
+
+## Clears the hover indicator.
+func clear_hover() -> void:
+	hover_overlay.visible = false
+
+
+## Returns the score multiplier for letters on this cell.
+func get_letter_multiplier() -> int:
+	match cell_type:
+		CellType.DOUBLE_LETTER:
+			return 2
+		CellType.TRIPLE_LETTER:
+			return 3
+		_:
+			return 1
+
+
+## Returns the word multiplier for words using this cell.
+func get_word_multiplier() -> int:
+	match cell_type:
+		CellType.DOUBLE_WORD, CellType.STAR:
+			return 2
+		CellType.TRIPLE_WORD:
+			return 3
+		_:
+			return 1
+
+
+# === Private Methods ===
+
+func _show_overlay(color: Color) -> void:
+	hover_overlay.color = color
+	hover_overlay.visible = true
+	hover_overlay.move_to_front()
+
+
+# === Signal Handlers (connected in scene) ===
 
 func _on_mouse_entered() -> void:
-	visual.modulate = Color(0.8, 0.8, 0.8) # Replace with function body.
+	if not is_occupied():
+		visual.modulate = Color(0.9, 0.9, 0.9)
 	cell_hovered.emit(self)
 
 
 func _on_mouse_exited() -> void:
-	visual.modulate = Color(1,1,1) # Replace with function body.
+	visual.modulate = Color.WHITE
 	cell_unhovered.emit(self)
-	
-	
-
-func is_occupied() -> bool:
-	return placed_tile != null
-	
-	
-func show_valid_hover() -> void:
-	hover_overlay.color = Color(0, 1, 0, 0.45)
-	hover_overlay.visible = true
-	hover_overlay.move_to_front()
-	
-func show_invalid_hover() -> void:
-	hover_overlay.color = Color(1, 0, 0, 0.65)
-	hover_overlay.visible = true
-	hover_overlay.move_to_front()
-	
-func clear_hover() -> void:
-	hover_overlay.visible = false
-	
-func show_invalid_overlay():
-	$OverlayLayer/HoverOverlay.color = Color(1, 0, 0, 0.65)
-	$OverlayLayer.visible = true
-	$OverlayLayer.move_to_front()
-
-func show_valid_overlay():
-	$OverlayLayer/HoverOverlay.color = Color(0, 1, 0, 0.45)
-	$OverlayLayer.visible = true
-	$OverlayLayer.move_to_front()
-
-func hide_overlay():
-	$OverlayLayer.visible = false
-	
-func can_place_tile(tile: Tile, cell: BoardCell) -> bool:
-	if cell.occupied:
-		return false
-	return true
