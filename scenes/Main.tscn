@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://ddchieu337gsy"]
+[gd_scene load_steps=7 format=3 uid="uid://ddchieu337gsy"]
 
 [ext_resource type="PackedScene" uid="uid://6mhb0a0g3kj8" path="res://scenes/board/Board.tscn" id="1_idj7w"]
 [ext_resource type="Script" uid="uid://mpe2jq6utcpi" path="res://scenes/main.gd" id="1_kln2b"]
 [ext_resource type="PackedScene" uid="uid://cheurswfn12g" path="res://scenes/hand/Hand.tscn" id="2_kln2b"]
 [ext_resource type="PackedScene" uid="uid://b7137nxmc3c7y" path="res://scenes/debug/DebugConsole.tscn" id="5_pbw6q"]
 [ext_resource type="PackedScene" uid="uid://cscoel3dj5cps" path="res://scenes/ui/MultiSelectIndicator.tscn" id="6_multi"]
+[ext_resource type="PackedScene" uid="uid://dvvvp3s5ego5p" path="res://scenes/ui/MainHUD.tscn" id="7_hud"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -26,3 +27,5 @@ visible = false
 
 [node name="MultiSelectIndicator" parent="." instance=ExtResource("6_multi")]
 layout_mode = 1
+
+[node name="MainHUD" parent="." instance=ExtResource("7_hud")]

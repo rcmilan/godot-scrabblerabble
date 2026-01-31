@@ -11,10 +11,9 @@ signal play_requested
 @onready var plays_label: Label = $PlaysLabel
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
-@onready var rack_label: Label = $RackLabel
+@onready var deck_label: Label = $DeckLabel
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
-@onready var discard_pile_label: Label = $DiscardPileLabel
 @onready var game_over_label: Label = $GameOverLabel
 @onready var discard_button: Button = $DiscardButton
 @onready var play_button: Button = $PlayButton
@@ -51,7 +50,7 @@ func _initialize_display() -> void:
 	_update_plays(GameManager.plays_remaining)
 	_update_score(GameManager.current_score)
 	_update_target(GameManager.target_score)
-	_update_rack(TileBag.tiles_remaining())
+	_update_deck(TileBag.tiles_remaining())
 	_update_hand(HandManager.get_hand_size())
 	_update_discard(HandManager.get_discard_count())
 
@@ -67,7 +66,7 @@ func _on_hand_count_changed(count: int) -> void:
 
 
 func _on_bag_count_changed(count: int) -> void:
-	_update_rack(count)
+	_update_deck(count)
 
 
 func _on_discard_count_changed(count: int) -> void:
@@ -108,8 +107,8 @@ func _update_target(target: int) -> void:
 	target_label.text = "Target: %d" % target
 
 
-func _update_rack(count: int) -> void:
-	rack_label.text = "Rack: %d" % count
+func _update_deck(count: int) -> void:
+	deck_label.text = "Deck: %d" % count
 
 
 func _update_hand(count: int) -> void:
@@ -117,8 +116,7 @@ func _update_hand(count: int) -> void:
 
 
 func _update_discard(count: int) -> void:
-	discard_label.text = "Discards: %d" % count
-	discard_pile_label.text = "Discard Pile: %d" % count
+	discard_label.text = "Discard: %d" % count
 
 
 # === Button Handlers ===

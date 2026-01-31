@@ -42,7 +42,7 @@ grow_horizontal = 0
 text = "Target: 100"
 horizontal_alignment = 2
 
-[node name="RackLabel" type="Label" parent="."]
+[node name="DeckLabel" type="Label" parent="."]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -51,7 +51,7 @@ offset_top = 110.0
 offset_right = -20.0
 offset_bottom = 133.0
 grow_horizontal = 0
-text = "Rack: 50"
+text = "Deck: 50"
 horizontal_alignment = 2
 
 [node name="HandLabel" type="Label" parent="."]
@@ -75,19 +75,7 @@ offset_top = 170.0
 offset_right = -20.0
 offset_bottom = 193.0
 grow_horizontal = 0
-text = "Discards: 0"
-horizontal_alignment = 2
-
-[node name="DiscardPileLabel" type="Label" parent="."]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -120.0
-offset_top = 200.0
-offset_right = -20.0
-offset_bottom = 223.0
-grow_horizontal = 0
-text = "Discard Pile: 0"
+text = "Discard: 0"
 horizontal_alignment = 2
 
 [node name="GameOverLabel" type="Label" parent="."]
