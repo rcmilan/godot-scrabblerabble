@@ -346,6 +346,7 @@ Coordinates tile animations across the game. Uses the Strategy pattern for flexi
 # Main API
 animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
 animate_return_to_hand(tile, hand, cell) -> void        # Return from board
+animate_shake(tile: Tile) -> void                       # Illegal action feedback
 
 # State queries
 is_animating() -> bool                                  # Check if animating
@@ -384,6 +385,7 @@ if TileAnimator.is_animating():
 TileAnimator uses animation strategies from `scripts/animation/`:
 - **DrawTileAnimation** - Tiles rise from below, scale up, fade in
 - **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
+- **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
 
 See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
 

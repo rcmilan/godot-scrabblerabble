@@ -8,7 +8,8 @@ Flexible, object-oriented animation system for tile movements. Uses the Strategy
 scripts/animation/
 ├── tile_animation_strategy.gd    # Base strategy class (Resource)
 ├── draw_tile_animation.gd        # Draw animation implementation
-└── return_to_hand_animation.gd   # Return from board animation
+├── return_to_hand_animation.gd   # Return from board animation
+└── shake_tile_animation.gd       # Illegal action feedback animation
 ```
 
 ---
@@ -126,6 +127,43 @@ TileAnimator.animate_return_to_hand(tile, hand, cell)
 
 ---
 
+## ShakeTileAnimation
+
+### Purpose
+Animation strategy for indicating an illegal action. The tile shakes left-right quickly to provide visual feedback that the action cannot be performed.
+
+### Class: `ShakeTileAnimation extends TileAnimationStrategy`
+
+### Configuration
+```gdscript
+@export var shake_distance: float = 8.0
+@export var shake_count: int = 3
+```
+
+### Default Values
+| Property | Value |
+|----------|-------|
+| duration | 0.08s (per direction) |
+| ease_type | EASE_IN_OUT |
+| trans_type | TRANS_SINE |
+| shake_distance | 8px |
+| shake_count | 3 |
+
+### Behavior
+- Tile shakes left-right quickly (3 times by default)
+- Returns to original position after shaking
+- Mouse interaction disabled during animation
+- Used when attempting illegal actions (e.g., returning tile when hand is full)
+
+### Usage
+```gdscript
+# Called automatically when trying to return a tile with full hand
+# Or call directly:
+TileAnimator.animate_shake(tile)
+```
+
+---
+
 ## Creating New Animations
 
 ### Step 1: Create Strategy Class
@@ -177,4 +215,3 @@ TileAnimator.animate_discard_batch(tiles_to_discard)
 - `discard_tile_animation.gd` - Tiles shrink and fade out
 - `place_tile_animation.gd` - Tiles snap onto board cells
 - `shuffle_animation.gd` - Tiles shuffle within hand
-- `invalid_word_animation.gd` - Shake animation for invalid placements

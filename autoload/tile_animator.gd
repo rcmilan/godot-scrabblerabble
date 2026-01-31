@@ -25,6 +25,7 @@ var _is_animating: bool = false
 
 var _draw_animation: DrawTileAnimation = null
 var _return_animation: ReturnToHandAnimation = null
+var _shake_animation: ShakeTileAnimation = null
 
 
 func _ready() -> void:
@@ -61,6 +62,18 @@ func animate_return_to_hand(tile: Tile, hand: Node, cell: Node) -> void:
 		_return_animation = ReturnToHandAnimation.new()
 
 	_animate_return_single(tile, hand, cell, _return_animation)
+
+
+## Plays a shake animation on a tile to indicate an illegal action.
+## The tile shakes left-right quickly and returns to its original position.
+func animate_shake(tile: Tile) -> void:
+	if tile == null:
+		return
+
+	if _shake_animation == null:
+		_shake_animation = ShakeTileAnimation.new()
+
+	_animate_shake_single(tile, _shake_animation)
 
 
 ## Returns true if any animations are currently playing.
@@ -232,3 +245,51 @@ func _animate_return_single(tile: Tile, hand: Node, cell: Node, strategy: TileAn
 	)
 
 	print("[TileAnimator] Started return-to-hand animation for tile: %s" % tile.name)
+
+
+## Animates a shake effect on a tile to indicate an illegal action.
+func _animate_shake_single(tile: Tile, strategy: ShakeTileAnimation) -> void:
+	# Cancel any existing animation on this tile
+	cancel_tile_animation(tile)
+
+	_is_animating = true
+	var tiles_array: Array[Tile] = [tile]
+	animation_started.emit(tiles_array)
+
+	# Store original position
+	var original_position: Vector2 = tile.position
+
+	# Notify strategy of animation start
+	strategy.on_animation_start(tile)
+
+	# Create sequential shake animation
+	var tween: Tween = create_tween()
+
+	# Shake left-right multiple times
+	for i in strategy.shake_count:
+		# Move right
+		tween.tween_property(tile, "position:x", original_position.x + strategy.shake_distance, strategy.duration) \
+			.set_ease(strategy.ease_type) \
+			.set_trans(strategy.trans_type)
+		# Move left
+		tween.tween_property(tile, "position:x", original_position.x - strategy.shake_distance, strategy.duration) \
+			.set_ease(strategy.ease_type) \
+			.set_trans(strategy.trans_type)
+
+	# Return to original position
+	tween.tween_property(tile, "position:x", original_position.x, strategy.duration) \
+		.set_ease(strategy.ease_type) \
+		.set_trans(strategy.trans_type)
+
+	_active_tweens[tile] = tween
+
+	# Track completion
+	tween.finished.connect(func():
+		strategy.on_animation_complete(tile)
+		single_tile_animated.emit(tile)
+		_active_tweens.erase(tile)
+		_is_animating = _active_tweens.size() > 0
+		animation_completed.emit(tiles_array)
+	)
+
+	print("[TileAnimator] Started shake animation for tile: %s" % tile.name)

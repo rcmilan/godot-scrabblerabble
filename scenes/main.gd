@@ -104,6 +104,12 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 		print("[Main] Tile is not on board")
 		return
 
+	# Check if hand has space for the tile
+	if hand.is_full():
+		print("[Main] Cannot return tile - hand is full")
+		TileAnimator.animate_shake(tile)
+		return
+
 	return_tile_to_hand(tile)
 
 
