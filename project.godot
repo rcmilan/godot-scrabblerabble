@@ -23,6 +23,10 @@ DebugManager="*res://autoload/debug_manager.gd"
 TileBag="*res://autoload/tile_bag.gd"
 HandManager="*res://autoload/hand_manager.gd"
 
+[dotnet]
+
+project/assembly_name="Wordatro"
+
 [rendering]
 
 renderer/rendering_method="mobile"
