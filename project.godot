@@ -23,6 +23,7 @@ DebugManager="*res://autoload/debug_manager.gd"
 TileBag="*res://autoload/tile_bag.gd"
 HandManager="*res://autoload/hand_manager.gd"
 SelectionManager="*res://autoload/selection_manager.gd"
+TileAnimator="*res://autoload/tile_animator.gd"
 
 [dotnet]
 

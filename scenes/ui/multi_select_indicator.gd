@@ -37,4 +37,4 @@ func _update_display() -> void:
 			mode_label.text = "MULTI [%d]" % count
 	else:
 		background.modulate = COLOR_SINGLE
-		mode_label.text = "[Q] Multi"
+		mode_label.text = "Multi [Q]"
