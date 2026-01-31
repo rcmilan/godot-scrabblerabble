@@ -344,14 +344,15 @@ Coordinates tile animations across the game. Uses the Strategy pattern for flexi
 ### Key Methods
 ```gdscript
 # Main API
-animate_draw_batch(tiles: Array[Tile]) -> void  # Draw animation
+animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
+animate_return_to_hand(tile, hand, cell) -> void        # Return from board
 
 # State queries
-is_animating() -> bool                          # Check if animating
+is_animating() -> bool                                  # Check if animating
 
 # Control
-cancel_all() -> void                            # Cancel all animations
-cancel_tile_animation(tile: Tile) -> void       # Cancel specific tile
+cancel_all() -> void                                    # Cancel all animations
+cancel_tile_animation(tile: Tile) -> void               # Cancel specific tile
 ```
 
 ### Animation Flow
@@ -382,6 +383,7 @@ if TileAnimator.is_animating():
 ### Strategy Pattern
 TileAnimator uses animation strategies from `scripts/animation/`:
 - **DrawTileAnimation** - Tiles rise from below, scale up, fade in
+- **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
 
 See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
 

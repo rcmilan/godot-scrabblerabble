@@ -6,8 +6,9 @@ Flexible, object-oriented animation system for tile movements. Uses the Strategy
 ## Structure
 ```
 scripts/animation/
-├── tile_animation_strategy.gd   # Base strategy class (Resource)
-└── draw_tile_animation.gd       # Draw animation implementation
+├── tile_animation_strategy.gd    # Base strategy class (Resource)
+├── draw_tile_animation.gd        # Draw animation implementation
+└── return_to_hand_animation.gd   # Return from board animation
 ```
 
 ---
@@ -88,6 +89,43 @@ Concrete animation strategy for drawing tiles into the hand. Tiles animate from 
 
 ---
 
+## ReturnToHandAnimation
+
+### Purpose
+Animation strategy for returning tiles from the board back to the hand. Tiles smoothly glide from their board position to their hand position with a subtle bounce effect.
+
+### Class: `ReturnToHandAnimation extends TileAnimationStrategy`
+
+### Configuration
+```gdscript
+@export var overshoot_scale: Vector2 = Vector2(1.1, 1.1)
+@export var start_alpha: float = 1.0
+```
+
+### Default Values
+| Property | Value |
+|----------|-------|
+| duration | 0.35s |
+| ease_type | EASE_OUT |
+| trans_type | TRANS_BACK (bounce) |
+| stagger_delay | 0.03s |
+
+### Behavior
+- Tiles start at their board position (global coordinates)
+- Smoothly glide to their new hand position
+- Uses TRANS_BACK for subtle overshoot/bounce effect
+- Z-index raised during animation to appear above other tiles
+- Mouse interaction disabled during animation
+
+### Usage
+```gdscript
+# Called automatically by Main when right-clicking board tiles
+# Or call directly:
+TileAnimator.animate_return_to_hand(tile, hand, cell)
+```
+
+---
+
 ## Creating New Animations
 
 ### Step 1: Create Strategy Class
@@ -138,6 +176,5 @@ TileAnimator.animate_discard_batch(tiles_to_discard)
 ## Future Animations
 - `discard_tile_animation.gd` - Tiles shrink and fade out
 - `place_tile_animation.gd` - Tiles snap onto board cells
-- `return_tile_animation.gd` - Tiles return from board to hand
 - `shuffle_animation.gd` - Tiles shuffle within hand
 - `invalid_word_animation.gd` - Shake animation for invalid placements

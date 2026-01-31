@@ -145,11 +145,13 @@ See [animation/AGENT.md](animation/AGENT.md) for detailed documentation.
 ### Quick Reference
 - **TileAnimationStrategy** - Base class for animation behaviors
 - **DrawTileAnimation** - Tiles animate into hand from below
+- **ReturnToHandAnimation** - Tiles glide from board back to hand
 
 ### Usage
 ```gdscript
 # Animations are triggered via TileAnimator autoload
 TileAnimator.animate_draw_batch(tiles)
+TileAnimator.animate_return_to_hand(tile, hand, cell)
 ```
 
 ---
