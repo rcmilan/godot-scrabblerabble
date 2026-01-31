@@ -26,6 +26,7 @@ var _is_animating: bool = false
 var _draw_animation: DrawTileAnimation = null
 var _return_animation: ReturnToHandAnimation = null
 var _shake_animation: ShakeTileAnimation = null
+var _stomp_animation: StompTileAnimation = null
 
 
 func _ready() -> void:
@@ -74,6 +75,18 @@ func animate_shake(tile: Tile) -> void:
 		_shake_animation = ShakeTileAnimation.new()
 
 	_animate_shake_single(tile, _shake_animation)
+
+
+## Animates a batch of tiles with a stomp effect to confirm placement.
+## Tiles scale up briefly then return to normal size with staggered timing.
+func animate_stomp_batch(tiles: Array[Tile]) -> void:
+	if tiles.is_empty():
+		return
+
+	if _stomp_animation == null:
+		_stomp_animation = StompTileAnimation.new()
+
+	_animate_stomp_batch(tiles, _stomp_animation)
 
 
 ## Returns true if any animations are currently playing.
@@ -293,3 +306,138 @@ func _animate_shake_single(tile: Tile, strategy: ShakeTileAnimation) -> void:
 	)
 
 	print("[TileAnimator] Started shake animation for tile: %s" % tile.name)
+
+
+## Animates a dramatic stomp effect on a batch of tiles with staggered timing.
+## Tiles rise up, slam down, squish on impact, and spawn particles.
+func _animate_stomp_batch(tiles: Array[Tile], strategy: StompTileAnimation) -> void:
+	_is_animating = true
+	animation_started.emit(tiles)
+
+	var completed_count: int = 0
+	var total_tiles: int = tiles.size()
+
+	for i in tiles.size():
+		var tile: Tile = tiles[i]
+		var delay: float = i * strategy.stagger_delay
+		var original_position: Vector2 = tile.position
+
+		# Notify strategy of animation start
+		strategy.on_animation_start(tile)
+
+		# Create sequential stomp animation
+		var tween: Tween = create_tween()
+
+		# Delay before starting
+		if delay > 0:
+			tween.tween_interval(delay)
+
+		# Phase 1: Rise up (scale up + move up)
+		tween.set_parallel(true)
+		tween.tween_property(tile, "scale", strategy.rise_scale, strategy.rise_duration) \
+			.set_ease(Tween.EASE_OUT) \
+			.set_trans(Tween.TRANS_BACK)
+		tween.tween_property(tile, "position:y", original_position.y + strategy.rise_offset, strategy.rise_duration) \
+			.set_ease(Tween.EASE_OUT) \
+			.set_trans(Tween.TRANS_QUAD)
+
+		# Phase 2: Slam down (scale down + move down fast)
+		tween.set_parallel(false)
+		tween.tween_property(tile, "scale", strategy.squish_scale, strategy.slam_duration) \
+			.set_ease(Tween.EASE_IN) \
+			.set_trans(Tween.TRANS_QUAD)
+		tween.parallel().tween_property(tile, "position:y", original_position.y, strategy.slam_duration) \
+			.set_ease(Tween.EASE_IN) \
+			.set_trans(Tween.TRANS_QUAD)
+
+		# Spawn particles on impact
+		tween.tween_callback(func(): _spawn_impact_particles(tile, strategy))
+
+		# Phase 3: Recover (bounce back to normal)
+		tween.tween_property(tile, "scale", Vector2.ONE, strategy.recover_duration) \
+			.set_ease(Tween.EASE_OUT) \
+			.set_trans(Tween.TRANS_ELASTIC)
+
+		_active_tweens[tile] = tween
+
+		# Track completion
+		tween.finished.connect(func():
+			strategy.on_animation_complete(tile)
+			single_tile_animated.emit(tile)
+			_active_tweens.erase(tile)
+			completed_count += 1
+
+			if completed_count >= total_tiles:
+				_is_animating = _active_tweens.size() > 0
+				animation_completed.emit(tiles)
+		)
+
+	print("[TileAnimator] Started stomp animation for %d tiles" % tiles.size())
+
+
+## Spawns impact particles around a tile's edges when it slams down.
+func _spawn_impact_particles(tile: Tile, strategy: StompTileAnimation) -> void:
+	var tile_size: Vector2 = tile.size if tile.size != Vector2.ZERO else Vector2(64, 64)
+
+	# Spawn particles at each edge (bottom, left, right)
+	var edge_configs: Array = [
+		# [position, direction, spread]
+		[Vector2(tile_size.x / 2, tile_size.y), Vector2(0, 1), 60.0],      # Bottom center - burst down/out
+		[Vector2(0, tile_size.y), Vector2(-1, 0.5), 45.0],                 # Bottom-left corner
+		[Vector2(tile_size.x, tile_size.y), Vector2(1, 0.5), 45.0],        # Bottom-right corner
+		[Vector2(0, tile_size.y / 2), Vector2(-1, 0), 30.0],               # Left edge
+		[Vector2(tile_size.x, tile_size.y / 2), Vector2(1, 0), 30.0],      # Right edge
+	]
+
+	var particles_per_edge: int = maxi(strategy.particle_count / edge_configs.size(), 2)
+
+	for config in edge_configs:
+		var pos: Vector2 = config[0]
+		var dir: Vector2 = config[1]
+		var spread: float = config[2]
+
+		var particles: CPUParticles2D = CPUParticles2D.new()
+
+		# Configure particle behavior
+		particles.emitting = true
+		particles.one_shot = true
+		particles.explosiveness = 0.9
+		particles.amount = particles_per_edge
+		particles.lifetime = strategy.particle_lifetime
+
+		# Particle movement - burst outward from edges
+		particles.direction = dir
+		particles.spread = spread
+		particles.initial_velocity_min = strategy.particle_speed * 0.6
+		particles.initial_velocity_max = strategy.particle_speed
+		particles.gravity = Vector2(0, 150)  # Gentle fall
+
+		# Particle appearance - much larger and visible
+		particles.scale_amount_min = strategy.particle_size_min
+		particles.scale_amount_max = strategy.particle_size_max
+
+		# Color with fade out
+		var gradient: Gradient = Gradient.new()
+		gradient.add_point(0.0, strategy.particle_color)
+		gradient.add_point(0.3, strategy.particle_color)
+		gradient.add_point(1.0, Color(strategy.particle_color.r, strategy.particle_color.g, strategy.particle_color.b, 0.0))
+		particles.color_ramp = gradient
+
+		# Size curve - start big, shrink
+		var scale_curve: Curve = Curve.new()
+		scale_curve.add_point(Vector2(0.0, 1.0))
+		scale_curve.add_point(Vector2(0.5, 0.7))
+		scale_curve.add_point(Vector2(1.0, 0.2))
+		particles.scale_amount_curve = scale_curve
+
+		# Position at edge
+		particles.position = pos
+
+		# Add to tile
+		tile.add_child(particles)
+
+		# Auto-cleanup after particles finish
+		get_tree().create_timer(strategy.particle_lifetime + 0.2).timeout.connect(func():
+			if is_instance_valid(particles):
+				particles.queue_free()
+		)

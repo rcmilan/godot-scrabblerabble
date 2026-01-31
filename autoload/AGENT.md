@@ -83,6 +83,12 @@ Centralized signal hub for decoupled communication between systems.
 | `animation_completed` | `tiles: Array[Tile]` | Batch animation finished |
 | `single_tile_animated` | `tile: Tile` | Individual tile completed |
 
+#### Play Events
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `play_requested` | none | Player pressed Play button |
+| `tiles_played` | `tiles, words` | Tiles locked, words formed |
+
 ### Usage
 ```gdscript
 # Connect to signals
@@ -347,6 +353,7 @@ Coordinates tile animations across the game. Uses the Strategy pattern for flexi
 animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
 animate_return_to_hand(tile, hand, cell) -> void        # Return from board
 animate_shake(tile: Tile) -> void                       # Illegal action feedback
+animate_stomp_batch(tiles: Array[Tile]) -> void         # Play confirmation
 
 # State queries
 is_animating() -> bool                                  # Check if animating
@@ -386,6 +393,7 @@ TileAnimator uses animation strategies from `scripts/animation/`:
 - **DrawTileAnimation** - Tiles rise from below, scale up, fade in
 - **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
 - **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
+- **StompTileAnimation** - Tiles stomp (scale up/down) when played
 
 See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
 

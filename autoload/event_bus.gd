@@ -86,6 +86,16 @@ signal turn_ended(player_id: int)
 signal play_completed(plays_remaining: int)
 
 # =============================================================================
+# PLAY EVENTS
+# =============================================================================
+
+## Emitted when player requests to play the current hand.
+signal play_requested()
+
+## Emitted when tiles are locked/played (made permanent).
+signal tiles_played(tiles: Array[Tile], words: Array)
+
+# =============================================================================
 # WORD EVENTS
 # =============================================================================
 

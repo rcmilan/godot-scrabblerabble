@@ -9,7 +9,8 @@ scripts/animation/
 ├── tile_animation_strategy.gd    # Base strategy class (Resource)
 ├── draw_tile_animation.gd        # Draw animation implementation
 ├── return_to_hand_animation.gd   # Return from board animation
-└── shake_tile_animation.gd       # Illegal action feedback animation
+├── shake_tile_animation.gd       # Illegal action feedback animation
+└── stomp_tile_animation.gd       # Play confirmation animation
 ```
 
 ---
@@ -160,6 +161,68 @@ Animation strategy for indicating an illegal action. The tile shakes left-right 
 # Called automatically when trying to return a tile with full hand
 # Or call directly:
 TileAnimator.animate_shake(tile)
+```
+
+---
+
+## StompTileAnimation
+
+### Purpose
+Dramatic animation for confirming tile placement when "playing" a hand. Tiles rise up, slam down with a squish effect, and spawn impact particles to indicate they are now permanently placed.
+
+### Class: `StompTileAnimation extends TileAnimationStrategy`
+
+### Configuration
+```gdscript
+# Rise phase
+@export var rise_scale: Vector2 = Vector2(1.35, 1.35)
+@export var rise_offset: float = -15.0  # Pixels up
+@export var rise_duration: float = 0.15
+
+# Slam phase
+@export var slam_duration: float = 0.08
+@export var squish_scale: Vector2 = Vector2(1.1, 0.9)
+
+# Recovery phase
+@export var recover_duration: float = 0.12
+
+# Particles
+@export var particle_count: int = 8
+@export var particle_speed: float = 120.0
+@export var particle_lifetime: float = 0.4
+@export var particle_color: Color = Color(1.0, 0.9, 0.7, 0.9)
+```
+
+### Default Values
+| Property | Value |
+|----------|-------|
+| duration | 0.35s (total) |
+| rise_scale | 1.35x |
+| rise_offset | -15px (upward) |
+| squish_scale | 1.1x wide, 0.9x tall |
+| stagger_delay | 0.06s |
+| particle_count | 8 |
+
+### Animation Phases
+1. **Rise**: Tile scales up to 1.35x from center and moves up 15px
+2. **Slam**: Tile quickly scales down and moves back, squishing on impact (1.1x0.9)
+3. **Particles**: Impact particles spawn around tile edges (5 emitters), burst outward
+4. **Recover**: Tile bounces back to normal scale with elastic easing
+
+### Behavior
+- **Center pivot**: Tile scales from its center (pivot_offset set automatically)
+- **Z-index raised** during animation so tiles appear above others
+- **Edge particles**: 5 CPUParticles2D emitters at bottom, corners, and sides
+- Particles burst outward from each edge with directional spread
+- Particles shrink and fade over lifetime, auto-cleanup
+- Mouse interaction disabled during animation
+- Staggered timing for cascading visual effect
+
+### Usage
+```gdscript
+# Called automatically when Play button is pressed
+# Or call directly:
+TileAnimator.animate_stomp_batch(tiles)
 ```
 
 ---

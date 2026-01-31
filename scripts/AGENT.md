@@ -147,6 +147,7 @@ See [animation/AGENT.md](animation/AGENT.md) for detailed documentation.
 - **DrawTileAnimation** - Tiles animate into hand from below
 - **ReturnToHandAnimation** - Tiles glide from board back to hand
 - **ShakeTileAnimation** - Tiles shake for illegal action feedback
+- **StompTileAnimation** - Tiles stomp when played (locked)
 
 ### Usage
 ```gdscript
@@ -154,6 +155,7 @@ See [animation/AGENT.md](animation/AGENT.md) for detailed documentation.
 TileAnimator.animate_draw_batch(tiles)
 TileAnimator.animate_return_to_hand(tile, hand, cell)
 TileAnimator.animate_shake(tile)
+TileAnimator.animate_stomp_batch(tiles)
 ```
 
 ---

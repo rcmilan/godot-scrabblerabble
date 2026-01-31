@@ -24,16 +24,22 @@ var _dragged_tiles: Array[Tile] = []
 var _drag_original_positions: Dictionary = {}  # Tile -> {parent: Node, index: int}
 var _last_placement_success: bool = false
 
+# === Services ===
+var _word_validator: WordValidator = null
+
 # === Node References ===
 @onready var board: Board = $Board
 @onready var hand: Hand = $Hand
 @onready var discard_pile: Control = $DiscardPile
 @onready var discard_dialog: CanvasLayer = $DiscardConfirmationDialog
+@onready var main_hud: CanvasLayer = $MainHUD
 
 
 func _ready() -> void:
+	_word_validator = WordValidator.new()
 	_connect_board_signals()
 	_connect_discard_signals()
+	_connect_hud_signals()
 	_start_game()
 
 
@@ -67,6 +73,10 @@ func _connect_discard_signals() -> void:
 	discard_pile.peek_requested.connect(_on_discard_pile_peek_requested)
 	discard_dialog.confirmed.connect(_on_discard_confirmed)
 	discard_dialog.cancelled.connect(_on_discard_cancelled)
+
+
+func _connect_hud_signals() -> void:
+	main_hud.play_requested.connect(_on_play_requested)
 
 
 func _start_game() -> void:
@@ -104,6 +114,12 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 		print("[Main] Tile is not on board")
 		return
 
+	# Check if tile is locked (already played)
+	if tile.is_locked:
+		print("[Main] Cannot return tile - tile is locked (already played)")
+		TileAnimator.animate_shake(tile)
+		return
+
 	# Check if hand has space for the tile
 	if hand.is_full():
 		print("[Main] Cannot return tile - hand is full")
@@ -114,6 +130,11 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 
 
 func _on_tile_drag_started(tile: Tile) -> void:
+	# Prevent dragging locked tiles
+	if tile.is_locked:
+		print("[Main] Cannot drag locked tile: %s" % tile.name)
+		return
+
 	# Get all selected tiles for multi-drag
 	_dragged_tiles = SelectionManager.get_selected_tiles()
 
@@ -267,6 +288,7 @@ func _place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
 
 	EventBus.tile_placed.emit(tile, cell)
 	tile_placement_completed.emit(tile, cell)
+	_update_play_button_state()
 	print("[Main] Placed tile %s on cell %s" % [tile.name, cell.name])
 
 
@@ -302,6 +324,7 @@ func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void
 
 	EventBus.tile_removed.emit(tile, cell)
 	tile_returned_to_hand.emit(tile)
+	_update_play_button_state()
 	print("[Main] Returned tile %s from cell %s to hand (animated)" % [tile.name, cell.name])
 
 
@@ -577,3 +600,72 @@ func _discard_tiles(tiles: Array[Tile]) -> void:
 	print("[Main] Discarded %d tiles, refilled %d" % [tiles.size(), refilled])
 
 	_update_interaction_state()
+
+
+# =============================================================================
+# PLAY HANDLERS
+# =============================================================================
+
+func _on_play_requested() -> void:
+	print("[Main] Play requested")
+
+	# Get unplayed tiles on the board
+	var unplayed_tiles: Array[Tile] = _get_unplayed_board_tiles()
+
+	if unplayed_tiles.is_empty():
+		print("[Main] No tiles to play")
+		return
+
+	# Get positions of unplayed tiles
+	var positions: Array[Vector2i] = []
+	for tile in unplayed_tiles:
+		if tile.current_cell:
+			positions.append(tile.current_cell.grid_position)
+
+	# Find all words formed by the placement
+	var words: Array = _word_validator.find_formed_words(board, positions)
+
+	print("[Main] Found %d words from %d tiles" % [words.size(), unplayed_tiles.size()])
+	for word_info in words:
+		print("[Main] Word: '%s' (%s)" % [word_info.word, word_info.direction])
+
+	# Lock all placed tiles (make them permanent)
+	for tile in unplayed_tiles:
+		tile.is_locked = true
+		print("[Main] Locked tile: %s" % tile.name)
+
+	# Play stomp animation
+	TileAnimator.animate_stomp_batch(unplayed_tiles)
+
+	# Emit event
+	EventBus.tiles_played.emit(unplayed_tiles, words)
+
+	# Update play button state
+	_update_play_button_state()
+
+	# For now, just log - score calculation will be added later
+	print("[Main] Played %d tiles, formed %d words" % [unplayed_tiles.size(), words.size()])
+
+
+## Returns all tiles on the board that haven't been played yet (not locked).
+func _get_unplayed_board_tiles() -> Array[Tile]:
+	var tiles: Array[Tile] = []
+	for cell in board.get_all_cells():
+		if cell.is_occupied() and not cell.tile.is_locked:
+			tiles.append(cell.tile)
+	return tiles
+
+
+## Returns all tiles currently placed on the board.
+func _get_all_board_tiles() -> Array[Tile]:
+	var tiles: Array[Tile] = []
+	for cell in board.get_all_cells():
+		if cell.is_occupied():
+			tiles.append(cell.tile)
+	return tiles
+
+
+## Updates the play button enabled state based on whether there are unplayed tiles.
+func _update_play_button_state() -> void:
+	var has_unplayed_tiles: bool = not _get_unplayed_board_tiles().is_empty()
+	main_hud.set_play_button_enabled(has_unplayed_tiles)
