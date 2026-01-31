@@ -8,6 +8,7 @@ Global singleton managers that coordinate game-wide systems. These are automatic
 - `game_manager.gd` - Game state and phase management
 - `hand_manager.gd` - Hand operations and discard pile
 - `tile_bag.gd` - Tile pool (deck) management
+- `selection_manager.gd` - Tile selection state (single/multi-select)
 - `debug_manager.gd` - Debug commands and logging
 
 ---
@@ -34,11 +35,36 @@ Centralized signal hub for decoupled communication between systems.
 | `hand_empty` | none | Hand became empty |
 | `hand_refilled` | `count: int` | Hand was refilled |
 
+#### Bag/Deck Events
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `bag_count_changed` | `count: int` | Bag tile count changed |
+| `bag_empty` | none | Bag became empty |
+
+#### Discard Events
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `discard_count_changed` | `count: int` | Discard pile size changed |
+| `discard_pile_changed` | `tiles: Array` | Discard pile modified |
+| `discard_confirmation_requested` | `tile_count: int` | Discard confirmation shown |
+| `discard_confirmed` | none | User confirmed discard |
+| `discard_cancelled` | none | User cancelled discard |
+
+#### Selection Events
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `selection_mode_changed` | `is_multi: bool` | Single/multi mode toggled |
+| `selection_changed` | `tiles: Array` | Selection changed |
+| `multi_drag_started` | `tiles: Array` | Multi-tile drag began |
+| `multi_drag_ended` | `tiles, success` | Multi-tile drag ended |
+
 #### Game State
 | Signal | Parameters | Description |
 |--------|------------|-------------|
 | `game_started` | none | New game began |
 | `game_ended` | `victory: bool` | Game finished |
+| `game_won` | none | Player won |
+| `game_lost` | none | Player lost |
 | `round_started` | `round_number: int` | Round began |
 | `round_ended` | `round, success` | Round finished |
 | `play_completed` | `plays_remaining` | Play committed |
@@ -53,9 +79,68 @@ Centralized signal hub for decoupled communication between systems.
 ```gdscript
 # Connect to signals
 EventBus.tile_placed.connect(_on_tile_placed)
+EventBus.selection_changed.connect(_on_selection_changed)
 
 # Emit signals
 EventBus.score_updated.emit(total_score, points_earned)
+```
+
+---
+
+## SelectionManager
+
+### Purpose
+Central source of truth for tile selection state. Manages single-select and multi-select modes with ordered selection tracking.
+
+### Selection Modes
+```gdscript
+enum SelectionMode {
+    SINGLE,  # Click deselects others, one tile at a time
+    MULTI    # Click toggles, multiple tiles can be selected
+}
+```
+
+### Key Properties
+```gdscript
+var mode: SelectionMode = SelectionMode.SINGLE
+var _selected_tiles: Array[Tile]  # Ordered by selection time
+```
+
+### Key Methods
+```gdscript
+# Mode management
+toggle_mode() -> void               # Switch between single/multi
+set_mode(new_mode: SelectionMode)   # Set mode explicitly
+is_multi_select_enabled() -> bool   # Check if multi-select active
+
+# Selection operations
+select_tile(tile: Tile) -> void     # Select (mode-aware)
+deselect_tile(tile: Tile) -> void   # Deselect specific tile
+deselect_all() -> void              # Clear all selection
+
+# Queries
+get_selected_tiles() -> Array[Tile] # Get selected in order
+get_selection_count() -> int        # Number selected
+get_tile_order(tile: Tile) -> int   # Position in selection (-1 if not)
+has_selection() -> bool             # Check if any selected
+```
+
+### Mode Behavior
+- **SINGLE mode**: Clicking selects only that tile, deselects others
+- **MULTI mode**: Clicking toggles tile selection, order preserved
+- **Leaving MULTI mode**: All tiles are deselected
+
+### Usage
+```gdscript
+# Toggle multi-select
+SelectionManager.toggle_mode()
+
+# Select tiles
+SelectionManager.select_tile(tile1)
+SelectionManager.select_tile(tile2)
+
+# Get selection for discard/placement
+var tiles = SelectionManager.get_selected_tiles()
 ```
 
 ---
@@ -87,6 +172,13 @@ var plays_remaining: int
 var tiles_placed_this_turn: Array[Tile]
 ```
 
+### Configuration Constants
+```gdscript
+const DEFAULT_HAND_SIZE: int = 10
+const DEFAULT_PLAYS_PER_ROUND: int = 10
+const DEFAULT_TARGET_SCORE: int = 100
+```
+
 ### Key Methods
 ```gdscript
 start_game(bag_config, difficulty) -> void
@@ -96,6 +188,7 @@ resume_game() -> void
 commit_play(score: int) -> void
 cancel_play() -> void
 start_round(round_num, target, plays) -> void
+is_playing() -> bool
 ```
 
 ### Usage
@@ -119,6 +212,12 @@ if GameManager.is_playing():
 ### Purpose
 Manages tile flow between bag, hand, and discard pile.
 
+### Configuration
+```gdscript
+const DEFAULT_HAND_SIZE: int = 10
+const MAX_HAND_SIZE: int = 15
+```
+
 ### Key Properties
 ```gdscript
 var hand_size: int = 10  # Target hand size
@@ -127,13 +226,22 @@ var discard_pile: Array[Tile]
 
 ### Key Methods
 ```gdscript
-draw_tiles(count: int) -> int  # Draw from bag
-refill_hand() -> int  # Fill to hand_size
-discard_tile(tile: Tile) -> bool  # Discard single tile
-discard_selected() -> int  # Discard selected tiles
+# Drawing
+draw_tiles(count: int) -> int       # Draw from bag
+refill_hand() -> int                # Fill to hand_size
+
+# Discarding
+discard_tile(tile: Tile) -> bool    # Discard single tile
+discard_selected() -> int           # Discard selected tiles
+get_discard_pile() -> Array[Tile]   # Get discarded tiles
+get_discard_count() -> int          # Count discarded
+clear_discard_pile() -> Array[Tile] # Clear and return pile
+
+# Queries
 get_hand_size() -> int
-get_discard_count() -> int
-get_discard_pile() -> Array[Tile]
+is_hand_empty() -> bool
+is_hand_full() -> bool
+set_hand_size(size: int) -> void
 ```
 
 ### Usage
@@ -155,16 +263,31 @@ var discarded = HandManager.get_discard_pile()
 ### Purpose
 Manages the pool of available tiles (the deck). Handles tile creation, shuffling, and drawing.
 
+### Key Properties
+```gdscript
+var available_tiles: Array[Tile]
+var drawn_tiles: Array[Tile]
+var current_distribution: BagDistribution
+```
+
 ### Key Methods
 ```gdscript
+# Bag management
 populate_bag(distribution: BagDistribution) -> bool
 shuffle_bag() -> void
 reset_bag() -> void
+
+# Drawing
 draw_tile() -> Tile
 draw_tiles(count: int) -> Array[Tile]
 return_tile(tile: Tile) -> void
+
+# Queries
 tiles_remaining() -> int
 is_empty() -> bool
+get_initial_count() -> int
+get_drawn_count() -> int
+peek_tiles(count: int) -> Array[Tile]
 ```
 
 ### Usage
@@ -189,11 +312,12 @@ print("Tiles left: ", TileBag.tiles_remaining())
 ### Purpose
 Debug commands and logging utilities for development.
 
-### Key Features
-- Command execution via debug console
-- Tile spawning for testing
-- Board manipulation
-- State inspection
+### Commands
+- `help` - Show available commands
+- `close/exit` - Hide console
+- `spawn <letter> [count]` - Spawn tiles
+- `draw [count]` - Draw from bag
+- `clear_board` - Clear board tiles
 
 ---
 
@@ -204,5 +328,16 @@ Autoloads are loaded in the order specified in `project.godot`:
 3. DebugManager
 4. TileBag
 5. HandManager
+6. SelectionManager
 
 **Note**: Autoloads load before scenes, so they cannot reference scene types directly at declaration time. Use runtime type checking instead.
+
+---
+
+## Input Actions
+These input actions are used by the autoload systems:
+
+| Action | Key | Manager |
+|--------|-----|---------|
+| `toggle_multi_select` | Q | SelectionManager (via Main) |
+| `discard_tiles` | Z | HandManager (via Main) |

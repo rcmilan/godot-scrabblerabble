@@ -24,6 +24,12 @@ Service class for word validation and score calculation. Can be instantiated any
 - Scrabble-style letter point values
 - Placement score calculation with multipliers
 - Placement validation (linear check)
+- Word extraction from tiles
+
+### Configuration
+```gdscript
+const MIN_WORD_LENGTH: int = 2
+```
 
 ### Letter Point Values
 ```gdscript
@@ -39,22 +45,22 @@ const LETTER_POINTS = {
 
 #### Validation
 ```gdscript
-is_valid_word(word: String) -> bool
-load_word_list(path: String) -> bool
+is_valid_word(word: String) -> bool    # Check if word is valid
+load_word_list(path: String) -> bool   # Load dictionary from file
 ```
 
 #### Scoring
 ```gdscript
-calculate_base_score(word: String) -> int
-calculate_word_score(word: String) -> int
-calculate_placement_score(tiles, cells) -> Dictionary
+calculate_base_score(word: String) -> int           # Sum of letter points
+calculate_word_score(word: String) -> int           # Wrapper for base score
+calculate_placement_score(tiles, cells) -> Dictionary  # With multipliers
 ```
 
 #### Placement
 ```gdscript
 validate_placement(positions: Array[Vector2i]) -> Dictionary
 extract_word(tiles: Array) -> String
-find_formed_words(board, placed_positions) -> Array
+find_formed_words(board, placed_positions) -> Array  # TODO
 ```
 
 ### Usage Example
@@ -89,6 +95,44 @@ print("Word multiplier: ", score_info.word_multiplier)
 }
 ```
 
+### Placement Validation Result
+```gdscript
+{
+    "valid": true,
+    "direction": "horizontal",  # or "vertical" or "single"
+    "positions": [Vector2i(0,0), Vector2i(0,1), Vector2i(0,2)]
+}
+
+# Invalid placement
+{
+    "valid": false,
+    "reason": "Tiles not in a line"
+}
+```
+
+---
+
+## Integration Points
+
+### With GameManager
+```gdscript
+# In GameManager or Main
+var validator = WordValidator.new()
+var word = validator.extract_word(placed_tiles)
+if validator.is_valid_word(word):
+    var score = validator.calculate_placement_score(tiles, cells)
+    GameManager.commit_play(score.total)
+```
+
+### With Board
+```gdscript
+# Get placement cells for scoring
+var cells: Array[BoardCell] = []
+for tile in placed_tiles:
+    cells.append(tile.current_cell)
+var score = validator.calculate_placement_score(placed_tiles, cells)
+```
+
 ---
 
 ## Future Scripts
@@ -96,3 +140,4 @@ print("Word multiplier: ", score_info.word_multiplier)
 - `modifier_system.gd` - Tile/cell modifier effects
 - `achievement_tracker.gd` - Achievement system
 - `save_manager.gd` - Save/load functionality
+- `cross_word_detector.gd` - Find all words formed by placement
