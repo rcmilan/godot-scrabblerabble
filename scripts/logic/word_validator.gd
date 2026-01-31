@@ -166,7 +166,7 @@ func validate_placement(positions: Array[Vector2i]) -> Dictionary:
 
 
 ## Extracts a word from tiles at given positions.
-func extract_word(tiles: Array) -> String:
+func extract_word(tiles: Array[Tile]) -> String:
 	var word: String = ""
 	for tile in tiles:
 		if tile is Tile:
@@ -180,7 +180,7 @@ func extract_word(tiles: Array) -> String:
 
 ## Finds all words formed by the current placement on a board.
 ## Returns an array of word info dictionaries.
-func find_formed_words(board: Node, placed_positions: Array[Vector2i]) -> Array:
+func find_formed_words(board: Board, placed_positions: Array[Vector2i]) -> Array:
 	var words: Array = []
 
 	if placed_positions.is_empty():

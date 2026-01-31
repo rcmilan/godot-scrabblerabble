@@ -104,6 +104,12 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 		print("[Main] Tile is not on board")
 		return
 
+	# Check if hand has space for the tile
+	if hand.is_full():
+		print("[Main] Cannot return tile - hand is full")
+		TileAnimator.animate_shake(tile)
+		return
+
 	return_tile_to_hand(tile)
 
 
@@ -285,16 +291,8 @@ func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void
 
 	var cell: BoardCell = tile.current_cell
 
-	# Clear cell
-	cell.tile = null
-
-	# Move tile to hand
-	cell.tile_anchor.remove_child(tile)
-	hand.add_tile(tile)
-
-	# Update tile state
-	tile.current_cell = null
-	tile.location = Tile.TileLocation.IN_HAND
+	# Use animated return - TileAnimator handles the tile movement
+	TileAnimator.animate_return_to_hand(tile, hand, cell)
 
 	if not preserve_selection:
 		SelectionManager.deselect_tile(tile)
@@ -304,7 +302,7 @@ func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void
 
 	EventBus.tile_removed.emit(tile, cell)
 	tile_returned_to_hand.emit(tile)
-	print("[Main] Returned tile %s from cell %s to hand" % [tile.name, cell.name])
+	print("[Main] Returned tile %s from cell %s to hand (animated)" % [tile.name, cell.name])
 
 
 # === Private Helpers ===

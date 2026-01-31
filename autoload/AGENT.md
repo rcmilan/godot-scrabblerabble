@@ -9,6 +9,7 @@ Global singleton managers that coordinate game-wide systems. These are automatic
 - `hand_manager.gd` - Hand operations and discard pile
 - `tile_bag.gd` - Tile pool (deck) management
 - `selection_manager.gd` - Tile selection state (single/multi-select)
+- `tile_animator.gd` - Tile animation coordinator
 - `debug_manager.gd` - Debug commands and logging
 
 ---
@@ -74,6 +75,13 @@ Centralized signal hub for decoupled communication between systems.
 |--------|------------|-------------|
 | `score_updated` | `total, delta` | Score changed |
 | `score_calculated` | `points, breakdown` | Score computed |
+
+#### Animation Events (via TileAnimator)
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `animation_started` | `tiles: Array[Tile]` | Batch animation began |
+| `animation_completed` | `tiles: Array[Tile]` | Batch animation finished |
+| `single_tile_animated` | `tile: Tile` | Individual tile completed |
 
 ### Usage
 ```gdscript
@@ -321,6 +329,68 @@ Debug commands and logging utilities for development.
 
 ---
 
+## TileAnimator
+
+### Purpose
+Coordinates tile animations across the game. Uses the Strategy pattern for flexible animation types.
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `animation_started` | `tiles: Array[Tile]` | Batch animation began |
+| `animation_completed` | `tiles: Array[Tile]` | Batch animation finished |
+| `single_tile_animated` | `tile: Tile` | Individual tile completed |
+
+### Key Methods
+```gdscript
+# Main API
+animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
+animate_return_to_hand(tile, hand, cell) -> void        # Return from board
+animate_shake(tile: Tile) -> void                       # Illegal action feedback
+
+# State queries
+is_animating() -> bool                                  # Check if animating
+
+# Control
+cancel_all() -> void                                    # Cancel all animations
+cancel_tile_animation(tile: Tile) -> void               # Cancel specific tile
+```
+
+### Animation Flow
+```
+1. HandManager.draw_tiles() collects drawn tiles
+2. TileAnimator.animate_draw_batch(tiles) called
+3. await process_frame (layout calculates positions)
+4. For each tile (staggered):
+   - Capture final position
+   - Set to start position/properties
+   - Tween to final state
+5. Emit completion signals
+```
+
+### Usage
+```gdscript
+# Draw animation is automatic via HandManager
+HandManager.draw_tiles(5)  # Tiles animate automatically
+
+# Listen for animation events
+TileAnimator.animation_completed.connect(_on_draw_complete)
+
+# Check if animating
+if TileAnimator.is_animating():
+    # Wait or skip interaction
+```
+
+### Strategy Pattern
+TileAnimator uses animation strategies from `scripts/animation/`:
+- **DrawTileAnimation** - Tiles rise from below, scale up, fade in
+- **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
+- **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
+
+See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
+
+---
+
 ## Load Order
 Autoloads are loaded in the order specified in `project.godot`:
 1. EventBus
@@ -329,6 +399,7 @@ Autoloads are loaded in the order specified in `project.godot`:
 4. TileBag
 5. HandManager
 6. SelectionManager
+7. TileAnimator
 
 **Note**: Autoloads load before scenes, so they cannot reference scene types directly at declaration time. Use runtime type checking instead.
 

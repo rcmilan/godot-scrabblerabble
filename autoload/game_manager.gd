@@ -77,7 +77,7 @@ func start_game(bag_config: BagDistribution, game_difficulty: int = 0) -> void:
 	_set_phase(GamePhase.PLAYING)
 
 	# Wait for HandManager to be ready before drawing
-	if not HandManager._is_initialized:
+	if not HandManager.is_initialized():
 		await HandManager.initialized
 
 	HandManager.refill_hand()

@@ -23,8 +23,7 @@ signal cell_unhovered(cell: BoardCell)
 @export var debug_interval_frames: int = 30
 
 # === Resources ===
-const CELL_SCENE_PATH: String = "res://scenes/board/BoardCell.tscn"
-var _cell_scene: PackedScene = null
+const _cell_scene: PackedScene = preload("res://scenes/board/BoardCell.tscn")
 
 # === Internal State ===
 var _cells: Array[Array] = []  # 2D array: _cells[row][col]
@@ -35,11 +34,6 @@ var _debug_frame_counter: int = 0
 
 
 func _ready() -> void:
-	_cell_scene = load(CELL_SCENE_PATH)
-	if _cell_scene == null:
-		push_error("[Board] Failed to load cell scene: %s" % CELL_SCENE_PATH)
-		return
-
 	_initialize_grid()
 
 

@@ -29,6 +29,11 @@ var _is_initialized: bool = false
 signal initialized
 
 
+## Returns true if HandManager has been initialized.
+func is_initialized() -> bool:
+	return _is_initialized
+
+
 func _ready() -> void:
 	# Wait for scene tree to be ready, then initialize
 	get_tree().process_frame.connect(_on_first_frame, CONNECT_ONE_SHOT)
@@ -49,6 +54,7 @@ func draw_tiles(count: int) -> int:
 		return 0
 
 	var drawn: int = 0
+	var drawn_tiles: Array[Tile] = []
 
 	for i in count:
 		if _hand_ui.is_full():
@@ -63,6 +69,7 @@ func draw_tiles(count: int) -> int:
 
 		_hand_ui.add_tile(tile)
 		_connect_tile_signals(tile)
+		drawn_tiles.append(tile)
 		drawn += 1
 
 	if drawn > 0:
@@ -71,6 +78,9 @@ func draw_tiles(count: int) -> int:
 		print("[HandManager] Drew %d tile(s) | Hand: %d | Bag: %d" % [
 			drawn, get_hand_size(), TileBag.tiles_remaining()
 		])
+
+		# Animate the drawn tiles
+		TileAnimator.animate_draw_batch(drawn_tiles)
 
 	return drawn
 
