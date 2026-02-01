@@ -405,7 +405,7 @@ if TileAnimator.is_animating():
 ### Strategy Pattern
 TileAnimator uses animation strategies from `scripts/animation/`:
 - **DrawTileAnimation** - Tiles rise from below, scale up, fade in
-- **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
+- **GlideTileAnimation** - Tiles glide smoothly between positions (return, discard, etc.)
 - **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
 - **StompTileAnimation** - Tiles stomp (scale up/down) with impact particles
 

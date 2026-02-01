@@ -316,3 +316,4 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 - Managers own logic, Scenes own presentation
 - Debug code isolated in DebugManager/DebugConsole
 - UI polish deferred until core gameplay works
+- Always make use of objective-oriented and DDD principles for maintainability and reusability

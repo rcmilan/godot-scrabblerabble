@@ -57,7 +57,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		SelectionManager.toggle_mode()
 
 	if event.is_action_pressed("discard_tiles"):
-		_request_discard_confirmation()
+		_request_discard()
 
 
 ## Sets up the controller with required scene references.
@@ -98,10 +98,8 @@ func _connect_signals() -> void:
 	# Discard signals
 	if discard_pile:
 		discard_pile.tiles_dropped.connect(_on_discard_pile_tiles_dropped)
+		discard_pile.discard_clicked.connect(_on_discard_pile_clicked)
 		discard_pile.peek_requested.connect(_on_discard_pile_peek_requested)
-	if discard_dialog:
-		discard_dialog.confirmed.connect(_on_discard_confirmed)
-		discard_dialog.cancelled.connect(_on_discard_cancelled)
 
 	# HUD signals
 	if main_hud:
@@ -124,12 +122,10 @@ func _disconnect_signals() -> void:
 	# Discard signals
 	if discard_pile and discard_pile.tiles_dropped.is_connected(_on_discard_pile_tiles_dropped):
 		discard_pile.tiles_dropped.disconnect(_on_discard_pile_tiles_dropped)
+	if discard_pile and discard_pile.discard_clicked.is_connected(_on_discard_pile_clicked):
+		discard_pile.discard_clicked.disconnect(_on_discard_pile_clicked)
 	if discard_pile and discard_pile.peek_requested.is_connected(_on_discard_pile_peek_requested):
 		discard_pile.peek_requested.disconnect(_on_discard_pile_peek_requested)
-	if discard_dialog and discard_dialog.confirmed.is_connected(_on_discard_confirmed):
-		discard_dialog.confirmed.disconnect(_on_discard_confirmed)
-	if discard_dialog and discard_dialog.cancelled.is_connected(_on_discard_cancelled):
-		discard_dialog.cancelled.disconnect(_on_discard_cancelled)
 
 	# HUD signals
 	if main_hud and main_hud.play_requested.is_connected(_on_play_requested):
@@ -517,8 +513,7 @@ func _handle_drop_on_discard_pile(tiles: Array[Tile]) -> void:
 		return
 
 	DragManager.restore_tiles_to_parents()
-	discard_dialog.show_confirmation(hand_tiles.size())
-	print("[Gameplay] Dropped %d tiles on discard pile, awaiting confirmation" % hand_tiles.size())
+	_discard_tiles_animated(hand_tiles)
 
 
 # =============================================================================
@@ -579,7 +574,8 @@ func _clear_all_cell_hovers() -> void:
 # DISCARD HANDLERS
 # =============================================================================
 
-func _request_discard_confirmation() -> void:
+## Discards selected hand tiles directly (no confirmation).
+func _request_discard() -> void:
 	var selected_tiles: Array[Tile] = SelectionManager.get_selected_tiles()
 
 	var hand_tiles: Array[Tile] = []
@@ -591,29 +587,11 @@ func _request_discard_confirmation() -> void:
 		print("[Gameplay] No hand tiles selected to discard")
 		return
 
-	discard_dialog.show_confirmation(hand_tiles.size())
-	EventBus.discard_confirmation_requested.emit(hand_tiles.size())
+	_discard_tiles_animated(hand_tiles)
 
 
-func _on_discard_confirmed() -> void:
-	var selected_tiles: Array[Tile] = SelectionManager.get_selected_tiles()
-
-	var hand_tiles: Array[Tile] = []
-	for tile in selected_tiles:
-		if tile.location == Tile.TileLocation.IN_HAND:
-			hand_tiles.append(tile)
-
-	if hand_tiles.is_empty():
-		return
-
-	_discard_tiles(hand_tiles)
-	EventBus.discard_confirmed.emit()
-	print("[Gameplay] Discard confirmed: %d tiles" % hand_tiles.size())
-
-
-func _on_discard_cancelled() -> void:
-	EventBus.discard_cancelled.emit()
-	print("[Gameplay] Discard cancelled, selection preserved")
+func _on_discard_pile_clicked() -> void:
+	_request_discard()
 
 
 func _on_discard_pile_tiles_dropped(tiles: Array) -> void:
@@ -625,7 +603,7 @@ func _on_discard_pile_tiles_dropped(tiles: Array) -> void:
 	if hand_tiles.is_empty():
 		return
 
-	discard_dialog.show_confirmation(hand_tiles.size())
+	_discard_tiles_animated(hand_tiles)
 
 
 func _on_discard_pile_peek_requested() -> void:
@@ -633,16 +611,43 @@ func _on_discard_pile_peek_requested() -> void:
 	print("[Gameplay] Peek requested - Discard pile has %d tiles" % pile.size())
 
 
-func _discard_tiles(tiles: Array[Tile]) -> void:
+## Animates tiles to discard pile, then discards them.
+func _discard_tiles_animated(tiles: Array[Tile]) -> void:
+	if tiles.is_empty():
+		return
+
 	SelectionManager.deselect_all()
 
+	# Get discard pile center position for animation target
+	var target_pos: Vector2 = _get_discard_pile_center()
+
+	# Animate tiles to discard pile, then actually discard
+	TileAnimator.animate_discard_batch(tiles, target_pos, func():
+		_complete_discard(tiles)
+	)
+
+	print("[Gameplay] Animating %d tiles to discard pile" % tiles.size())
+
+
+## Completes the discard after animation finishes.
+func _complete_discard(tiles: Array[Tile]) -> void:
 	for tile in tiles:
+		# Reset visual state before discarding
+		tile.scale = Vector2.ONE
+		tile.modulate = Color.WHITE
 		HandManager.discard_tile(tile)
 
 	var refilled: int = HandManager.refill_hand()
 	print("[Gameplay] Discarded %d tiles, refilled %d" % [tiles.size(), refilled])
 
 	_update_interaction_state()
+
+
+## Gets the center position of the discard pile for animation targeting.
+func _get_discard_pile_center() -> Vector2:
+	if discard_pile:
+		return discard_pile.global_position + (discard_pile.size / 2.0)
+	return Vector2.ZERO
 
 
 # =============================================================================

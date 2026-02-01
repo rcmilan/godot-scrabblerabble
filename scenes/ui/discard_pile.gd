@@ -5,6 +5,7 @@ extends Control
 ## Future: will support peeking to see discarded tiles.
 
 signal tiles_dropped(tiles: Array)
+signal discard_clicked  # Emitted when pile is clicked with selected tiles
 signal peek_requested
 
 # Visual state
@@ -47,12 +48,16 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	# Handle click for peeking (future feature)
 	if event is InputEventMouseButton:
 		var mouse_event: InputEventMouseButton = event
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			if _is_mouse_over_pile() and not _is_drag_hovering:
-				peek_requested.emit()
+			if _is_mouse_over_pile() and not _is_drag_active:
+				# If tiles are selected, emit discard_clicked
+				if SelectionManager.has_selection():
+					discard_clicked.emit()
+				else:
+					# No selection - peek at discard pile (future feature)
+					peek_requested.emit()
 
 
 func _on_discard_count_changed(count: int) -> void:

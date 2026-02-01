@@ -8,7 +8,7 @@ Flexible, object-oriented animation system for tile movements. Uses the Strategy
 scripts/animation/
 ├── tile_animation_strategy.gd    # Base strategy class (Resource)
 ├── draw_tile_animation.gd        # Draw animation implementation
-├── return_to_hand_animation.gd   # Return from board animation
+├── glide_tile_animation.gd       # Smooth position transitions (return, discard)
 ├── shake_tile_animation.gd       # Illegal action feedback animation
 ├── stomp_tile_animation.gd       # Play confirmation animation
 └── executors/
@@ -98,12 +98,12 @@ Concrete animation strategy for drawing tiles into the hand. Tiles animate from 
 
 ---
 
-## ReturnToHandAnimation
+## GlideTileAnimation
 
 ### Purpose
-Animation strategy for returning tiles from the board back to the hand. Tiles smoothly glide from their board position to their hand position with a subtle bounce effect.
+Generic animation strategy for smooth tile transitions between positions. Used for returning tiles to hand, discarding tiles, and other glide movements. Tiles smoothly glide with a subtle bounce effect.
 
-### Class: `ReturnToHandAnimation extends TileAnimationStrategy`
+### Class: `GlideTileAnimation extends TileAnimationStrategy`
 
 ### Configuration
 ```gdscript
@@ -120,17 +120,22 @@ Animation strategy for returning tiles from the board back to the hand. Tiles sm
 | stagger_delay | 0.03s |
 
 ### Behavior
-- Tiles start at their board position (global coordinates)
-- Smoothly glide to their new hand position
+- Tiles glide from source to destination position
 - Uses TRANS_BACK for subtle overshoot/bounce effect
 - Z-index raised during animation to appear above other tiles
 - Mouse interaction disabled during animation
+- For discard: tiles shrink and fade as they move
 
 ### Usage
 ```gdscript
-# Called automatically by Main when right-clicking board tiles
-# Or call directly:
+# Return from board to hand
 TileAnimator.animate_return_to_hand(tile, hand, cell)
+
+# Cancel drag - return to hand
+TileAnimator.animate_cancel_to_hand(tiles, hand)
+
+# Discard tiles with animation
+TileAnimator.animate_discard_batch(tiles, target_pos, on_complete_callback)
 ```
 
 ---

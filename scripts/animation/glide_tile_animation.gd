@@ -1,9 +1,9 @@
 extends TileAnimationStrategy
-class_name ReturnToHandAnimation
+class_name GlideTileAnimation
 
-## Animation strategy for returning tiles from the board to the hand.
-## Tiles smoothly glide from their board position to their hand position
-## with a subtle scale bounce effect.
+## Animation strategy for smooth tile transitions between positions.
+## Used for returning tiles to hand, discarding tiles, and other glide movements.
+## Tiles smoothly glide from source to destination with a subtle bounce effect.
 
 # =============================================================================
 # CONFIGURATION

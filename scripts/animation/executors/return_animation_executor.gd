@@ -1,8 +1,8 @@
 extends AnimationExecutor
 class_name ReturnAnimationExecutor
 
-## Executes return-to-hand animations.
-## Handles both single tile returns from board and batch cancel animations.
+## Executes glide animations for tile transitions.
+## Handles return-to-hand, cancel, and discard animations.
 
 
 ## Animates a single tile returning from board to hand.
@@ -145,3 +145,100 @@ func _animate_position_transition_with_delay(
 	tween.finished.connect(
 		_create_batch_completion_callback(tile, tiles, strategy, completed_count_ref, total_tiles)
 	)
+
+
+## Animates tiles moving to discard pile and calls callback when complete.
+func execute_discard_batch(
+	tiles: Array[Tile],
+	target_global_pos: Vector2,
+	strategy: TileAnimationStrategy,
+	on_complete: Callable
+) -> void:
+	_context.is_animating = true
+	_context.emit_animation_started(tiles)
+
+	var total_tiles: int = tiles.size()
+	var completed_count_ref: Array = [0]
+
+	for i in tiles.size():
+		var tile: Tile = tiles[i]
+		if not is_instance_valid(tile):
+			completed_count_ref[0] += 1
+			continue
+
+		var delay: float = i * strategy.stagger_delay
+		_animate_discard_tile(tile, target_global_pos, strategy, delay, tiles, completed_count_ref, total_tiles, on_complete)
+
+	print("[ReturnAnimationExecutor] Started discard animation for %d tiles" % tiles.size())
+
+
+## Animates a single tile to discard pile with shrink effect.
+func _animate_discard_tile(
+	tile: Tile,
+	target_global_pos: Vector2,
+	strategy: TileAnimationStrategy,
+	delay: float,
+	tiles: Array[Tile],
+	completed_count_ref: Array,
+	total_tiles: int,
+	on_complete: Callable
+) -> void:
+	strategy.on_animation_start(tile)
+
+	# Calculate target position in tile's local space
+	var tile_parent: Node = tile.get_parent()
+	var target_local_pos: Vector2 = tile.position
+	if tile_parent and tile_parent.has_method("to_local"):
+		target_local_pos = tile_parent.to_local(target_global_pos)
+	else:
+		# Fallback: estimate based on global offset
+		var offset: Vector2 = target_global_pos - tile.global_position
+		target_local_pos = tile.position + offset
+
+	var tween: Tween = _context.create_tween()
+	tween.set_parallel(true)
+
+	# Position animation - move to discard pile
+	tween.tween_property(tile, "position", target_local_pos, strategy.duration) \
+		.set_ease(Tween.EASE_IN) \
+		.set_trans(Tween.TRANS_QUAD) \
+		.set_delay(delay)
+
+	# Scale animation - shrink as it moves
+	tween.tween_property(tile, "scale", Vector2(0.3, 0.3), strategy.duration) \
+		.set_ease(Tween.EASE_IN) \
+		.set_trans(Tween.TRANS_QUAD) \
+		.set_delay(delay)
+
+	# Fade out
+	tween.tween_property(tile, "modulate:a", 0.0, strategy.duration) \
+		.set_ease(Tween.EASE_IN) \
+		.set_trans(Tween.TRANS_QUAD) \
+		.set_delay(delay)
+
+	_register_tween(tile, tween)
+	tween.finished.connect(
+		_create_discard_completion_callback(tile, tiles, strategy, completed_count_ref, total_tiles, on_complete)
+	)
+
+
+## Creates completion callback for discard animations.
+func _create_discard_completion_callback(
+	tile: Tile,
+	tiles: Array[Tile],
+	strategy: TileAnimationStrategy,
+	completed_count_ref: Array,
+	total_tiles: int,
+	on_complete: Callable
+) -> Callable:
+	return func():
+		strategy.on_animation_complete(tile)
+		_context.emit_single_tile_animated(tile)
+		_unregister_tween(tile)
+		completed_count_ref[0] += 1
+
+		if completed_count_ref[0] >= total_tiles:
+			_context.is_animating = _context.active_tweens.size() > 0
+			_context.emit_animation_completed(tiles)
+			if on_complete.is_valid():
+				on_complete.call()

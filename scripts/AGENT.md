@@ -8,7 +8,11 @@ Contains utility scripts and game logic services that aren't tied to specific sc
 scripts/
 ├── animation/
 │   ├── tile_animation_strategy.gd   # Base animation strategy (Resource)
-│   └── draw_tile_animation.gd       # Draw animation implementation
+│   ├── draw_tile_animation.gd       # Draw animation implementation
+│   ├── glide_tile_animation.gd      # Smooth position transitions
+│   ├── shake_tile_animation.gd      # Shake effect animation
+│   ├── stomp_tile_animation.gd      # Stomp effect animation
+│   └── executors/                   # Animation execution logic
 └── logic/
     └── word_validator.gd            # Word validation and scoring service
 ```
@@ -145,7 +149,7 @@ See [animation/AGENT.md](animation/AGENT.md) for detailed documentation.
 ### Quick Reference
 - **TileAnimationStrategy** - Base class for animation behaviors
 - **DrawTileAnimation** - Tiles animate into hand from below
-- **ReturnToHandAnimation** - Tiles glide from board back to hand
+- **GlideTileAnimation** - Tiles glide smoothly between positions (return, discard)
 - **ShakeTileAnimation** - Tiles shake for illegal action feedback
 - **StompTileAnimation** - Tiles stomp when played (locked)
 
@@ -154,6 +158,8 @@ See [animation/AGENT.md](animation/AGENT.md) for detailed documentation.
 # Animations are triggered via TileAnimator autoload
 TileAnimator.animate_draw_batch(tiles)
 TileAnimator.animate_return_to_hand(tile, hand, cell)
+TileAnimator.animate_cancel_to_hand(tiles, hand)
+TileAnimator.animate_discard_batch(tiles, target_pos, callback)
 TileAnimator.animate_shake(tile)
 TileAnimator.animate_stomp_batch(tiles)
 ```

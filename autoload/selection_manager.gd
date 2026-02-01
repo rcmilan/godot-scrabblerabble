@@ -16,7 +16,7 @@ enum SelectionMode {
 # STATE
 # =============================================================================
 
-var mode: SelectionMode = SelectionMode.SINGLE
+var mode: SelectionMode = SelectionMode.MULTI
 var _selected_tiles: Array[Tile] = []  # Ordered by selection time
 
 # =============================================================================

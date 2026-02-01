@@ -23,7 +23,7 @@ var _context: AnimationContext = null
 # =============================================================================
 
 var _draw_animation: DrawTileAnimation = null
-var _return_animation: ReturnToHandAnimation = null
+var _glide_animation: GlideTileAnimation = null
 var _shake_animation: ShakeTileAnimation = null
 var _stomp_animation: StompTileAnimation = null
 
@@ -72,8 +72,8 @@ func animate_return_to_hand(tile: Tile, hand: Node, cell: Node) -> void:
 	if tile == null or hand == null:
 		return
 
-	_ensure_return_resources()
-	_return_executor.execute_single(tile, hand, cell, _return_animation)
+	_ensure_glide_resources()
+	_return_executor.execute_single(tile, hand, cell, _glide_animation)
 
 
 ## Plays a shake animation on a tile to indicate an illegal action.
@@ -99,8 +99,20 @@ func animate_cancel_to_hand(tiles: Array[Tile], hand: Node) -> void:
 	if tiles.is_empty() or hand == null:
 		return
 
-	_ensure_return_resources()
-	_return_executor.execute_cancel_batch(tiles, hand, _return_animation)
+	_ensure_glide_resources()
+	_return_executor.execute_cancel_batch(tiles, hand, _glide_animation)
+
+
+## Animates tiles moving from hand to discard pile.
+## Tiles glide to the discard pile position, then the discard callback is invoked.
+func animate_discard_batch(tiles: Array[Tile], target_position: Vector2, on_complete: Callable) -> void:
+	if tiles.is_empty():
+		if on_complete.is_valid():
+			on_complete.call()
+		return
+
+	_ensure_glide_resources()
+	_return_executor.execute_discard_batch(tiles, target_position, _glide_animation, on_complete)
 
 
 ## Returns true if any animations are currently playing.
@@ -134,9 +146,9 @@ func _ensure_draw_resources() -> void:
 		_batch_executor = BatchAnimationExecutor.new(_context)
 
 
-func _ensure_return_resources() -> void:
-	if _return_animation == null:
-		_return_animation = ReturnToHandAnimation.new()
+func _ensure_glide_resources() -> void:
+	if _glide_animation == null:
+		_glide_animation = GlideTileAnimation.new()
 	if _return_executor == null:
 		_return_executor = ReturnAnimationExecutor.new(_context)
 
