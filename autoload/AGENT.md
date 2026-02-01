@@ -259,8 +259,39 @@ is_hand_full() -> bool
 set_hand_size(size: int) -> void
 ```
 
+### Initialization
+HandManager requires **deferred initialization**:
+- Autoloads cannot reference scene nodes at startup
+- `_ready()` waits for process frame
+- `_try_initialize()` looks for Main → Hand nodes in tree
+- Retries each frame until both are found
+- Emits `initialized` signal when ready
+- GameManager.start_game() waits for this signal before drawing
+
+### Tile Signal Registration
+When tiles are drawn:
+1. HandManager.draw_tiles() adds tile to Hand UI
+2. `_connect_tile_signals(tile)` calls Main.register_tile(tile)
+3. Main connects tile events to its gameplay handler
+4. Ensures tile events are properly wired to game flow
+
+### Atomic State Management
+When discarding tiles:
+```gdscript
+# Discard flow is atomic:
+_hand_ui.remove_tile(tile)        # Remove from UI
+tile.move_to_discard()            # Atomic state: location = IN_DISCARD
+discard_pile.append(tile)         # Add to pile
+EventBus.tile_discarded.emit(tile) # Signal listeners
+# Either fully complete or not at all—no partial state
+```
+
 ### Usage
 ```gdscript
+# Start game - waits for initialization
+await HandManager.initialized
+HandManager.refill_hand()
+
 # Refill hand at round start
 HandManager.refill_hand()
 
@@ -269,6 +300,9 @@ HandManager.discard_tile(unwanted_tile)
 
 # Get discard pile for effects
 var discarded = HandManager.get_discard_pile()
+
+# Discard all selected
+var count = HandManager.discard_selected()
 ```
 
 ---
@@ -325,14 +359,31 @@ print("Tiles left: ", TileBag.tiles_remaining())
 ## DebugManager
 
 ### Purpose
-Debug commands and logging utilities for development.
+Command-based debug system for testing and development. Provides console commands for rapid testing of tile creation, drawing, and board manipulation.
 
 ### Commands
-- `help` - Show available commands
-- `close/exit` - Hide console
-- `spawn <letter> [count]` - Spawn tiles
-- `draw [count]` - Draw from bag
-- `clear_board` - Clear board tiles
+| Command | Usage | Description |
+|---------|-------|-------------|
+| `help` | `help` | Show all available commands |
+| `spawn` | `spawn <letter> [count]` | Spawn tiles directly to hand (e.g., `spawn A 3`) |
+| `draw` | `draw [count]` | Draw tiles from bag (e.g., `draw 5`) |
+| `clear_board` | `clear_board` | Remove all tiles from board |
+| `close/exit` | `close` or `exit` | Hide the debug console |
+
+### Implementation Details
+- Parses console input as space-separated commands
+- Spawned tiles are connected to Main's tile event handlers
+- Communicates with HandManager and Board for operations
+- Logs all debug activity to console and debug console UI
+
+### Usage Example
+```gdscript
+# In debug console:
+help              # Shows available commands
+spawn A 5         # Creates 5 A tiles in hand
+draw 3            # Draws 3 tiles from bag
+clear_board       # Removes all board tiles
+```
 
 ---
 
@@ -363,31 +414,47 @@ TileAnimator (facade)
 ### Key Methods
 ```gdscript
 # Main API
-animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
-animate_return_to_hand(tile, hand, cell) -> void        # Return from board
-animate_cancel_to_hand(tiles, hand) -> void             # Cancel drag animation
-animate_shake(tile: Tile) -> void                       # Illegal action feedback
-animate_stomp_batch(tiles: Array[Tile]) -> void         # Play confirmation
+animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation (tiles rise from below)
+animate_return_to_hand(tile, hand, cell) -> void        # Return single tile from board to hand
+animate_cancel_to_hand(tiles, hand) -> void             # Animate batch return during drag cancel
+animate_shake(tile: Tile) -> void                       # Illegal action feedback (shake left-right)
+animate_stomp_batch(tiles: Array[Tile]) -> void         # Play confirmation (stomp with particles)
+animate_discard_batch(tiles, target, callback) -> void  # Discard animation (glide to pile, call callback)
 
 # State queries
-is_animating() -> bool                                  # Check if animating
+is_animating() -> bool                                  # Check if any animations active
 
 # Control
-cancel_all() -> void                                    # Cancel all animations
-cancel_tile_animation(tile: Tile) -> void               # Cancel specific tile
+cancel_all() -> void                                    # Cancel all active animations
+cancel_tile_animation(tile: Tile) -> void               # Cancel specific tile's animation
 ```
 
 ### Animation Flow
+
+#### Draw Animation
 ```
-1. HandManager.draw_tiles() collects drawn tiles
+1. HandManager.draw_tiles() collects drawn tiles into hand
 2. TileAnimator.animate_draw_batch(tiles) called
-3. await process_frame (layout calculates positions)
-4. For each tile (staggered):
-   - Capture final position
-   - Set to start position/properties
-   - Tween to final state
-5. Emit completion signals
+3. await process_frame (HBoxContainer layout calculates final positions)
+4. For each tile (staggered with delays):
+   - Capture final position in hand
+   - Set position to below-screen (start state)
+   - Tween: move to final position, scale from 0→1, fade in
+5. Emit animation_completed signal
 ```
+
+#### Discard Animation
+```
+1. User confirms discard (Z key or drag to pile)
+2. TileAnimator.animate_discard_batch(tiles, target_pos, callback) called
+3. For each selected tile:
+   - Glide from current position to discard pile
+   - Run callback when all complete
+4. HandManager.discard_tile() removes from hand (during callback)
+5. HandManager.refill_hand() draws replacements
+```
+
+**Critical Note**: `await process_frame` is essential—it allows layout calculations before capturing final positions. Without it, positions are wrong.
 
 ### Usage
 ```gdscript
@@ -450,13 +517,26 @@ end_drag(success: bool) -> void                       # End drag operation
 cancel_drag() -> void                                 # Cancel and restore
 
 # Tile restoration
-restore_tiles_to_parents() -> void   # Return tiles to original parents
+restore_tiles_to_parents() -> void   # Return tiles to original parents (before placement)
 
 # Queries
 get_drag_position() -> Vector2       # Lead tile's position
-get_dragged_tiles() -> Array[Tile]   # Currently dragged tiles
+get_dragged_tiles() -> Array[Tile]   # Currently dragged tiles (copy)
 get_original_parent(tile) -> Node    # Tile's original parent
-get_original_position(tile) -> Vector2
+get_original_position(tile) -> Vector2  # Tile's position before drag
+```
+
+### Atomic State Management
+DragManager implements **atomic state management** for tile consistency:
+- **Suspend/Restore Cell Binding**: When dragging tiles from board, cell references are suspended so cells become available for new placements. After drag ends, bindings are restored if tiles weren't placed.
+- **Parent Tracking**: Stores original parent node, position, and child index before reparenting to drag container
+- **Force State Reset**: `force_end_drag()` on tiles resets their internal drag state flag
+- **Consistency Guarantee**: Either placement succeeds (tiles placed) or original state is restored—no in-between states
+
+### Configuration
+```gdscript
+const DRAG_Z_INDEX: int = 100        # Z-index during drag
+const TILE_SPACING: float = 68.0     # Spacing between multi-selected tiles in drag preview
 ```
 
 ### Drag Flow

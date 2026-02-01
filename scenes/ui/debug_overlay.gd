@@ -1,7 +1,8 @@
 extends CanvasLayer
 
-# DebugOverlay: Toggleable debug UI panel (F12 or tilde key).
-# Provides developer tools for testing without cluttering production UI.
+## DebugOverlay: Provides developer tools for testing game state without cluttering production UI.
+## Tools included: Word validation, remove all tiles, redraw hand, print rack.
+## Note: Currently accessed programmatically; keyboard toggle not yet implemented.
 
 @onready var word_input: LineEdit = $DebugPanel/VBox/WordInput
 @onready var check_button: Button = $DebugPanel/VBox/CheckButton

@@ -11,13 +11,24 @@ Debug tools for development and testing. Provides in-game console for commands a
 ## DebugConsole
 
 ### Purpose
-In-game command console for executing debug commands during development.
+In-game command console for executing debug commands during development. Accepts text input and displays command output.
 
-### Class: `DebugConsole extends Control`
+### Class: `DebugConsole extends CanvasLayer`
 
-### Activation
-- Press **D** key to toggle visibility
-- Console appears as overlay on top of game
+### Node Structure
+```
+DebugConsole (CanvasLayer, layer=1)
+└── Panel (Panel)
+    └── VBoxContainer
+        ├── OutputLog (RichTextLabel)  # Command output display
+        └── InputLine (LineEdit)        # Command input field
+```
+
+### Activation & Interaction
+- **Visibility**: Press **D** key to toggle visibility
+- **Input**: Type command in InputLine and press Enter
+- **Output**: Responses appear in OutputLog with auto-scroll to bottom
+- **Focus**: Console automatically grabs focus when shown
 
 ### Available Commands
 
@@ -38,12 +49,30 @@ In-game command console for executing debug commands during development.
 > help            # Show command list
 ```
 
-### Command Processing
-Commands are processed by `DebugManager` autoload:
-1. Console sends command string to DebugManager
-2. DebugManager parses and validates command
-3. Command executed with appropriate managers (TileBag, HandManager, etc.)
-4. Result message displayed in console
+### Command Processing & Integration
+
+**Flow:**
+1. User types command in InputLine and presses Enter
+2. `_on_command_submitted()` called with command string
+3. Command echoed to OutputLog with `> ` prefix
+4. `DebugManager.execute_command()` called with string
+5. DebugManager parses, validates, and executes command
+6. DebugManager calls `DebugConsole.print_line()` (via callback) with results
+7. Output displayed in OutputLog
+
+**Callback System:**
+```gdscript
+# In DebugConsole._ready():
+DebugManager.console_print = print_line
+
+# In DebugManager:
+func log_output(message: String) -> void:
+    if console_print.is_valid():
+        console_print.call(message)  # Calls DebugConsole.print_line()
+```
+
+**Auto-scrolling:**
+After each output line, `print_line()` waits for process_frame, then scrolls OutputLog to bottom for continuous visibility.
 
 ---
 

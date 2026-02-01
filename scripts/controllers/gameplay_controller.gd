@@ -295,6 +295,20 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 		print("[Gameplay] No tile selected")
 		return
 
+	# Filter out locked tiles - they cannot be moved
+	var movable_tiles: Array[Tile] = []
+	for tile in selected_tiles:
+		if not tile.is_locked:
+			movable_tiles.append(tile)
+
+	if movable_tiles.is_empty():
+		print("[Gameplay] All selected tiles are locked")
+		SelectionManager.deselect_all()
+		_update_interaction_state()
+		return
+
+	selected_tiles = movable_tiles
+
 	if cell.is_occupied():
 		print("[Gameplay] Cell occupied: %s" % cell.name)
 		return
@@ -695,6 +709,10 @@ func _on_play_requested() -> void:
 
 	for tile in unplayed_tiles:
 		tile.set_locked(true)  # Use setter to update visuals
+
+	# Clear any selection - locked tiles cannot remain selected
+	SelectionManager.deselect_all()
+	_update_interaction_state()
 
 	TileAnimator.animate_stomp_batch(unplayed_tiles)
 
