@@ -19,7 +19,8 @@ Wordatro/
 │   └── debug_manager.gd    # Debug tools
 │
 ├── scenes/                 # Game scenes
-│   ├── Main.tscn           # Root scene
+│   ├── title_screen/       # Main menu / title screen
+│   ├── Main.tscn           # Gameplay scene
 │   ├── main.gd             # Main controller
 │   ├── board/              # Grid component
 │   ├── hand/               # Hand component
@@ -28,6 +29,7 @@ Wordatro/
 │   └── debug/              # Debug tools
 │
 ├── scripts/                # Utility scripts
+│   ├── controllers/        # Game controllers
 │   ├── animation/          # Animation strategies
 │   └── logic/              # Game logic services
 │
@@ -42,19 +44,23 @@ Wordatro/
 ## Core Systems
 
 ### Game Flow
-1. Game starts with configured tile distribution
-2. Hand is filled from tile bag (10 tiles)
-3. Player selects tiles (single or multi-select with Q key)
-4. Player places tiles on board to form words
-5. Player can discard tiles (Z key or drag to pile)
-6. Score is calculated based on letters and multipliers
-7. Round ends when target score reached or plays exhausted
-8. (Future) Progress to shop/next round
+1. Game starts at title screen with menu options
+2. Player selects "New Game" to start gameplay
+3. Game initializes with configured tile distribution
+4. Hand is filled from tile bag (10 tiles)
+5. Player selects tiles (single or multi-select with Q key)
+6. Player places tiles on board to form words
+7. Player can discard tiles (Z key or drag to pile)
+8. Score is calculated based on letters and multipliers
+9. Round ends when target score reached or plays exhausted
+10. (Future) Progress to shop/next round
 
 ### Key Components
 
 | Component | Purpose |
 |-----------|---------|
+| **TitleScreen** | Main menu with navigation (New Game, Options, Exit) |
+| **MenuController** | Menu navigation and keyboard/mouse input |
 | **Board** | Dynamic grid (default 8x8), cell management |
 | **Tile** | Letter tiles with drag-and-drop |
 | **Hand** | Player's available tiles (max 10) |
@@ -127,6 +133,9 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 ## Features
 
 ### Implemented
+- [x] Title screen with main menu
+- [x] Menu navigation (keyboard: WASD/arrows, mouse: click/hover)
+- [x] Options popup with mocked settings
 - [x] Tile placement on board
 - [x] Drag-and-drop tiles
 - [x] Single-select mode
@@ -149,6 +158,8 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [x] Debug console
 
 ### Future
+- [ ] Game configuration in title screen (board size, hand size, rounds, target score)
+- [ ] Actual options implementation (fullscreen, vsync, volume)
 - [ ] Word validation dictionary
 - [ ] Score calculation with multipliers
 - [ ] Cell multipliers (2x letter, 3x word, etc.)
@@ -183,6 +194,7 @@ Each component has an `AGENT.md` file with detailed documentation:
 
 ### Scenes
 - [scenes/AGENT.md](scenes/AGENT.md) - Scene overview
+- [scenes/title_screen/AGENT.md](scenes/title_screen/AGENT.md) - Title screen and menu
 - [scenes/board/AGENT.md](scenes/board/AGENT.md) - Board grid
 - [scenes/tile/AGENT.md](scenes/tile/AGENT.md) - Letter tiles
 - [scenes/hand/AGENT.md](scenes/hand/AGENT.md) - Player hand
