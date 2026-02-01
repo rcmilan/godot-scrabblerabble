@@ -9,7 +9,6 @@ extends Node
 # =============================================================================
 
 signal drag_started(tiles: Array[Tile])
-signal drag_updated(tiles: Array[Tile], position: Vector2)
 signal drag_ended(tiles: Array[Tile], success: bool)
 signal drag_cancelled(tiles: Array[Tile])
 signal drag_release_requested(lead_tile: Tile)  # Mouse released during drag
@@ -63,7 +62,7 @@ func _process(_delta: float) -> void:
 
 ## Starts a multi-tile drag operation.
 ## Parameters:
-##   lead: The tile being directly dragged by the user
+##   lead: The tile being directly dragged by the user (must be in tiles array)
 ##   tiles: All tiles to drag (including lead tile)
 func start_drag(lead: Tile, tiles: Array[Tile]) -> void:
 	if is_dragging:
@@ -72,11 +71,15 @@ func start_drag(lead: Tile, tiles: Array[Tile]) -> void:
 	if tiles.is_empty():
 		return
 
+	if lead not in tiles:
+		push_error("[DragManager] Lead tile must be in tiles array")
+		return
+
 	is_dragging = true
 	lead_tile = lead
 	dragged_tiles = tiles.duplicate()
 
-	# Store original state
+	# Store original state and clear board cell references
 	_store_original_state()
 
 	# Calculate relative offsets from lead tile
@@ -225,6 +228,11 @@ func _setup_drag_container() -> void:
 	# Reparent tiles to drag container
 	for tile in dragged_tiles:
 		var global_pos: Vector2 = tile.global_position
+
+		# Clear board cell reference so the cell is available for placement
+		if tile.location == Tile.TileLocation.ON_BOARD and tile.current_cell:
+			tile.current_cell.tile = null
+
 		if tile.get_parent():
 			tile.get_parent().remove_child(tile)
 		_drag_container.add_child(tile)
@@ -277,6 +285,10 @@ func _restore_tiles_to_original() -> void:
 			# Restore original child order if index was stored
 			if original_index >= 0 and original_index < original_parent.get_child_count():
 				original_parent.move_child(tile, original_index)
+
+		# Restore board cell reference if tile was on board
+		if tile.location == Tile.TileLocation.ON_BOARD and tile.current_cell:
+			tile.current_cell.tile = tile
 
 		# Reset tile's internal drag state
 		tile.force_end_drag()

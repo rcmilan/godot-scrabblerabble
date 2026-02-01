@@ -339,7 +339,19 @@ Debug commands and logging utilities for development.
 ## TileAnimator
 
 ### Purpose
-Coordinates tile animations across the game. Uses the Strategy pattern for flexible animation types.
+Coordinates tile animations across the game. Uses Strategy pattern with Executor composition for flexibility.
+
+### Architecture
+TileAnimator acts as a **thin facade** that delegates to specialized executors:
+
+```
+TileAnimator (facade)
+├── AnimationContext (shared state)
+├── BatchAnimationExecutor (draw animations)
+├── ReturnAnimationExecutor (return/cancel animations)
+├── ShakeAnimationExecutor (shake effect)
+└── StompAnimationExecutor (stomp with particles)
+```
 
 ### Signals
 | Signal | Parameters | Description |
@@ -353,6 +365,7 @@ Coordinates tile animations across the game. Uses the Strategy pattern for flexi
 # Main API
 animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
 animate_return_to_hand(tile, hand, cell) -> void        # Return from board
+animate_cancel_to_hand(tiles, hand) -> void             # Cancel drag animation
 animate_shake(tile: Tile) -> void                       # Illegal action feedback
 animate_stomp_batch(tiles: Array[Tile]) -> void         # Play confirmation
 
@@ -394,7 +407,16 @@ TileAnimator uses animation strategies from `scripts/animation/`:
 - **DrawTileAnimation** - Tiles rise from below, scale up, fade in
 - **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
 - **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
-- **StompTileAnimation** - Tiles stomp (scale up/down) when played
+- **StompTileAnimation** - Tiles stomp (scale up/down) with impact particles
+
+### Executor Classes
+Located in `scripts/animation/executors/`:
+- **AnimationContext** - Shared state (active tweens, signals)
+- **AnimationExecutor** - Base class with common helpers
+- **BatchAnimationExecutor** - Staggered batch animations
+- **ReturnAnimationExecutor** - Return-to-hand and cancel animations
+- **ShakeAnimationExecutor** - Shake effect for illegal actions
+- **StompAnimationExecutor** - Stomp effect with particle spawning
 
 See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
 
@@ -416,14 +438,14 @@ var lead_tile: Tile = null  # The tile directly dragged by user
 | Signal | Parameters | Description |
 |--------|------------|-------------|
 | `drag_started` | `tiles: Array[Tile]` | Multi-drag began |
-| `drag_updated` | `tiles, position` | Drag position changed |
 | `drag_ended` | `tiles, success` | Drag finished |
 | `drag_cancelled` | `tiles: Array[Tile]` | Drag was cancelled |
+| `drag_release_requested` | `lead_tile: Tile` | Mouse released during drag |
 
 ### Key Methods
 ```gdscript
 # Drag lifecycle
-start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag operation
+start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag (lead must be in tiles)
 end_drag(success: bool) -> void                       # End drag operation
 cancel_drag() -> void                                 # Cancel and restore
 
