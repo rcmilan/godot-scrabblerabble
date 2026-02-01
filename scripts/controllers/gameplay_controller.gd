@@ -412,25 +412,34 @@ func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void
 # =============================================================================
 
 func _handle_single_tile_drop(tile: Tile, cell: BoardCell) -> void:
+	# Check validity BEFORE restoring tiles
+	var is_valid: bool = cell != null and not cell.is_occupied()
+
+	if not is_valid:
+		# Invalid drop - animate tiles back to hand
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			# Board tile - just restore position
+			DragManager.restore_tiles_to_parents()
+			_return_to_original_cell(tile)
+		else:
+			# Hand tile - animate back to hand
+			# Deselect in single-select mode
+			if not SelectionManager.is_multi_select_enabled():
+				SelectionManager.deselect_tile(tile)
+
+			var tiles_to_animate: Array[Tile] = [tile]
+			TileAnimator.animate_cancel_to_hand(tiles_to_animate, hand)
+			_update_interaction_state()
+			_clear_all_cell_hovers()
+
+		if cell != null and cell.is_occupied():
+			print("[Gameplay] Cannot drop on occupied cell: %s" % cell.name)
+
+		_last_placement_success = false
+		return
+
+	# Valid drop - restore and place
 	DragManager.restore_tiles_to_parents()
-
-	if cell == null:
-		if tile.location == Tile.TileLocation.ON_BOARD:
-			_return_to_original_cell(tile)
-		else:
-			_cancel_drag_to_hand(tile)
-		_last_placement_success = false
-		return
-
-	if cell.is_occupied():
-		print("[Gameplay] Cannot drop on occupied cell: %s" % cell.name)
-		if tile.location == Tile.TileLocation.ON_BOARD:
-			_return_to_original_cell(tile)
-		else:
-			_cancel_drag_to_hand(tile)
-		_last_placement_success = false
-		return
-
 	print("[Gameplay] Valid drop on cell: %s" % cell.name)
 	_place_tile_on_cell(tile, cell)
 	_last_placement_success = true
@@ -438,7 +447,7 @@ func _handle_single_tile_drop(tile: Tile, cell: BoardCell) -> void:
 
 func _handle_multi_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> void:
 	if drop_cell == null:
-		_cancel_multi_drag_preserve_selection(tiles)
+		_cancel_multi_drag_with_animation(tiles)
 		_last_placement_success = false
 		return
 
@@ -450,10 +459,11 @@ func _handle_multi_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> void:
 	var cells: Array[BoardCell] = _get_sequential_cells_centered(drop_cell, tiles.size(), lead_index)
 	if cells.is_empty():
 		print("[Gameplay] Cannot place %d tiles centered at %s (lead index: %d)" % [tiles.size(), drop_cell.name, lead_index])
-		_cancel_multi_drag_preserve_selection(tiles)
+		_cancel_multi_drag_with_animation(tiles)
 		_last_placement_success = false
 		return
 
+	# Valid drop - restore and place
 	DragManager.restore_tiles_to_parents()
 
 	for i in tiles.size():
@@ -516,22 +526,18 @@ func _get_sequential_cells_centered(drop_cell: BoardCell, count: int, lead_index
 
 
 func _cancel_multi_drag_preserve_selection(_tiles: Array[Tile]) -> void:
+	# Just restore without animation (used for board tile drags)
 	DragManager.restore_tiles_to_parents()
 	_update_interaction_state()
 	print("[Gameplay] Multi-drag cancelled, selection preserved")
 
 
-func _cancel_drag_to_hand(tile: Tile) -> void:
-	tile.location = Tile.TileLocation.IN_HAND
-	tile.current_cell = null
-	tile.modulate = Color.WHITE
-
-	if not SelectionManager.is_multi_select_enabled():
-		SelectionManager.deselect_tile(tile)
-
+func _cancel_multi_drag_with_animation(tiles: Array[Tile]) -> void:
+	# Animate tiles back to hand (this handles restore internally)
+	TileAnimator.animate_cancel_to_hand(tiles, hand)
 	_update_interaction_state()
 	_clear_all_cell_hovers()
-	print("[Gameplay] Cancelled drag for tile: %s" % tile.name)
+	print("[Gameplay] Multi-drag cancelled with animation, selection preserved")
 
 
 func _return_to_original_cell(tile: Tile) -> void:

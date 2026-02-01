@@ -89,6 +89,19 @@ func animate_stomp_batch(tiles: Array[Tile]) -> void:
 	_animate_stomp_batch(tiles, _stomp_animation)
 
 
+## Animates tiles returning to hand from a cancelled drag.
+## Tiles smoothly glide from their current position to the hand.
+## Call this BEFORE restoring tiles to hand via DragManager.
+func animate_cancel_to_hand(tiles: Array[Tile], hand: Node) -> void:
+	if tiles.is_empty() or hand == null:
+		return
+
+	if _return_animation == null:
+		_return_animation = ReturnToHandAnimation.new()
+
+	_animate_cancel_batch(tiles, hand, _return_animation)
+
+
 ## Returns true if any animations are currently playing.
 func is_animating() -> bool:
 	return _is_animating
@@ -258,6 +271,84 @@ func _animate_return_single(tile: Tile, hand: Node, cell: Node, strategy: TileAn
 	)
 
 	print("[TileAnimator] Started return-to-hand animation for tile: %s" % tile.name)
+
+
+## Animates a batch of tiles returning to hand from a cancelled drag.
+func _animate_cancel_batch(tiles: Array[Tile], hand: Node, strategy: TileAnimationStrategy) -> void:
+	_is_animating = true
+	animation_started.emit(tiles)
+
+	# Step 1: Capture all tiles' current global positions
+	var start_positions: Dictionary = {}  # Tile -> Vector2
+	for tile in tiles:
+		if is_instance_valid(tile):
+			start_positions[tile] = tile.global_position
+
+	# Step 2: Restore tiles to hand via DragManager
+	DragManager.restore_tiles_to_parents()
+
+	# Step 3: Wait for layout to calculate new hand positions
+	await get_tree().process_frame
+
+	# Step 4: Animate each tile from old position to new position
+	var total_tiles: int = tiles.size()
+	var completed_count: int = 0
+
+	for i in tiles.size():
+		var tile: Tile = tiles[i]
+		if not is_instance_valid(tile):
+			completed_count += 1
+			continue
+
+		var start_global_pos: Vector2 = start_positions.get(tile, tile.global_position)
+		var final_position: Vector2 = tile.position
+		var final_global_pos: Vector2 = tile.global_position
+
+		# Calculate starting local position to match old global position
+		var global_offset: Vector2 = start_global_pos - final_global_pos
+		tile.position = final_position + global_offset
+
+		# Apply start properties
+		var start_props: Dictionary = strategy.get_start_properties()
+		_apply_properties(tile, start_props)
+		strategy.on_animation_start(tile)
+
+		# Calculate stagger delay
+		var delay: float = i * strategy.stagger_delay
+
+		# Create animation tween
+		var tween: Tween = create_tween()
+		tween.set_parallel(true)
+
+		# Position animation
+		tween.tween_property(tile, "position", final_position, strategy.duration) \
+			.set_ease(strategy.ease_type) \
+			.set_trans(strategy.trans_type) \
+			.set_delay(delay)
+
+		# Property animations
+		var end_props: Dictionary = strategy.get_end_properties()
+		for prop_name in end_props.keys():
+			tween.tween_property(tile, prop_name, end_props[prop_name], strategy.duration) \
+				.set_ease(strategy.ease_type) \
+				.set_trans(strategy.trans_type) \
+				.set_delay(delay)
+
+		_active_tweens[tile] = tween
+
+		# Track completion
+		tween.finished.connect(func():
+			strategy.on_animation_complete(tile)
+			single_tile_animated.emit(tile)
+			_active_tweens.erase(tile)
+			completed_count += 1
+
+			if completed_count >= total_tiles:
+				_is_animating = false
+				animation_completed.emit(tiles)
+		)
+
+	print("[TileAnimator] Started cancel-to-hand animation for %d tiles" % tiles.size())
 
 
 ## Animates a shake effect on a tile to indicate an illegal action.
