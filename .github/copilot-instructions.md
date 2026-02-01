@@ -63,11 +63,16 @@ When changes are needed:
 
 ### Core Components
 
-- **Main** (`scenes/main.gd`): Central game controller coordinating all components, handles input, selection, placement, and discard flows
-- **Board** (`scenes/board/board.gd`): 8x8 grid-based board with cell management and hover detection
-- **BoardCell** (`scenes/board/board_cell.gd`): Individual cell with occupancy state, multipliers, and visual feedback
-- **Tile** (`scenes/tile/tile.gd`): Draggable letter tiles with location tracking and selection visuals
-- **Hand** (`scenes/hand/hand.gd`): Tile container that delegates selection to SelectionManager
+- **Main** (`scenes/main.gd`): Root scene that creates and manages GameplayController, orchestrates component lifecycle
+- **GameplayController** (`scripts/controllers/gameplay_controller.gd`): Manages all tile gameplay (selection, drag-drop, placement, discard, play submission)
+- **Board** (`scenes/board/board.gd`): 11×11 grid-based board with cell management, hover detection, and sequential cell queries
+- **BoardCell** (`scenes/board/board_cell.gd`): Individual cell with occupancy state, multiplier infrastructure, and visual feedback
+- **Tile** (`scenes/tile/tile.gd`): Draggable letter tiles with atomic cell binding, location tracking, and selection visuals
+- **Hand** (`scenes/hand/hand.gd`): Tile container that manages tile display and delegates selection to SelectionManager
+
+### Controllers
+
+- **GameplayController**: Handles all tile interaction (selection, drag-drop, placement, discard, play). Injected with scene dependencies and can be activated/deactivated based on game state.
 
 ### Autoload Managers
 
@@ -78,6 +83,8 @@ When changes are needed:
 | `TileBag` | Tile pool (deck) creation, shuffling, drawing |
 | `HandManager` | Draw, discard, refill operations |
 | `SelectionManager` | Single/multi-select mode and selection state |
+| `TileAnimator` | Coordinates tile animations using strategy pattern |
+| `DragManager` | Multi-tile drag operation coordination |
 | `DebugManager` | Debug console command processing |
 
 ### Selection System
@@ -161,14 +168,33 @@ Tiles move between parent nodes based on location:
 - **In Discard**: Tracked in `HandManager.discard_pile` array
 - **Position reset**: Always set `position = Vector2.ZERO` after reparenting
 
+### Atomic Cell Binding (Critical Pattern)
+
+Tiles maintain **atomic bidirectional binding** with board cells to prevent inconsistent state:
+
 ```gdscript
-# Standard tile placement pattern
+# Use atomic binding to ensure tile ↔ cell consistency
+tile.attach_to_cell(cell)   # Sets: tile.current_cell = cell AND cell.tile = tile
+
+# For drag operations (temporarily suspend binding):
+tile.suspend_cell_binding()  # Clears cell.tile but keeps tile.current_cell
+# ... drag operation ...
+tile.restore_cell_binding()  # Restores cell.tile reference
+
+# Check binding state:
+if tile.has_active_cell_binding():
+    # tile.current_cell and cell.tile are synchronized
+```
+
+**Design Principle**: Either both references are set (tile ↔ cell synchronized) OR both are cleared. Never a partial state where references diverge.
+
+```gdscript
+# Standard tile placement pattern (using atomic binding)
 tile.get_parent().remove_child(tile)
 cell.tile_anchor.add_child(tile)
 tile.position = Vector2.ZERO
-tile.current_cell = cell
+tile.attach_to_cell(cell)  # Atomic: sets both references
 tile.location = Tile.TileLocation.ON_BOARD
-cell.tile = tile
 ```
 
 ## Game Progression & Level Structure
@@ -253,6 +279,59 @@ class_name Main
 
 Always type hint signals: `func _on_tile_selected(tile: Tile) -> void:`
 
+## Core Architectural Patterns
+
+### Composition Over Inheritance (GameplayController)
+```
+Main (Scene)
+    │
+    └─► GameplayController (Composition)
+        ├─ Depends on: Board, Hand, DiscardPile, HUD
+        ├─ Handles: Tile selection, drag-drop, placement, discard
+        └─ Can be: activated/deactivated based on game state
+```
+
+Benefits:
+- Gameplay logic separated from scene script
+- Easy to pause/resume interaction via activate/deactivate
+- Testable in isolation
+- Dependencies injected via setup()
+
+### Atomic State Management
+All critical operations use atomic patterns:
+
+```gdscript
+# Tile placement is atomic
+tile.attach_to_cell(cell)        # Both references set together
+# ... later
+tile.detach_from_cell()          # Both references cleared together
+
+# Discard is atomic
+_hand_ui.remove_tile(tile)       # Remove from hand
+tile.move_to_discard()           # Atomic state: location = IN_DISCARD
+discard_pile.append(tile)        # Track in array
+# Complete or fail as unit—no partial state
+```
+
+### Strategy Pattern (Animations)
+```
+TileAnimator (Facade)
+    │
+    ├─► DrawTileAnimation (Strategy)
+    │   └─ BatchAnimationExecutor (Executor)
+    │
+    ├─► GlideTileAnimation (Strategy)
+    │   └─ ReturnAnimationExecutor (Executor)
+    │
+    ├─► ShakeTileAnimation (Strategy)
+    │   └─ ShakeAnimationExecutor (Executor)
+    │
+    └─► StompTileAnimation (Strategy)
+        └─ StompAnimationExecutor (Executor)
+```
+
+Each animation strategy defines WHAT to animate; each executor defines HOW to animate it.
+
 ## Common Tasks
 
 ### Adding a New Tile Feature
@@ -314,7 +393,11 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 - Each phase builds on previous phases
 - EventBus provides loose coupling between systems
 - Managers own logic, Scenes own presentation
+- Controllers coordinate gameplay with dependency injection
 - Debug code isolated in DebugManager/DebugConsole
 - UI polish deferred until core gameplay works
-- Always make use of objective-oriented and DDD principles for maintainability and reusability
-- Every action should be thought on an atomic perspective, they either work or not, there is no in-between
+- Domain-Driven Design: Model the game domain first (tiles, cells, words), then implement UI around it
+- Object-Oriented Principles: Clear responsibilities, single purpose per class
+- Atomic Operations: Every action either succeeds completely or fails cleanly—no partial/inconsistent state
+  - Example: Cell binding is atomic (tile ↔ cell always synchronized)
+  - Example: Tile placement either completes fully or is cancelled with animation

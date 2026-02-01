@@ -126,6 +126,12 @@ Generic animation strategy for smooth tile transitions between positions. Used f
 - Mouse interaction disabled during animation
 - For discard: tiles shrink and fade as they move
 
+### Position Calculation
+The position offset is determined by the **executor**, not the strategy:
+- **ReturnAnimationExecutor**: Calculates offset from tile's global position vs hand/cell positions
+- **Strategy role**: Only returns Vector2.ZERO (position is managed by executor's position tween)
+- This separation allows GlideTileAnimation to be reused for any position-based transitions
+
 ### Usage
 ```gdscript
 # Return from board to hand
@@ -199,10 +205,11 @@ Dramatic animation for confirming tile placement when "playing" a hand. Tiles ri
 @export var recover_duration: float = 0.12
 
 # Particles
-@export var particle_count: int = 8
-@export var particle_speed: float = 120.0
-@export var particle_lifetime: float = 0.4
-@export var particle_color: Color = Color(1.0, 0.9, 0.7, 0.9)
+@export var particle_count: int = 12
+@export var particle_speed: float = 200.0
+@export var particle_lifetime: float = 0.8
+@export var particle_size_max: float = 10.0
+@export var particle_size_min: float = 6.0
 ```
 
 ### Default Values
@@ -213,7 +220,10 @@ Dramatic animation for confirming tile placement when "playing" a hand. Tiles ri
 | rise_offset | -15px (upward) |
 | squish_scale | 1.1x wide, 0.9x tall |
 | stagger_delay | 0.06s |
-| particle_count | 8 |
+| particle_count | 12 |
+| particle_speed | 200px/s |
+| particle_lifetime | 0.8s |
+| particle_size_range | 6-10px |
 
 ### Animation Phases
 1. **Rise**: Tile scales up to 1.35x from center and moves up 15px
