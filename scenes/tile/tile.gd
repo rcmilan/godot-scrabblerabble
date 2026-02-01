@@ -180,15 +180,7 @@ func set_as_drag_follower() -> void:
 	allow_hover_feedback = false
 
 
-## Ends the drag state for follower tiles.
-func end_drag_follower() -> void:
-	_drag_state = DragState.IDLE
-	_is_lead_tile = false
-	allow_hover_feedback = true
-	modulate = Color.WHITE
-
-
-## Force-resets all drag state (called by DragManager when drag is cancelled externally).
+## Force-resets all drag state (called by DragManager for all tiles when drag ends).
 func force_end_drag() -> void:
 	_drag_state = DragState.IDLE
 	_is_lead_tile = false

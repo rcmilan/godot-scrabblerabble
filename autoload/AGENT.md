@@ -438,14 +438,14 @@ var lead_tile: Tile = null  # The tile directly dragged by user
 | Signal | Parameters | Description |
 |--------|------------|-------------|
 | `drag_started` | `tiles: Array[Tile]` | Multi-drag began |
-| `drag_updated` | `tiles, position` | Drag position changed |
 | `drag_ended` | `tiles, success` | Drag finished |
 | `drag_cancelled` | `tiles: Array[Tile]` | Drag was cancelled |
+| `drag_release_requested` | `lead_tile: Tile` | Mouse released during drag |
 
 ### Key Methods
 ```gdscript
 # Drag lifecycle
-start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag operation
+start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag (lead must be in tiles)
 end_drag(success: bool) -> void                       # End drag operation
 cancel_drag() -> void                                 # Cancel and restore
 
