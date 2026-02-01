@@ -5,6 +5,7 @@ Controllers encapsulate specific game behaviors that can be activated/deactivate
 
 ## Files
 - `gameplay_controller.gd` - All tile-based gameplay interaction
+- `menu_controller.gd` - Title screen menu navigation and input
 
 ---
 
@@ -81,6 +82,79 @@ func register_tile(tile: Tile):
 
 ---
 
+## MenuController
+
+### Purpose
+Manages menu navigation and input handling for the title screen including:
+- Keyboard navigation (WASD and arrow keys)
+- Mouse interaction (clicks and hover)
+- Quick navigation shortcuts (A/D for first/last)
+- Focus management and visual feedback
+
+### Lifecycle
+```gdscript
+# Created and added as child of TitleScreen
+var controller = MenuController.new()
+add_child(controller)
+
+# Inject menu button dependencies
+controller.setup(new_game_btn, options_btn, exit_btn)
+
+# Activate when menu should be enabled
+controller.activate()
+
+# Deactivate for popups or transitions
+controller.deactivate()
+```
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `menu_item_selected` | `index` | Menu item focused/highlighted |
+| `new_game_requested` | - | New Game option selected |
+| `options_requested` | - | Options option selected |
+| `exit_requested` | - | Exit option selected |
+
+### Key Methods
+```gdscript
+# Setup and lifecycle
+setup(new_game_btn, options_btn, exit_btn) -> void
+activate() -> void
+deactivate() -> void
+```
+
+### Input Mapping
+| Input | Action |
+|-------|--------|
+| W / Up Arrow | Navigate up (wraps) |
+| S / Down Arrow | Navigate down (wraps) |
+| A | Jump to first item |
+| D | Jump to last item |
+| Enter / Space | Activate current item |
+| Mouse Click | Activate clicked item |
+| Mouse Hover | Focus hovered item |
+
+### Usage in TitleScreen.gd
+```gdscript
+func _ready():
+    _menu_controller = MenuController.new()
+    add_child(_menu_controller)
+    _menu_controller.setup(_new_game_button, _options_button, _exit_button)
+    _menu_controller.new_game_requested.connect(_on_new_game_requested)
+    _menu_controller.options_requested.connect(_on_options_requested)
+    _menu_controller.exit_requested.connect(_on_exit_requested)
+    _menu_controller.activate()
+
+func _on_options_requested():
+    _menu_controller.deactivate()  # Disable menu while options popup is open
+    _options_popup.show_popup()
+
+func _on_options_closed():
+    _menu_controller.activate()  # Re-enable menu when popup closes
+```
+
+---
+
 ## Design Principles
 
 ### Composition Over Inheritance
@@ -107,9 +181,9 @@ Controllers emit signals for completed actions rather than directly calling scen
 
 As the game grows, additional controllers may be added:
 
-- **MenuController** - Main menu navigation
-- **SettingsController** - Settings UI interaction
+- **SettingsController** - Settings UI interaction (for actual options implementation)
 - **TutorialController** - Tutorial flow management
 - **ScoreController** - Score display and animations
+- **ConfigurationController** - Game setup and customization
 
 Each follows the same pattern: setup, activate, deactivate, signals.

@@ -6,7 +6,8 @@ Contains all game scenes and their associated scripts. Each subdirectory represe
 ## Structure
 ```
 scenes/
-├── Main.tscn              # Root game scene
+├── title_screen/          # Title screen and main menu
+├── Main.tscn              # Gameplay scene
 ├── main.gd                # Main controller script
 ├── board/                 # Board and cell components
 ├── hand/                  # Hand component
@@ -17,10 +18,32 @@ scenes/
 
 ---
 
+## Title Screen
+
+### Purpose
+Entry point for the game. Main menu with navigation to start new game, configure options, or exit.
+
+See [title_screen/AGENT.md](title_screen/AGENT.md) for detailed documentation.
+
+### Features
+- **Menu Navigation**: Keyboard (WASD/arrows) and mouse support
+- **Quick Navigation**: A/D to jump to first/last menu item
+- **Options Popup**: Modal dialog with mocked settings (fullscreen, vsync, volume)
+- **Scene Transition**: Loads Main.tscn when "New Game" is selected
+
+### Architecture
+Uses `MenuController` following the same controller pattern as `GameplayController`:
+- Composition over inheritance
+- Dependency injection
+- Signal-based communication
+- Activate/deactivate lifecycle
+
+---
+
 ## Main Scene
 
 ### Purpose
-Root scene that orchestrates all game components. Handles tile selection, placement, drag-and-drop, and discard operations.
+Gameplay scene that orchestrates all game components. Handles tile selection, placement, drag-and-drop, and discard operations.
 
 ### Class: `Main extends Control`
 
@@ -90,6 +113,13 @@ func _unhandled_input(event: InputEvent) -> void:
 ---
 
 ## Component Directories
+
+### title_screen/
+Title screen and main menu. See [title_screen/AGENT.md](title_screen/AGENT.md)
+- Menu navigation with keyboard and mouse
+- Options popup with settings
+- Game entry point
+- Future: Game configuration (board size, hand size, etc.)
 
 ### board/
 Game grid management. See [board/AGENT.md](board/AGENT.md)
@@ -198,6 +228,6 @@ User Input
 ## Future Scenes
 - Shop scene (between rounds)
 - Deck builder scene
-- Title/menu scene
 - Victory/defeat screens
-- Settings menu
+- Game configuration screen (customize board size, hand size, etc.)
+- Statistics/achievements screen
