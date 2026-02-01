@@ -10,6 +10,7 @@ Global singleton managers that coordinate game-wide systems. These are automatic
 - `tile_bag.gd` - Tile pool (deck) management
 - `selection_manager.gd` - Tile selection state (single/multi-select)
 - `tile_animator.gd` - Tile animation coordinator
+- `drag_manager.gd` - Multi-tile drag coordination
 - `debug_manager.gd` - Debug commands and logging
 
 ---
@@ -399,6 +400,73 @@ See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating cus
 
 ---
 
+## DragManager
+
+### Purpose
+Coordinates multi-tile drag operations. When multiple tiles are selected and dragged, all selected tiles move together as a preview.
+
+### Key Properties
+```gdscript
+var is_dragging: bool = false
+var dragged_tiles: Array[Tile] = []
+var lead_tile: Tile = null  # The tile directly dragged by user
+```
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `drag_started` | `tiles: Array[Tile]` | Multi-drag began |
+| `drag_updated` | `tiles, position` | Drag position changed |
+| `drag_ended` | `tiles, success` | Drag finished |
+| `drag_cancelled` | `tiles: Array[Tile]` | Drag was cancelled |
+
+### Key Methods
+```gdscript
+# Drag lifecycle
+start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag operation
+end_drag(success: bool) -> void                       # End drag operation
+cancel_drag() -> void                                 # Cancel and restore
+
+# Tile restoration
+restore_tiles_to_parents() -> void   # Return tiles to original parents
+
+# Queries
+get_drag_position() -> Vector2       # Lead tile's position
+get_dragged_tiles() -> Array[Tile]   # Currently dragged tiles
+get_original_parent(tile) -> Node    # Tile's original parent
+get_original_position(tile) -> Vector2
+```
+
+### Drag Flow
+```
+1. User starts dragging a selected tile
+2. Main._on_tile_drag_started() gets all selected tiles
+3. DragManager.start_drag(lead, tiles) called
+   - Stores original parents, positions, indices
+   - Reparents all tiles to DragContainer
+   - Calculates relative offsets from lead
+4. During drag: DragManager._process() updates follower positions
+5. On drop: Main._on_tile_drag_ended()
+   - DragManager.restore_tiles_to_parents() returns tiles
+   - Place tiles on board OR cancel
+   - DragManager.end_drag(success) cleans up
+```
+
+### Usage
+```gdscript
+# In Main._on_tile_drag_started:
+var tiles_to_drag = SelectionManager.get_selected_tiles()
+DragManager.start_drag(tile, tiles_to_drag)
+
+# In Main._on_tile_drag_ended:
+var tiles = DragManager.get_dragged_tiles()
+DragManager.restore_tiles_to_parents()
+# ... place tiles or cancel
+DragManager.end_drag(success)
+```
+
+---
+
 ## Load Order
 Autoloads are loaded in the order specified in `project.godot`:
 1. EventBus
@@ -408,6 +476,7 @@ Autoloads are loaded in the order specified in `project.godot`:
 5. HandManager
 6. SelectionManager
 7. TileAnimator
+8. DragManager
 
 **Note**: Autoloads load before scenes, so they cannot reference scene types directly at declaration time. Use runtime type checking instead.
 

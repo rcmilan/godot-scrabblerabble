@@ -59,6 +59,7 @@ var _drag_state: DragState = DragState.IDLE
 var _drag_offset: Vector2 = Vector2.ZERO
 var _press_position: Vector2 = Vector2.ZERO
 var _original_z_index: int = 0
+var _is_lead_tile: bool = false  # True if this tile is being directly dragged
 
 # === Pending initialization (applied in _ready) ===
 var _pending_texture: Texture2D = null
@@ -80,7 +81,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _drag_state == DragState.DRAGGING:
+	# Only update position if we're the lead tile (directly dragged)
+	# DragManager handles positioning for follower tiles
+	if _drag_state == DragState.DRAGGING and _is_lead_tile:
 		global_position = get_global_mouse_position() - _drag_offset
 
 
@@ -166,7 +169,32 @@ func reset() -> void:
 	selection_order = -1
 	scale = NORMAL_SCALE
 	_drag_state = DragState.IDLE
+	_is_lead_tile = false
 	_update_visual()
+
+
+## Sets this tile as a follower in a multi-drag (not directly dragged).
+func set_as_drag_follower() -> void:
+	_drag_state = DragState.DRAGGING
+	_is_lead_tile = false
+	allow_hover_feedback = false
+
+
+## Ends the drag state for follower tiles.
+func end_drag_follower() -> void:
+	_drag_state = DragState.IDLE
+	_is_lead_tile = false
+	allow_hover_feedback = true
+	modulate = Color.WHITE
+
+
+## Force-resets all drag state (called by DragManager when drag is cancelled externally).
+func force_end_drag() -> void:
+	_drag_state = DragState.IDLE
+	_is_lead_tile = false
+	allow_hover_feedback = true
+	modulate = Color.WHITE
+	z_index = 0
 
 
 # === Private: Input Handling ===
@@ -217,6 +245,7 @@ func _on_release() -> void:
 
 func _start_drag() -> void:
 	_drag_state = DragState.DRAGGING
+	_is_lead_tile = true  # We're the directly dragged tile
 	allow_hover_feedback = false
 
 	_original_z_index = z_index
@@ -234,6 +263,7 @@ func _start_drag() -> void:
 
 func _end_drag() -> void:
 	z_index = _original_z_index
+	_is_lead_tile = false
 
 	var cell_info: String = String(current_cell.name) if current_cell else "none"
 	print("[Tile] Drag end: %s | Location: %s | Cell: %s" % [
