@@ -8,7 +8,7 @@ User interface components for game state display, player interactions, and visua
 - `DiscardPile.tscn` / `discard_pile.gd` - Visual discard pile drop zone
 - `DiscardConfirmationDialog.tscn` / `discard_confirmation_dialog.gd` - Discard confirmation popup
 - `MultiSelectIndicator.tscn` / `multi_select_indicator.gd` - Selection mode indicator
-- `DebugOverlay.tscn` / `debug_overlay.gd` - Debug information overlay
+- `DebugOverlay.tscn` / `debug_overlay.gd` - Developer tools for testing
 
 ---
 
@@ -156,6 +156,43 @@ const COLOR_SINGLE: Color = Color(0.3, 0.3, 0.3, 0.5)
 ### EventBus Connections
 - `selection_mode_changed` - Updates mode display
 - `selection_changed` - Updates selection count
+
+---
+
+## DebugOverlay
+
+### Purpose
+Provides developer tools for testing game state and mechanics without cluttering the production UI.
+
+### Class: `DebugOverlay extends CanvasLayer`
+
+### Node Structure
+```
+DebugOverlay (CanvasLayer)
+└── DebugPanel (Panel)
+    └── VBox (VBoxContainer)
+        ├── WordInput (LineEdit)     # Enter word to validate
+        ├── CheckButton              # Validate word
+        ├── RemoveAllButton          # Clear all board tiles
+        ├── RedrawButton             # Redraw hand from bag
+        └── PrintRackButton          # Print current hand to console
+```
+
+### Available Tools
+| Tool | Action | Description |
+|------|--------|-------------|
+| Word Validator | Enter word, press CheckButton | Validate word against dictionary |
+| Remove All | RemoveAllButton | Clear all tiles from board |
+| Redraw Hand | RedrawButton | Return hand to bag and redraw |
+| Print Rack | PrintRackButton | Log current hand contents |
+
+### Implementation Details
+- Uses reflection-style method lookup (`has_method()`, etc.) on main scene
+- Button connections wired in `_ready()`
+- Calls methods on main scene: `validate_word()`, `_on_remove_all_pressed()`, `_on_redraw_hand_pressed()`, `_on_print_rack_pressed()`
+
+### Future Enhancement
+- Keyboard shortcut to toggle overlay visibility
 
 ---
 

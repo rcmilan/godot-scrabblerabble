@@ -1,31 +1,28 @@
-extends CanvasLayer
+## DebugConsole: Interactive debug command interface.
+##
+## Displays command output and accepts user input for DebugManager commands.
+## Toggled via D key. Integrates with DebugManager for command execution.
+##
+## Commands available: help, spawn, draw, clear_board, close/exit
+## (See DebugManager for command documentation)
 
+extends CanvasLayer
 
 @onready var output_log: RichTextLabel = $Panel/VBoxContainer/OutputLog
 @onready var input_line: LineEdit = $Panel/VBoxContainer/InputLine
 
-# Called when the node enters the scene tree for the first time.
+
 func _ready() -> void:
-	print("[DebugConsole] _ready() called - node is in tree")
-	print("[DebugConsole] Node path: ", get_path())
-	print("[DebugConsole] Parent: ", get_parent().name if get_parent() else "NO PARENT")
-	
-	#default is hidden
+	# Default hidden state
 	visible = false
-	
-	#input connections
+
+	# Connect input submission
 	input_line.text_submitted.connect(_on_command_submitted)
-	
-	#output callback from debugmanager
+
+	# Register output callback so DebugManager can print to console
 	DebugManager.console_print = print_line
-	
+
 	print_line("Debug Console ready (press D to toggle)")
-	print("[DebugConsole] _ready() complete")
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 	
 
 func _input(event: InputEvent) -> void:

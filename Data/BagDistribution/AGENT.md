@@ -21,10 +21,28 @@ func get_total_tiles() -> int
 func is_valid() -> bool
 ```
 
-### Validation Rules
-- All dictionary values must be non-negative integers
-- Keys should be single uppercase letters (A-Z)
-- `is_valid()` returns false if any value is negative
+### Validation
+The `is_valid()` method enforces:
+- Distribution dictionary is not empty
+- All values are non-negative integers
+- Returns `false` if any value is negative or not an integer
+
+**Note**: Keys can be any string (not restricted to A-Z), allowing for custom tiles like "WILD" or other symbols.
+
+### TileBag Integration
+TileBag uses this validation flow:
+```
+BagDistribution.is_valid()  # Check validity
+    ↓ (if valid)
+TileBag.populate_bag()      # Create tiles
+    ↓
+For each key in distribution:
+    Load "tile_<key>.tres"  # Dynamic path from key
+    Create N tile instances
+    Add to available_tiles
+    ↓
+TileBag.shuffle_bag()       # Randomize order
+```
 
 ---
 

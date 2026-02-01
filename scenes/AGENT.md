@@ -46,12 +46,14 @@ enum InteractionMode {
 ```
 
 ### Key Responsibilities
-- Coordinate between Board, Hand, and Tiles
-- Handle tile selection via SelectionManager
-- Process single and multi-tile drag-and-drop
-- Manage cell hover feedback
-- Handle discard flow with confirmation
-- Input handling for Q (multi-select) and Z (discard)
+- **Dependency Injection**: Creates GameplayController and injects dependencies (Board, Hand, etc.)
+- **Orchestration**: Coordinates between Board, Hand, Tiles, and UI components
+- **Selection**: Delegates to SelectionManager for single/multi-select operations
+- **Placement**: Handles single-tile and multi-tile placement with validation
+- **Drag-and-Drop**: Manages drag operations via DragManager, including cell binding state
+- **Discard Flow**: Orchestrates discard with confirmation dialog, animation, and refill
+- **Input Handling**: Processes Q (toggle multi-select) and Z (discard) actions
+- **Game State**: Tracks tiles placed, communicates with GameManager for scoring
 
 ### Signals
 | Signal | Parameters | Description |
@@ -104,10 +106,16 @@ Player's tile collection. See [hand/AGENT.md](hand/AGENT.md)
 
 ### tile/
 Letter tile component. See [tile/AGENT.md](tile/AGENT.md)
-- Drag-and-drop behavior with threshold
-- Click-to-select
-- Visual states and scale animation
-- Location tracking
+- **Drag-and-drop**: Threshold-based drag detection (8px minimum)
+- **Click-to-select**: Toggles tile selection state
+- **Visual States**: Scale animation for selection, modulation for drag
+- **Location Tracking**: Maintains state (IN_BAG, IN_HAND, ON_BOARD, IN_DISCARD)
+- **Atomic Cell Binding**: Ensures tile ↔ cell references stay synchronized
+  - `attach_to_cell()`: Bidirectional binding
+  - `detach_from_cell()`: Clear both references
+  - `suspend_cell_binding()`: For drag operations
+  - `restore_cell_binding()`: Restore after cancelled drag
+  - Prevents inconsistent state where tile.current_cell ≠ cell.tile
 
 ### ui/
 User interface components. See [ui/AGENT.md](ui/AGENT.md)

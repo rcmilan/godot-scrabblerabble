@@ -20,11 +20,12 @@ class_name LetterTileData extends Resource
 @export var texture: Texture2D    # Visual texture for the tile
 ```
 
-### Validation
-- `letter` must be a single character
-- `letter` is converted to uppercase during tile initialization
-- `base_points` should match Scrabble-style scoring
-- `texture` references images from `Assets/Tiles/`
+### Validation & Properties
+- **letter**: Single character or symbol (A-Z, *, etc.). Converted to uppercase during Tile initialization
+- **base_points**: Non-negative integer. Follows Scrabble-style scoring
+- **texture**: Texture2D reference from `Assets/Tiles/` (typically 64×64 PNG images)
+
+**Note**: Resources are immutable after creation. Point modifiers (bonuses, penalties) are applied on Tile instances, not in data.
 
 ---
 
@@ -73,15 +74,24 @@ var tile = tile_scene.instantiate()
 tile.initialize(tile_data)
 ```
 
-### TileBag Integration
-TileBag uses this path pattern internally:
+### TileBag Integration Pattern
+TileBag dynamically loads tile data using the **distribution key** as the filename:
+
 ```gdscript
 const TILE_DATA_PATH = "res://Data/TileData/tiles/tile_%s.tres"
 
-func _load_tile_data(letter: String) -> LetterTileData:
+# For each letter in BagDistribution.distribution:
+for letter in distribution.keys():
     var path = TILE_DATA_PATH % letter.to_lower()
-    return load(path) as LetterTileData
+    var tile_data = load(path)  # Loads tile_<letter>.tres
 ```
+
+**Critical**: Distribution keys must match tile resource file names (case-insensitive):
+- Distribution key `"A"` → loads `tile_a.tres`
+- Distribution key `"WILD"` → loads `tile_wild.tres`
+- Distribution key `"Special"` → loads `tile_special.tres`
+
+If a key doesn't have a corresponding `.tres` file, TileBag logs an error and skips it.
 
 ---
 

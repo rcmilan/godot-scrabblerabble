@@ -112,7 +112,7 @@ print("Total tiles: ", config.get_total_tiles())
 ### New Bag Configuration
 1. Create new `.tres` file in `BagDistribution/`
 2. Set resource type to `BagDistribution`
-3. Define distribution dictionary:
+3. Define distribution dictionary (keys match tile file names):
 ```gdscript
 # Example: vowel-heavy distribution
 {
@@ -125,11 +125,21 @@ print("Total tiles: ", config.get_total_tiles())
 ```
 
 ### Custom Tile Data
-To add special tiles:
-1. Create new `.tres` file in `TileData/tiles/`
+To add special tiles (e.g., wild cards):
+1. Create new `.tres` file in `TileData/tiles/` (e.g., `tile_wild.tres`)
 2. Set resource type to `LetterTileData`
-3. Configure letter, points, and texture
-4. Add to distribution with custom key
+3. Configure:
+   - **letter**: Symbol for the tile (e.g., "*")
+   - **base_points**: Point value (0 for wild cards)
+   - **texture**: Path to custom tile texture
+4. Add to distribution with custom key:
+   ```gdscript
+   distribution = {
+       # ... normal tiles ...
+       "WILD": 2  # 2 wild card tiles in bag
+   }
+   ```
+5. TileBag will load `tile_wild.tres` from `TileData/tiles/`
 
 ---
 
