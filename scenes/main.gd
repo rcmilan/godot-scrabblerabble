@@ -412,16 +412,23 @@ func _handle_single_tile_drop(tile: Tile, cell: BoardCell) -> void:
 	_last_placement_success = true
 
 
-func _handle_multi_tile_drop(start_cell: BoardCell, tiles: Array[Tile]) -> void:
-	if start_cell == null:
+func _handle_multi_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> void:
+	if drop_cell == null:
 		_cancel_multi_drag_preserve_selection(tiles)
 		_last_placement_success = false
 		return
 
-	# Validate all tiles can be placed in sequence
-	var cells: Array[BoardCell] = _get_sequential_cells(start_cell, tiles.size())
+	# Find which tile in the selection is the lead (the one being dragged)
+	var lead_tile: Tile = DragManager.lead_tile
+	var lead_index: int = tiles.find(lead_tile)
+	if lead_index == -1:
+		lead_index = 0  # Fallback to first tile
+
+	# Calculate the actual starting position based on lead tile's position in selection
+	# If lead is at index 2 and we drop on cell (3,4), first tile goes at (1,4)
+	var cells: Array[BoardCell] = _get_sequential_cells_centered(drop_cell, tiles.size(), lead_index)
 	if cells.is_empty():
-		print("[Main] Cannot place %d tiles starting at %s" % [tiles.size(), start_cell.name])
+		print("[Main] Cannot place %d tiles centered at %s (lead index: %d)" % [tiles.size(), drop_cell.name, lead_index])
 		_cancel_multi_drag_preserve_selection(tiles)
 		_last_placement_success = false
 		return
@@ -437,7 +444,7 @@ func _handle_multi_tile_drop(start_cell: BoardCell, tiles: Array[Tile]) -> void:
 	SelectionManager.deselect_all()
 	_update_interaction_state()
 	_last_placement_success = true
-	print("[Main] Multi-drop: placed %d tiles starting at %s" % [tiles.size(), start_cell.name])
+	print("[Main] Multi-drop: placed %d tiles centered at %s" % [tiles.size(), drop_cell.name])
 
 
 func _get_sequential_cells(start: BoardCell, count: int) -> Array[BoardCell]:
@@ -451,6 +458,29 @@ func _get_sequential_cells(start: BoardCell, count: int) -> Array[BoardCell]:
 			return []  # Invalid - return empty
 		cells.append(cell)
 		pos += direction
+	return cells
+
+
+## Gets sequential cells centered around a drop position based on lead tile index.
+## Example: If dropping 3 tiles [A,B,C] by dragging B (index 1) onto cell (3,4):
+##   - A goes at (2,4) - one cell LEFT of drop
+##   - B goes at (3,4) - the drop cell
+##   - C goes at (4,4) - one cell RIGHT of drop
+func _get_sequential_cells_centered(drop_cell: BoardCell, count: int, lead_index: int) -> Array[BoardCell]:
+	var cells: Array[BoardCell] = []
+	var drop_pos: Vector2i = drop_cell.grid_position
+	var direction: Vector2i = Vector2i.RIGHT
+
+	# Calculate starting position: move LEFT by lead_index cells
+	var start_pos: Vector2i = drop_pos - (direction * lead_index)
+
+	for i in count:
+		var pos: Vector2i = start_pos + (direction * i)
+		var cell: BoardCell = board.get_cell(pos.y, pos.x)
+		if cell == null or cell.is_occupied():
+			return []  # Invalid - return empty
+		cells.append(cell)
+
 	return cells
 
 
