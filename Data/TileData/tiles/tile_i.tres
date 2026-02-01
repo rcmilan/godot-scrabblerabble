@@ -5,6 +5,6 @@
 
 [resource]
 script = ExtResource("1_5kqbl")
-letter = " I"
+letter = "I"
 texture = ExtResource("2_luxcn")
 metadata/_custom_type_script = "uid://b4ytc5recc55s"

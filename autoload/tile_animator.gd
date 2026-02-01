@@ -1,8 +1,8 @@
 extends Node
 
 ## TileAnimator: Coordinates tile animations across the game.
-## Uses strategy pattern for flexible animation types.
-## Handles batch animations with staggered timing.
+## Uses strategy pattern with executor composition for flexibility.
+## Acts as a thin facade delegating to specialized executors.
 
 # =============================================================================
 # SIGNALS
@@ -13,23 +13,43 @@ signal animation_completed(tiles: Array[Tile])
 signal single_tile_animated(tile: Tile)
 
 # =============================================================================
-# STATE
+# SHARED CONTEXT
 # =============================================================================
 
-var _active_tweens: Dictionary = {}  # tile -> Tween
-var _is_animating: bool = false
+var _context: AnimationContext = null
 
 # =============================================================================
 # STRATEGIES (lazy-loaded)
 # =============================================================================
 
 var _draw_animation: DrawTileAnimation = null
-var _return_animation: ReturnToHandAnimation = null
+var _glide_animation: GlideTileAnimation = null
 var _shake_animation: ShakeTileAnimation = null
+var _stomp_animation: StompTileAnimation = null
+
+# =============================================================================
+# EXECUTORS (lazy-loaded)
+# =============================================================================
+
+var _batch_executor: BatchAnimationExecutor = null
+var _return_executor: ReturnAnimationExecutor = null
+var _shake_executor: ShakeAnimationExecutor = null
+var _stomp_executor: StompAnimationExecutor = null
 
 
 func _ready() -> void:
-	pass
+	_setup_context()
+
+
+func _setup_context() -> void:
+	_context = AnimationContext.new()
+	_context.setup(
+		func(tiles: Array[Tile]): animation_started.emit(tiles),
+		func(tiles: Array[Tile]): animation_completed.emit(tiles),
+		func(tile: Tile): single_tile_animated.emit(tile),
+		create_tween,
+		get_tree
+	)
 
 
 # =============================================================================
@@ -42,254 +62,106 @@ func animate_draw_batch(tiles: Array[Tile]) -> void:
 	if tiles.is_empty():
 		return
 
-	if _draw_animation == null:
-		_draw_animation = DrawTileAnimation.new()
-
-	_animate_batch(tiles, _draw_animation)
+	_ensure_draw_resources()
+	_batch_executor.execute(tiles, _draw_animation)
 
 
 ## Animates a tile returning from the board to the hand.
 ## Call this BEFORE moving the tile to the hand - this method handles the move.
-## Parameters:
-##   tile: The tile to animate
-##   hand: The Hand node to add the tile to
-##   cell: The BoardCell the tile is currently on
 func animate_return_to_hand(tile: Tile, hand: Node, cell: Node) -> void:
 	if tile == null or hand == null:
 		return
 
-	if _return_animation == null:
-		_return_animation = ReturnToHandAnimation.new()
-
-	_animate_return_single(tile, hand, cell, _return_animation)
+	_ensure_glide_resources()
+	_return_executor.execute_single(tile, hand, cell, _glide_animation)
 
 
 ## Plays a shake animation on a tile to indicate an illegal action.
-## The tile shakes left-right quickly and returns to its original position.
 func animate_shake(tile: Tile) -> void:
 	if tile == null:
 		return
 
-	if _shake_animation == null:
-		_shake_animation = ShakeTileAnimation.new()
+	_ensure_shake_resources()
+	_shake_executor.execute(tile, _shake_animation)
 
-	_animate_shake_single(tile, _shake_animation)
+
+## Animates a batch of tiles with a stomp effect to confirm placement.
+func animate_stomp_batch(tiles: Array[Tile]) -> void:
+	if tiles.is_empty():
+		return
+
+	_ensure_stomp_resources()
+	_stomp_executor.execute(tiles, _stomp_animation)
+
+
+## Animates tiles returning to hand from a cancelled drag.
+func animate_cancel_to_hand(tiles: Array[Tile], hand: Node) -> void:
+	if tiles.is_empty() or hand == null:
+		return
+
+	_ensure_glide_resources()
+	_return_executor.execute_cancel_batch(tiles, hand, _glide_animation)
+
+
+## Animates tiles moving from hand to discard pile.
+## Tiles glide to the discard pile position, then the discard callback is invoked.
+func animate_discard_batch(tiles: Array[Tile], target_position: Vector2, on_complete: Callable) -> void:
+	if tiles.is_empty():
+		if on_complete.is_valid():
+			on_complete.call()
+		return
+
+	_ensure_glide_resources()
+	_return_executor.execute_discard_batch(tiles, target_position, _glide_animation, on_complete)
 
 
 ## Returns true if any animations are currently playing.
 func is_animating() -> bool:
-	return _is_animating
+	return _context.is_animating
 
 
 ## Cancels all active animations immediately.
 func cancel_all() -> void:
-	for tile in _active_tweens.keys():
-		var tween: Tween = _active_tweens[tile]
+	for tile in _context.active_tweens.keys():
+		var tween: Tween = _context.active_tweens[tile]
 		if is_instance_valid(tween):
 			tween.kill()
-	_active_tweens.clear()
-	_is_animating = false
+	_context.active_tweens.clear()
+	_context.is_animating = false
 
 
 ## Cancels animation for a specific tile.
 func cancel_tile_animation(tile: Tile) -> void:
-	if _active_tweens.has(tile):
-		var tween: Tween = _active_tweens[tile]
-		if is_instance_valid(tween):
-			tween.kill()
-		_active_tweens.erase(tile)
-
-		if _active_tweens.is_empty():
-			_is_animating = false
+	_context.cancel_tile_animation(tile)
 
 
 # =============================================================================
-# PRIVATE: ANIMATION EXECUTION
+# PRIVATE: LAZY INITIALIZATION
 # =============================================================================
 
-func _animate_batch(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void:
-	_is_animating = true
-	animation_started.emit(tiles)
-
-	# Wait for layout to calculate final positions
-	await get_tree().process_frame
-
-	var completed_count: int = 0
-	var total_tiles: int = tiles.size()
-
-	for i in tiles.size():
-		var tile: Tile = tiles[i]
-		var delay: float = i * strategy.stagger_delay
-
-		# Capture final position after layout
-		var final_position: Vector2 = tile.position
-
-		# Set starting state
-		var start_offset: Vector2 = strategy.get_start_position_offset()
-		var start_props: Dictionary = strategy.get_start_properties()
-
-		tile.position = final_position + start_offset
-		_apply_properties(tile, start_props)
-
-		# Notify strategy of animation start
-		strategy.on_animation_start(tile)
-
-		# Create staggered animation (parallel tween with per-property delays)
-		var tween: Tween = create_tween()
-		tween.set_parallel(true)
-
-		# Position animation
-		tween.tween_property(tile, "position", final_position, strategy.duration) \
-			.set_ease(strategy.ease_type) \
-			.set_trans(strategy.trans_type) \
-			.set_delay(delay)
-
-		# Property animations (scale, modulate, etc.)
-		var end_props: Dictionary = strategy.get_end_properties()
-		for prop_name in end_props.keys():
-			tween.tween_property(tile, prop_name, end_props[prop_name], strategy.duration) \
-				.set_ease(strategy.ease_type) \
-				.set_trans(strategy.trans_type) \
-				.set_delay(delay)
-
-		_active_tweens[tile] = tween
-
-		# Track completion
-		tween.finished.connect(func():
-			strategy.on_animation_complete(tile)
-			single_tile_animated.emit(tile)
-			_active_tweens.erase(tile)
-			completed_count += 1
-
-			if completed_count >= total_tiles:
-				_is_animating = false
-				animation_completed.emit(tiles)
-		)
-
-	print("[TileAnimator] Started batch animation for %d tiles" % tiles.size())
+func _ensure_draw_resources() -> void:
+	if _draw_animation == null:
+		_draw_animation = DrawTileAnimation.new()
+	if _batch_executor == null:
+		_batch_executor = BatchAnimationExecutor.new(_context)
 
 
-func _apply_properties(tile: Tile, properties: Dictionary) -> void:
-	for prop_name in properties.keys():
-		tile.set(prop_name, properties[prop_name])
+func _ensure_glide_resources() -> void:
+	if _glide_animation == null:
+		_glide_animation = GlideTileAnimation.new()
+	if _return_executor == null:
+		_return_executor = ReturnAnimationExecutor.new(_context)
 
 
-## Animates a single tile returning from board to hand.
-## Captures board position, moves to hand, then animates from old to new position.
-func _animate_return_single(tile: Tile, hand: Node, cell: Node, strategy: TileAnimationStrategy) -> void:
-	_is_animating = true
-	var tiles_array: Array[Tile] = [tile]
-	animation_started.emit(tiles_array)
-
-	# Capture the tile's current global position (on the board)
-	var start_global_pos: Vector2 = tile.global_position
-
-	# Apply start properties and notify strategy
-	var start_props: Dictionary = strategy.get_start_properties()
-	_apply_properties(tile, start_props)
-	strategy.on_animation_start(tile)
-
-	# Clear the cell's tile reference
-	if cell:
-		cell.tile = null
-
-	# Remove tile from its current parent (the cell's tile_anchor)
-	var current_parent: Node = tile.get_parent()
-	if current_parent:
-		current_parent.remove_child(tile)
-
-	# Add to hand (this triggers HBoxContainer layout)
-	hand.add_tile(tile)
-
-	# Update tile state
-	tile.current_cell = null
-	tile.location = Tile.TileLocation.IN_HAND
-
-	# Wait for layout to calculate the new hand position
-	await get_tree().process_frame
-
-	# Capture the final position in hand (local to parent)
-	var final_position: Vector2 = tile.position
-	var final_global_pos: Vector2 = tile.global_position
-
-	# Calculate where the tile should start (in local coordinates)
-	# to appear at its old board position
-	var global_offset: Vector2 = start_global_pos - final_global_pos
-	tile.position = final_position + global_offset
-
-	# Create the animation tween
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-
-	# Position animation
-	tween.tween_property(tile, "position", final_position, strategy.duration) \
-		.set_ease(strategy.ease_type) \
-		.set_trans(strategy.trans_type)
-
-	# Property animations (scale, modulate, etc.)
-	var end_props: Dictionary = strategy.get_end_properties()
-	for prop_name in end_props.keys():
-		tween.tween_property(tile, prop_name, end_props[prop_name], strategy.duration) \
-			.set_ease(strategy.ease_type) \
-			.set_trans(strategy.trans_type)
-
-	_active_tweens[tile] = tween
-
-	# Track completion
-	tween.finished.connect(func():
-		strategy.on_animation_complete(tile)
-		single_tile_animated.emit(tile)
-		_active_tweens.erase(tile)
-		_is_animating = _active_tweens.size() > 0
-		animation_completed.emit(tiles_array)
-	)
-
-	print("[TileAnimator] Started return-to-hand animation for tile: %s" % tile.name)
+func _ensure_shake_resources() -> void:
+	if _shake_animation == null:
+		_shake_animation = ShakeTileAnimation.new()
+	if _shake_executor == null:
+		_shake_executor = ShakeAnimationExecutor.new(_context)
 
 
-## Animates a shake effect on a tile to indicate an illegal action.
-func _animate_shake_single(tile: Tile, strategy: ShakeTileAnimation) -> void:
-	# Cancel any existing animation on this tile
-	cancel_tile_animation(tile)
-
-	_is_animating = true
-	var tiles_array: Array[Tile] = [tile]
-	animation_started.emit(tiles_array)
-
-	# Store original position
-	var original_position: Vector2 = tile.position
-
-	# Notify strategy of animation start
-	strategy.on_animation_start(tile)
-
-	# Create sequential shake animation
-	var tween: Tween = create_tween()
-
-	# Shake left-right multiple times
-	for i in strategy.shake_count:
-		# Move right
-		tween.tween_property(tile, "position:x", original_position.x + strategy.shake_distance, strategy.duration) \
-			.set_ease(strategy.ease_type) \
-			.set_trans(strategy.trans_type)
-		# Move left
-		tween.tween_property(tile, "position:x", original_position.x - strategy.shake_distance, strategy.duration) \
-			.set_ease(strategy.ease_type) \
-			.set_trans(strategy.trans_type)
-
-	# Return to original position
-	tween.tween_property(tile, "position:x", original_position.x, strategy.duration) \
-		.set_ease(strategy.ease_type) \
-		.set_trans(strategy.trans_type)
-
-	_active_tweens[tile] = tween
-
-	# Track completion
-	tween.finished.connect(func():
-		strategy.on_animation_complete(tile)
-		single_tile_animated.emit(tile)
-		_active_tweens.erase(tile)
-		_is_animating = _active_tweens.size() > 0
-		animation_completed.emit(tiles_array)
-	)
-
-	print("[TileAnimator] Started shake animation for tile: %s" % tile.name)
+func _ensure_stomp_resources() -> void:
+	if _stomp_animation == null:
+		_stomp_animation = StompTileAnimation.new()
+	if _stomp_executor == null:
+		_stomp_executor = StompAnimationExecutor.new(_context)

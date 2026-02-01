@@ -116,7 +116,7 @@ func discard_tile(tile: Tile) -> bool:
 		return false
 
 	_hand_ui.remove_tile(tile)
-	tile.location = Tile.TileLocation.IN_DISCARD
+	tile.move_to_discard()  # Atomic state update
 	discard_pile.append(tile)
 
 	EventBus.tile_discarded.emit(tile)
@@ -225,15 +225,6 @@ func _connect_tile_signals(tile: Tile) -> void:
 	if _main_scene == null:
 		return
 
-	# Connect tile signals to main scene handlers
-	if not tile.tile_selected.is_connected(_main_scene._on_tile_selected):
-		tile.tile_selected.connect(_main_scene._on_tile_selected)
-
-	if not tile.tile_right_clicked.is_connected(_main_scene._on_tile_right_clicked):
-		tile.tile_right_clicked.connect(_main_scene._on_tile_right_clicked)
-
-	if not tile.tile_drag_started.is_connected(_main_scene._on_tile_drag_started):
-		tile.tile_drag_started.connect(_main_scene._on_tile_drag_started)
-
-	if not tile.tile_drag_ended.is_connected(_main_scene._on_tile_drag_ended):
-		tile.tile_drag_ended.connect(_main_scene._on_tile_drag_ended)
+	# Register tile with Main's gameplay controller
+	if _main_scene.has_method("register_tile"):
+		_main_scene.register_tile(tile)

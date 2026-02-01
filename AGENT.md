@@ -141,6 +141,11 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [x] Hand refill after discard
 - [x] Tile draw animations (rise from bottom)
 - [x] Tile return-to-hand animations (right-click on board tile)
+- [x] Tile shake animations (illegal action feedback)
+- [x] Tile stomp animations (play confirmation)
+- [x] Play button to lock placed tiles
+- [x] Word detection on board (find_formed_words)
+- [x] Locked tiles cannot be moved/returned
 - [x] Debug console
 
 ### Future

@@ -180,20 +180,146 @@ func extract_word(tiles: Array[Tile]) -> String:
 
 ## Finds all words formed by the current placement on a board.
 ## Returns an array of word info dictionaries.
+## Each dictionary contains: word, tiles, cells, direction, positions
 func find_formed_words(board: Board, placed_positions: Array[Vector2i]) -> Array:
 	var words: Array = []
 
 	if placed_positions.is_empty():
+		print("[WordValidator] find_formed_words: No positions provided")
 		return words
+
+	print("[WordValidator] find_formed_words: Checking %d placed positions" % placed_positions.size())
 
 	# Get the direction of placement
 	var validation: Dictionary = validate_placement(placed_positions)
 	if not validation.valid:
+		print("[WordValidator] find_formed_words: Invalid placement - %s" % validation.get("error", "unknown"))
 		return words
 
-	# TODO: Implement full word finding logic
-	# This requires checking:
-	# 1. The main word formed by the placement
-	# 2. All cross-words formed by each placed tile
+	var direction: String = validation.direction
+	print("[WordValidator] find_formed_words: Placement direction is '%s'" % direction)
 
+	# Find the main word formed by the placement
+	var main_word: Dictionary = _find_word_at_positions(board, placed_positions, direction)
+	if main_word.word.length() >= MIN_WORD_LENGTH:
+		words.append(main_word)
+		print("[WordValidator] find_formed_words: Main word found: '%s' (%d letters)" % [main_word.word, main_word.word.length()])
+
+	# Find cross-words formed by each placed tile
+	var cross_direction: String = "vertical" if direction == "horizontal" else "horizontal"
+	if direction == "single":
+		# For single tile, check both directions
+		var h_word: Dictionary = _find_word_through_position(board, placed_positions[0], "horizontal")
+		var v_word: Dictionary = _find_word_through_position(board, placed_positions[0], "vertical")
+
+		if h_word.word.length() >= MIN_WORD_LENGTH:
+			words.append(h_word)
+			print("[WordValidator] find_formed_words: Horizontal word: '%s'" % h_word.word)
+		if v_word.word.length() >= MIN_WORD_LENGTH:
+			words.append(v_word)
+			print("[WordValidator] find_formed_words: Vertical word: '%s'" % v_word.word)
+	else:
+		# Check cross-words for each placed tile
+		for pos in placed_positions:
+			var cross_word: Dictionary = _find_word_through_position(board, pos, cross_direction)
+			if cross_word.word.length() >= MIN_WORD_LENGTH:
+				# Avoid duplicates
+				var is_duplicate: bool = false
+				for existing in words:
+					if existing.word == cross_word.word and existing.positions == cross_word.positions:
+						is_duplicate = true
+						break
+				if not is_duplicate:
+					words.append(cross_word)
+					print("[WordValidator] find_formed_words: Cross-word found: '%s' at %s" % [cross_word.word, pos])
+
+	print("[WordValidator] find_formed_words: Total words found: %d" % words.size())
 	return words
+
+
+## Finds a word formed by connected tiles at given positions.
+func _find_word_at_positions(board: Board, positions: Array[Vector2i], direction: String) -> Dictionary:
+	if positions.is_empty():
+		return {"word": "", "tiles": [], "cells": [], "positions": [], "direction": direction}
+
+	# Sort positions
+	var sorted_positions: Array[Vector2i] = positions.duplicate()
+	if direction == "horizontal":
+		sorted_positions.sort_custom(func(a, b): return a.x < b.x)
+	else:
+		sorted_positions.sort_custom(func(a, b): return a.y < b.y)
+
+	# Extend in both directions to find full word
+	var start_pos: Vector2i = sorted_positions[0]
+	var end_pos: Vector2i = sorted_positions[sorted_positions.size() - 1]
+
+	# Extend backwards
+	start_pos = _extend_word_position(board, start_pos, direction, -1)
+	# Extend forwards
+	end_pos = _extend_word_position(board, end_pos, direction, 1)
+
+	# Collect all tiles in the word
+	return _collect_word_between(board, start_pos, end_pos, direction)
+
+
+## Finds a word passing through a specific position in a given direction.
+func _find_word_through_position(board: Board, pos: Vector2i, direction: String) -> Dictionary:
+	# Extend in both directions
+	var start_pos: Vector2i = _extend_word_position(board, pos, direction, -1)
+	var end_pos: Vector2i = _extend_word_position(board, pos, direction, 1)
+
+	return _collect_word_between(board, start_pos, end_pos, direction)
+
+
+## Extends a position in a direction until no more tiles are found.
+func _extend_word_position(board: Board, pos: Vector2i, direction: String, step: int) -> Vector2i:
+	var delta: Vector2i = Vector2i(step, 0) if direction == "horizontal" else Vector2i(0, step)
+	var current: Vector2i = pos
+
+	while true:
+		var next: Vector2i = current + delta
+		var cell: BoardCell = board.get_cell(next.y, next.x)
+		if cell == null or not cell.is_occupied():
+			break
+		current = next
+
+	return current
+
+
+## Collects all tiles between two positions into a word dictionary.
+func _collect_word_between(board: Board, start: Vector2i, end: Vector2i, direction: String) -> Dictionary:
+	var word: String = ""
+	var tiles: Array[Tile] = []
+	var cells: Array[BoardCell] = []
+	var positions: Array[Vector2i] = []
+
+	var delta: Vector2i = Vector2i(1, 0) if direction == "horizontal" else Vector2i(0, 1)
+	var current: Vector2i = start
+
+	while true:
+		var cell: BoardCell = board.get_cell(current.y, current.x)
+		if cell and cell.is_occupied():
+			var tile: Tile = cell.tile
+			# Strip whitespace from letter to handle any data inconsistencies
+			var clean_letter: String = tile.letter.strip_edges() if tile.letter else ""
+			word += clean_letter
+			tiles.append(tile)
+			cells.append(cell)
+			positions.append(current)
+
+		if current == end:
+			break
+		current += delta
+
+		# Safety check to prevent infinite loop
+		if positions.size() > 100:
+			push_error("[WordValidator] _collect_word_between: Safety limit reached")
+			break
+
+	return {
+		"word": word,
+		"tiles": tiles,
+		"cells": cells,
+		"positions": positions,
+		"direction": direction
+	}

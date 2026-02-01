@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(grep:*)",
+      "Bash(for file in C:/Users/suporte/Documents/dev/Data/TileData/tiles/tile_[b-z].tres)",
+      "Bash(do sed -i 's/letter = \"\" \\\\\\([A-Z]\\\\\\)\"\"/letter = \"\"\\\\1\"\"/' \"$file\")",
+      "Bash(done)",
+      "Bash(godot:*)"
     ]
   }
 }
