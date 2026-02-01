@@ -10,6 +10,7 @@ Global singleton managers that coordinate game-wide systems. These are automatic
 - `tile_bag.gd` - Tile pool (deck) management
 - `selection_manager.gd` - Tile selection state (single/multi-select)
 - `tile_animator.gd` - Tile animation coordinator
+- `drag_manager.gd` - Multi-tile drag coordination
 - `debug_manager.gd` - Debug commands and logging
 
 ---
@@ -338,7 +339,19 @@ Debug commands and logging utilities for development.
 ## TileAnimator
 
 ### Purpose
-Coordinates tile animations across the game. Uses the Strategy pattern for flexible animation types.
+Coordinates tile animations across the game. Uses Strategy pattern with Executor composition for flexibility.
+
+### Architecture
+TileAnimator acts as a **thin facade** that delegates to specialized executors:
+
+```
+TileAnimator (facade)
+├── AnimationContext (shared state)
+├── BatchAnimationExecutor (draw animations)
+├── ReturnAnimationExecutor (return/cancel animations)
+├── ShakeAnimationExecutor (shake effect)
+└── StompAnimationExecutor (stomp with particles)
+```
 
 ### Signals
 | Signal | Parameters | Description |
@@ -352,6 +365,7 @@ Coordinates tile animations across the game. Uses the Strategy pattern for flexi
 # Main API
 animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation
 animate_return_to_hand(tile, hand, cell) -> void        # Return from board
+animate_cancel_to_hand(tiles, hand) -> void             # Cancel drag animation
 animate_shake(tile: Tile) -> void                       # Illegal action feedback
 animate_stomp_batch(tiles: Array[Tile]) -> void         # Play confirmation
 
@@ -393,9 +407,85 @@ TileAnimator uses animation strategies from `scripts/animation/`:
 - **DrawTileAnimation** - Tiles rise from below, scale up, fade in
 - **ReturnToHandAnimation** - Tiles glide from board to hand with bounce
 - **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
-- **StompTileAnimation** - Tiles stomp (scale up/down) when played
+- **StompTileAnimation** - Tiles stomp (scale up/down) with impact particles
+
+### Executor Classes
+Located in `scripts/animation/executors/`:
+- **AnimationContext** - Shared state (active tweens, signals)
+- **AnimationExecutor** - Base class with common helpers
+- **BatchAnimationExecutor** - Staggered batch animations
+- **ReturnAnimationExecutor** - Return-to-hand and cancel animations
+- **ShakeAnimationExecutor** - Shake effect for illegal actions
+- **StompAnimationExecutor** - Stomp effect with particle spawning
 
 See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
+
+---
+
+## DragManager
+
+### Purpose
+Coordinates multi-tile drag operations. When multiple tiles are selected and dragged, all selected tiles move together as a preview.
+
+### Key Properties
+```gdscript
+var is_dragging: bool = false
+var dragged_tiles: Array[Tile] = []
+var lead_tile: Tile = null  # The tile directly dragged by user
+```
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `drag_started` | `tiles: Array[Tile]` | Multi-drag began |
+| `drag_ended` | `tiles, success` | Drag finished |
+| `drag_cancelled` | `tiles: Array[Tile]` | Drag was cancelled |
+| `drag_release_requested` | `lead_tile: Tile` | Mouse released during drag |
+
+### Key Methods
+```gdscript
+# Drag lifecycle
+start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag (lead must be in tiles)
+end_drag(success: bool) -> void                       # End drag operation
+cancel_drag() -> void                                 # Cancel and restore
+
+# Tile restoration
+restore_tiles_to_parents() -> void   # Return tiles to original parents
+
+# Queries
+get_drag_position() -> Vector2       # Lead tile's position
+get_dragged_tiles() -> Array[Tile]   # Currently dragged tiles
+get_original_parent(tile) -> Node    # Tile's original parent
+get_original_position(tile) -> Vector2
+```
+
+### Drag Flow
+```
+1. User starts dragging a selected tile
+2. Main._on_tile_drag_started() gets all selected tiles
+3. DragManager.start_drag(lead, tiles) called
+   - Stores original parents, positions, indices
+   - Reparents all tiles to DragContainer
+   - Calculates relative offsets from lead
+4. During drag: DragManager._process() updates follower positions
+5. On drop: Main._on_tile_drag_ended()
+   - DragManager.restore_tiles_to_parents() returns tiles
+   - Place tiles on board OR cancel
+   - DragManager.end_drag(success) cleans up
+```
+
+### Usage
+```gdscript
+# In Main._on_tile_drag_started:
+var tiles_to_drag = SelectionManager.get_selected_tiles()
+DragManager.start_drag(tile, tiles_to_drag)
+
+# In Main._on_tile_drag_ended:
+var tiles = DragManager.get_dragged_tiles()
+DragManager.restore_tiles_to_parents()
+# ... place tiles or cancel
+DragManager.end_drag(success)
+```
 
 ---
 
@@ -408,6 +498,7 @@ Autoloads are loaded in the order specified in `project.godot`:
 5. HandManager
 6. SelectionManager
 7. TileAnimator
+8. DragManager
 
 **Note**: Autoloads load before scenes, so they cannot reference scene types directly at declaration time. Use runtime type checking instead.
 

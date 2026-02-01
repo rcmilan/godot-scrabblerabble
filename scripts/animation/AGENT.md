@@ -10,7 +10,14 @@ scripts/animation/
 ├── draw_tile_animation.gd        # Draw animation implementation
 ├── return_to_hand_animation.gd   # Return from board animation
 ├── shake_tile_animation.gd       # Illegal action feedback animation
-└── stomp_tile_animation.gd       # Play confirmation animation
+├── stomp_tile_animation.gd       # Play confirmation animation
+└── executors/
+    ├── animation_context.gd      # Shared state for executors
+    ├── animation_executor.gd     # Base executor class
+    ├── batch_animation_executor.gd    # Staggered batch animations
+    ├── return_animation_executor.gd   # Return/cancel animations
+    ├── shake_animation_executor.gd    # Shake effect executor
+    └── stomp_animation_executor.gd    # Stomp with particles executor
 ```
 
 ---
@@ -227,6 +234,54 @@ TileAnimator.animate_stomp_batch(tiles)
 
 ---
 
+## Animation Executors
+
+### Purpose
+Executors encapsulate animation execution logic, keeping TileAnimator as a thin facade. Each executor handles one type of animation, sharing state via AnimationContext.
+
+### AnimationContext
+Shared state container passed to all executors:
+```gdscript
+class_name AnimationContext
+
+var active_tweens: Dictionary = {}  # Tile -> Tween
+var is_animating: bool = false
+
+# Signal callbacks (set by TileAnimator)
+func emit_animation_started(tiles: Array[Tile]) -> void
+func emit_animation_completed(tiles: Array[Tile]) -> void
+func emit_single_tile_animated(tile: Tile) -> void
+
+# Utilities
+func create_tween() -> Tween
+func get_tree() -> SceneTree
+func cancel_tile_animation(tile: Tile) -> void
+```
+
+### AnimationExecutor (Base Class)
+Common helpers for all executors:
+```gdscript
+class_name AnimationExecutor
+
+var _context: AnimationContext
+
+func _apply_properties(tile: Tile, properties: Dictionary) -> void
+func _register_tween(tile: Tile, tween: Tween) -> void
+func _unregister_tween(tile: Tile) -> void
+func _create_batch_completion_callback(...) -> Callable
+func _create_single_completion_callback(...) -> Callable
+```
+
+### Executor Classes
+| Executor | Strategy | Purpose |
+|----------|----------|---------|
+| BatchAnimationExecutor | TileAnimationStrategy | Staggered batch property tweens |
+| ReturnAnimationExecutor | TileAnimationStrategy | Return-to-hand and cancel animations |
+| ShakeAnimationExecutor | ShakeTileAnimation | Shake effect for illegal actions |
+| StompAnimationExecutor | StompTileAnimation | Stomp with particle spawning |
+
+---
+
 ## Creating New Animations
 
 ### Step 1: Create Strategy Class
@@ -240,36 +295,56 @@ func _init() -> void:
     trans_type = Tween.TRANS_QUAD
 
 func get_start_position_offset() -> Vector2:
-    return Vector2.ZERO  # Start at current position
+    return Vector2.ZERO
 
 func get_start_properties() -> Dictionary:
-    return {
-        "scale": Vector2.ONE,
-        "modulate": Color.WHITE
-    }
+    return {"scale": Vector2.ONE, "modulate": Color.WHITE}
 
 func get_end_properties() -> Dictionary:
-    return {
-        "scale": Vector2(0.5, 0.5),
-        "modulate": Color(1.0, 1.0, 1.0, 0.0)
-    }
+    return {"scale": Vector2(0.5, 0.5), "modulate": Color(1, 1, 1, 0)}
 ```
 
-### Step 2: Add Method to TileAnimator
+### Step 2: Create Executor (if needed)
+For simple animations, use BatchAnimationExecutor. For complex animations:
+```gdscript
+extends AnimationExecutor
+class_name DiscardAnimationExecutor
+
+func execute(tiles: Array[Tile], strategy: DiscardTileAnimation) -> void:
+    _context.is_animating = true
+    _context.emit_animation_started(tiles)
+
+    # Custom animation logic...
+
+    for tile in tiles:
+        var tween: Tween = _context.create_tween()
+        # ... configure tween ...
+        _register_tween(tile, tween)
+        tween.finished.connect(_create_single_completion_callback(tile, strategy))
+```
+
+### Step 3: Add to TileAnimator
 ```gdscript
 # In tile_animator.gd
 var _discard_animation: DiscardTileAnimation = null
+var _discard_executor: DiscardAnimationExecutor = null
 
-func animate_discard_batch(tiles: Array[Tile]) -> void:
+func animate_discard(tiles: Array[Tile]) -> void:
+    if tiles.is_empty():
+        return
+    _ensure_discard_resources()
+    _discard_executor.execute(tiles, _discard_animation)
+
+func _ensure_discard_resources() -> void:
     if _discard_animation == null:
         _discard_animation = DiscardTileAnimation.new()
-    _animate_batch(tiles, _discard_animation)
+    if _discard_executor == null:
+        _discard_executor = DiscardAnimationExecutor.new(_context)
 ```
 
-### Step 3: Call from Manager
+### Step 4: Call from Manager
 ```gdscript
-# In hand_manager.gd or main.gd
-TileAnimator.animate_discard_batch(tiles_to_discard)
+TileAnimator.animate_discard(tiles_to_discard)
 ```
 
 ---
