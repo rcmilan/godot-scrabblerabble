@@ -158,6 +158,10 @@ func restore_tiles_to_parents() -> void:
 			if original_index >= 0 and original_index < original_parent.get_child_count():
 				original_parent.move_child(tile, original_index)
 
+		# Restore cell binding if tile was on board (atomic state management)
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			tile.restore_cell_binding()
+
 		# Reset tile's internal drag state
 		tile.force_end_drag()
 
@@ -229,9 +233,10 @@ func _setup_drag_container() -> void:
 	for tile in dragged_tiles:
 		var global_pos: Vector2 = tile.global_position
 
-		# Clear board cell reference so the cell is available for placement
-		if tile.location == Tile.TileLocation.ON_BOARD and tile.current_cell:
-			tile.current_cell.tile = null
+		# Suspend cell binding so the cell is available for placement
+		# Uses atomic state management to ensure consistency
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			tile.suspend_cell_binding()
 
 		if tile.get_parent():
 			tile.get_parent().remove_child(tile)
@@ -286,9 +291,9 @@ func _restore_tiles_to_original() -> void:
 			if original_index >= 0 and original_index < original_parent.get_child_count():
 				original_parent.move_child(tile, original_index)
 
-		# Restore board cell reference if tile was on board
-		if tile.location == Tile.TileLocation.ON_BOARD and tile.current_cell:
-			tile.current_cell.tile = tile
+		# Restore cell binding if tile was on board (atomic state management)
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			tile.restore_cell_binding()
 
 		# Reset tile's internal drag state
 		tile.force_end_drag()

@@ -116,7 +116,7 @@ func discard_tile(tile: Tile) -> bool:
 		return false
 
 	_hand_ui.remove_tile(tile)
-	tile.location = Tile.TileLocation.IN_DISCARD
+	tile.move_to_discard()  # Atomic state update
 	discard_pile.append(tile)
 
 	EventBus.tile_discarded.emit(tile)

@@ -48,6 +48,7 @@ var is_locked: bool = false        # Cannot be moved once placed
 # === Location State ===
 var location: TileLocation = TileLocation.IN_BAG
 var current_cell: BoardCell = null  # Only valid when ON_BOARD
+var _cell_binding_suspended: bool = false  # True during drag operations
 
 # === Selection State ===
 var is_selected: bool = false
@@ -159,25 +160,103 @@ func can_interact() -> bool:
 	return not is_locked and location != TileLocation.IN_BAG
 
 
+# =============================================================================
+# PLACEMENT STATE MANAGEMENT (DDD: Single responsibility for tile-cell binding)
+# =============================================================================
+
+## Atomically attaches this tile to a board cell.
+## Updates both tile.current_cell and cell.tile to maintain consistency.
+func attach_to_cell(cell: BoardCell) -> void:
+	if cell == null:
+		push_error("[Tile] Cannot attach to null cell")
+		return
+
+	# Detach from any existing cell first
+	if current_cell != null and current_cell != cell:
+		detach_from_cell()
+
+	current_cell = cell
+	cell.tile = self
+	location = TileLocation.ON_BOARD
+	_cell_binding_suspended = false
+	print("[Tile] %s attached to cell %s" % [name, cell.name])
+
+
+## Atomically detaches this tile from its current cell.
+## Clears both tile.current_cell and cell.tile.
+func detach_from_cell() -> void:
+	if current_cell != null:
+		var cell_name: String = current_cell.name
+		current_cell.tile = null
+		current_cell = null
+		_cell_binding_suspended = false
+		print("[Tile] %s detached from cell %s" % [name, cell_name])
+
+
+## Suspends the cell binding during drag operations.
+## Clears cell.tile but preserves current_cell reference for potential restoration.
+func suspend_cell_binding() -> void:
+	if current_cell != null and not _cell_binding_suspended:
+		current_cell.tile = null
+		_cell_binding_suspended = true
+		print("[Tile] %s suspended binding from cell %s" % [name, current_cell.name])
+
+
+## Restores the cell binding after a cancelled drag.
+## Restores cell.tile from the preserved current_cell reference.
+func restore_cell_binding() -> void:
+	if current_cell != null and _cell_binding_suspended:
+		current_cell.tile = self
+		_cell_binding_suspended = false
+		print("[Tile] %s restored binding to cell %s" % [name, current_cell.name])
+
+
+## Checks if this tile has a valid, active cell binding.
+func has_active_cell_binding() -> bool:
+	return current_cell != null and not _cell_binding_suspended
+
+
+## Moves tile to hand location, clearing any cell binding.
+func move_to_hand() -> void:
+	detach_from_cell()
+	location = TileLocation.IN_HAND
+
+
+## Moves tile to discard location.
+func move_to_discard() -> void:
+	detach_from_cell()
+	location = TileLocation.IN_DISCARD
+
+
+# =============================================================================
+# RESET
+# =============================================================================
+
 ## Reset tile to initial state (for recycling).
 func reset() -> void:
+	detach_from_cell()
 	is_selected = false
 	is_locked = false
 	point_modifier = 0
-	current_cell = null
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE
 	_drag_state = DragState.IDLE
 	_is_lead_tile = false
+	_cell_binding_suspended = false
 	_update_visual()
 
 
 ## Sets this tile as a follower in a multi-drag (not directly dragged).
-func set_as_drag_follower() -> void:
+## Returns false if the tile cannot be dragged (locked or non-interactable).
+func set_as_drag_follower() -> bool:
+	if not can_interact():
+		return false
+
 	_drag_state = DragState.DRAGGING
 	_is_lead_tile = false
 	allow_hover_feedback = false
+	return true
 
 
 ## Force-resets all drag state (called by DragManager for all tiles when drag ends).
@@ -215,6 +294,10 @@ func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
 
 
 func _on_press(pos: Vector2) -> void:
+	# Prevent interaction with locked or non-interactable tiles
+	if not can_interact():
+		return
+
 	_drag_state = DragState.PRESSED
 	_press_position = pos
 	_drag_offset = get_global_mouse_position() - global_position
@@ -236,6 +319,11 @@ func _on_release() -> void:
 # === Private: Drag Operations ===
 
 func _start_drag() -> void:
+	# Safety check - should have been caught in _on_press but double-check
+	if not can_interact():
+		_drag_state = DragState.IDLE
+		return
+
 	_drag_state = DragState.DRAGGING
 	_is_lead_tile = true  # We're the directly dragged tile
 	allow_hover_feedback = false
@@ -246,8 +334,8 @@ func _start_drag() -> void:
 	modulate = Color(1.2, 1.2, 1.2)
 
 	var cell_info: String = String(current_cell.name) if current_cell else "none"
-	print("[Tile] Drag start: %s | Location: %s | Cell: %s" % [
-		name, TileLocation.keys()[location], cell_info
+	print("[Tile] Drag start: %s | Location: %s | Cell: %s | Locked: %s" % [
+		name, TileLocation.keys()[location], cell_info, is_locked
 	])
 
 	tile_drag_started.emit(self)
@@ -267,9 +355,25 @@ func _end_drag() -> void:
 
 # === Private: Visual Updates ===
 
+const LOCKED_TINT: Color = Color(0.85, 0.85, 0.9, 1.0)  # Subtle blue-gray tint
+
 func _update_visual() -> void:
 	if border:
 		border.visible = is_selected
+
+	# Apply locked visual state
+	if is_locked:
+		modulate = LOCKED_TINT
+	elif not _drag_state == DragState.DRAGGING:
+		modulate = Color.WHITE
+
+
+## Call this when the locked state changes to update visuals.
+func set_locked(value: bool) -> void:
+	is_locked = value
+	_update_visual()
+	if is_locked:
+		print("[Tile] %s is now locked" % name)
 
 
 # === Signal Handlers (connected in scene) ===
@@ -281,4 +385,5 @@ func _on_mouse_entered() -> void:
 
 func _on_mouse_exited() -> void:
 	if allow_hover_feedback:
-		modulate = Color.WHITE
+		# Restore appropriate color based on locked state
+		modulate = LOCKED_TINT if is_locked else Color.WHITE

@@ -76,9 +76,52 @@ var allow_hover_feedback: bool
 initialize(data: LetterTileData) -> void  # Set up tile from data
 set_selected(value: bool) -> void         # Toggle selection with animation
 set_selection_order(order: int) -> void   # Set position in multi-select
+set_locked(value: bool) -> void           # Lock/unlock tile (updates visuals)
 get_points() -> int                       # Get total points with modifiers
-can_interact() -> bool                    # Check if interactable
+can_interact() -> bool                    # Check if interactable (not locked)
 reset() -> void                           # Reset to initial state
+```
+
+## Placement State Management (DDD)
+
+The Tile class manages the bidirectional relationship with BoardCell atomically to prevent state inconsistencies. All placement operations should use these methods instead of directly manipulating `current_cell`, `cell.tile`, or `location`.
+
+### Methods
+```gdscript
+# Atomic operations - always use these for tile-cell bindings
+attach_to_cell(cell: BoardCell) -> void  # Place tile on cell (sets both references)
+detach_from_cell() -> void               # Remove from cell (clears both references)
+
+# Drag operations - temporary suspension of binding
+suspend_cell_binding() -> void           # Clear cell.tile but keep current_cell
+restore_cell_binding() -> void           # Restore cell.tile from current_cell
+
+# Location changes
+move_to_hand() -> void                   # Detach from cell, set location to IN_HAND
+move_to_discard() -> void                # Detach from cell, set location to IN_DISCARD
+
+# Queries
+has_active_cell_binding() -> bool        # True if tile has valid, unsuspended binding
+```
+
+### State Consistency Pattern
+```gdscript
+# BAD - can cause state inconsistency
+tile.current_cell = cell
+cell.tile = tile
+tile.location = Tile.TileLocation.ON_BOARD
+
+# GOOD - atomic operation ensures consistency
+tile.attach_to_cell(cell)
+
+# BAD - drag cleanup can miss cell restoration
+cell.tile = null  # during drag
+# ... later forget to restore cell.tile
+
+# GOOD - suspend/restore pattern for drags
+tile.suspend_cell_binding()  # clears cell.tile, keeps current_cell
+# ... drag operation ...
+tile.restore_cell_binding()  # restores cell.tile from current_cell
 ```
 
 ## Visual Feedback

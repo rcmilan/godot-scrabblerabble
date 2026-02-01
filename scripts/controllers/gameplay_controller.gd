@@ -207,25 +207,39 @@ func _on_tile_drag_started(tile: Tile) -> void:
 	if not _is_active:
 		return
 
-	if tile.is_locked:
-		print("[Gameplay] Cannot drag locked tile: %s" % tile.name)
+	# Safety check - tile should have prevented this, but double-check
+	if not tile.can_interact():
+		print("[Gameplay] Cannot drag non-interactable tile: %s" % tile.name)
 		return
 
 	var tiles_to_drag: Array[Tile] = SelectionManager.get_selected_tiles()
 
-	if tile not in tiles_to_drag:
+	# Filter out any locked/non-interactable tiles from multi-drag
+	var valid_tiles: Array[Tile] = []
+	for t in tiles_to_drag:
+		if t.can_interact():
+			valid_tiles.append(t)
+
+	if tile not in valid_tiles:
 		SelectionManager.deselect_all()
 		SelectionManager.select_tile(tile)
-		tiles_to_drag = [tile]
+		valid_tiles = [tile]
 
-	for t in tiles_to_drag:
+	# Set follower tiles (skip lead tile)
+	for t in valid_tiles:
 		if t != tile:
-			t.set_as_drag_follower()
+			if not t.set_as_drag_follower():
+				# Tile refused to be a follower (locked), remove from drag
+				valid_tiles.erase(t)
 
-	DragManager.start_drag(tile, tiles_to_drag)
+	if valid_tiles.is_empty():
+		print("[Gameplay] No valid tiles to drag")
+		return
 
-	if tiles_to_drag.size() > 1:
-		print("[Gameplay] Multi-drag started with %d tiles" % tiles_to_drag.size())
+	DragManager.start_drag(tile, valid_tiles)
+
+	if valid_tiles.size() > 1:
+		print("[Gameplay] Multi-drag started with %d tiles" % valid_tiles.size())
 
 
 func _on_tile_drag_ended(tile: Tile) -> void:
@@ -346,25 +360,20 @@ func _place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
 	if cell.is_occupied():
 		return
 
-	if tile.location == Tile.TileLocation.ON_BOARD and tile.current_cell != null:
-		var old_cell: BoardCell = tile.current_cell
-		old_cell.tile = null
-		print("[Gameplay] Cleared old cell: %s" % old_cell.name)
-
-	tile.get_parent().remove_child(tile)
+	# Reparent tile to cell's tile anchor
+	if tile.get_parent():
+		tile.get_parent().remove_child(tile)
 	cell.tile_anchor.add_child(tile)
 	tile.position = Vector2.ZERO
 
-	tile.current_cell = cell
-	tile.location = Tile.TileLocation.ON_BOARD
-	cell.tile = tile
+	# Use atomic state management to ensure tile-cell binding consistency
+	tile.attach_to_cell(cell)
 
 	_clear_all_cell_hovers()
 
 	EventBus.tile_placed.emit(tile, cell)
 	tile_placement_completed.emit(tile, cell)
 	_update_play_button_state()
-	print("[Gameplay] Placed tile %s on cell %s" % [tile.name, cell.name])
 
 
 func _return_tile_to_hand(tile: Tile) -> void:
@@ -372,11 +381,12 @@ func _return_tile_to_hand(tile: Tile) -> void:
 
 
 func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void:
+	# Handle tiles not on board (e.g., in drag container)
 	if tile.current_cell == null and tile.location != Tile.TileLocation.IN_HAND:
 		if tile.get_parent():
 			tile.get_parent().remove_child(tile)
 		hand.add_tile(tile)
-		tile.location = Tile.TileLocation.IN_HAND
+		tile.move_to_hand()  # Atomic state update
 		tile.modulate = Color.WHITE
 		if not preserve_selection:
 			SelectionManager.deselect_tile(tile)
@@ -385,6 +395,7 @@ func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void
 	if tile.current_cell == null:
 		return
 
+	# Tile is on board - animate return
 	var cell: BoardCell = tile.current_cell
 	TileAnimator.animate_return_to_hand(tile, hand, cell)
 
@@ -555,6 +566,11 @@ func _return_to_original_cell(tile: Tile) -> void:
 		push_error("[Gameplay] Board tile has no current_cell reference!")
 		return
 
+	# Verify cell binding is restored (should have been done by restore_tiles_to_parents)
+	if not tile.has_active_cell_binding():
+		push_warning("[Gameplay] Cell binding not active, restoring...")
+		tile.restore_cell_binding()
+
 	tile.position = Vector2.ZERO
 	tile.modulate = Color.WHITE
 	print("[Gameplay] Tile %s returned to cell: %s" % [tile.name, tile.current_cell.name])
@@ -678,8 +694,7 @@ func _on_play_requested() -> void:
 		print("[Gameplay] Word: '%s' (%s)" % [word_info.word, word_info.direction])
 
 	for tile in unplayed_tiles:
-		tile.is_locked = true
-		print("[Gameplay] Locked tile: %s" % tile.name)
+		tile.set_locked(true)  # Use setter to update visuals
 
 	TileAnimator.animate_stomp_batch(unplayed_tiles)
 

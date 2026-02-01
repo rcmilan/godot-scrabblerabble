@@ -19,10 +19,6 @@ func execute_single(tile: Tile, hand: Node, cell: Node, strategy: TileAnimationS
 	_apply_properties(tile, start_props)
 	strategy.on_animation_start(tile)
 
-	# Clear the cell's tile reference
-	if cell:
-		cell.tile = null
-
 	# Remove tile from its current parent
 	var current_parent: Node = tile.get_parent()
 	if current_parent:
@@ -31,9 +27,8 @@ func execute_single(tile: Tile, hand: Node, cell: Node, strategy: TileAnimationS
 	# Add to hand (triggers layout)
 	hand.add_tile(tile)
 
-	# Update tile state
-	tile.current_cell = null
-	tile.location = Tile.TileLocation.IN_HAND
+	# Update tile state atomically (clears cell binding and sets location)
+	tile.move_to_hand()
 
 	# Wait for layout
 	await _context.get_tree().process_frame

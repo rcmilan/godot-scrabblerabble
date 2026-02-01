@@ -317,3 +317,4 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 - Debug code isolated in DebugManager/DebugConsole
 - UI polish deferred until core gameplay works
 - Always make use of objective-oriented and DDD principles for maintainability and reusability
+- Every action should be thought on an atomic perspective, they either work or not, there is no in-between
