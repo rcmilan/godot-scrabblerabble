@@ -166,9 +166,9 @@ func get_drag_position() -> Vector2:
 	return Vector2.ZERO
 
 
-## Gets the tiles being dragged.
+## Gets the tiles being dragged (returns a copy to prevent mutation issues).
 func get_dragged_tiles() -> Array[Tile]:
-	return dragged_tiles
+	return dragged_tiles.duplicate()
 
 
 ## Gets the original parent of a tile.
