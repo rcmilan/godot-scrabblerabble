@@ -389,9 +389,15 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 - Phase 13: Shop Phase Between Rounds (ShopOverlay, round transitions)
 - Phase 14: Game State Management (multi-round runs, victory/defeat conditions)
 
+<<<<<<< HEAD
 ### 🔄 In Progress
 - Phase 15: UI Polish and Game Feel Refinement
 - Phase 16: Tile Modifiers System (EXTRA, MULTI, EXPO, RESET, LOCKED with composable behaviors, visual pipeline, play animations)
+=======
+### In Progress
+- 🔄 Phase 6: Word Validation & Real-Time Feedback (Hybrid Grid System)
+- 🔄 Phase 7: Scoring System with multipliers
+>>>>>>> 4874709 (docs: Add hybrid word validation strategy and implementation plan- Document performance comparison (O(k) vs O(r×c))  - Add 8-step implementation plan for PlayStateManager- Outline real-time validation approach with dual-state tracking- Update Phase 6 roadmap with detailed architecture decisions)
 
 ### 📋 Future Phases
 - Phase 17: Cell Multipliers on Board (visual + scoring)
@@ -403,6 +409,252 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 - Phase 23: Sound and Music
 - Phase 24: Mobile Touch Controls Refinement
 - Phase 25: Leaderboard System
+
+---
+
+## Word Validation Strategy: Hybrid Grid System
+
+### Design Philosophy
+
+The game requires **real-time word validation** to provide instant feedback and prevent invalid plays. This requires balancing performance with architecture cleanliness.
+
+### Performance Comparison
+
+| Approach | Tile Placement | Word Finding | Play Button Update | Total Complexity |
+|----------|---------------|--------------|-------------------|------------------|
+| Old Codebase | O(1) | O(k) | O(1) | **O(k)** |
+| Current (Cell-based) | O(1) | O(r×c) | O(r×c) | **O(r×c)** |
+| Hybrid Solution | O(1) | O(k) | O(1) | **O(k)** |
+
+Where: k = tiles placed this turn (~5-10), r×c = board size (64-225)
+
+**Performance Gain**: ~10-20x faster on 11×11 board
+
+### Hybrid Architecture
+
+Combines the performance of grid-based lookups with the clean object-oriented design of cell-based architecture.
+
+**Core Concept: Dual-State Tracking**
+
+```gdscript
+# PlayStateManager tracks game state efficiently
+class PlayStateManager:
+    # Fast O(1) lookup grid synced with BoardCells
+    var _grid_cache: Array[Array] = []  # [row][col] = tile
+    
+    # Separate temporary vs permanent tiles
+    var _temporary_tiles: Dictionary = {}  # {Vector2i: Tile} - this turn only
+    var _permanent_tiles: Dictionary = {}  # {Vector2i: Tile} - locked tiles
+    
+    # Validation results cache
+    var _current_words: Array = []
+    var _all_words_valid: bool = false
+```
+
+**Key Principles:**
+
+1. **BoardCell remains source of truth** - Tiles are still parented to cell.tile_anchor
+2. **Grid cache for performance** - Fast lookups without scanning all cells
+3. **Separate temporary/permanent** - Clear distinction between current turn and locked tiles
+4. **Immediate validation** - Validate words on every tile placement
+5. **Play button reflects validity** - Enabled ONLY when valid words detected
+
+### Gameplay Flow
+
+```
+Tile Placed → Update grid_cache & temporary_tiles →
+Run word_finder on combined state (temp + permanent) →
+Validate all words → Update Play button state →
+User presses Play (only if valid) →
+Lock tiles (temp → permanent) → Calculate score →
+Commit to GameManager → Refill hand
+```
+
+### Implementation Plan
+
+#### Step 1: Create PlayStateManager Class
+**File**: `scripts/logic/play_state_manager.gd`
+
+**Responsibilities:**
+- Maintain grid cache synchronized with Board
+- Track temporary vs permanent tile placements
+- Provide O(1) tile lookup by position
+- Expose combined grid state for word finding
+
+**Key Methods:**
+```gdscript
+func initialize_grid(rows: int, cols: int)
+func place_temporary_tile(tile: Tile, pos: Vector2i)
+func remove_temporary_tile(pos: Vector2i)
+func commit_temporary_tiles()  # Lock all temp → permanent
+func clear_temporary_tiles()  # Cancel placement
+func get_combined_grid() -> Array[Array]  # Temp + permanent for validation
+func get_temporary_positions() -> Array[Vector2i]
+```
+
+#### Step 2: Port Word Finding Logic
+**File**: `scripts/logic/word_finder.gd` (new)
+
+**Purpose**: Grid-based word detection (from old codebase)
+
+**Core Logic:**
+- Scan rows for horizontal words (consecutive tiles)
+- Scan columns for vertical words (consecutive tiles)
+- Only check positions with tiles (not entire grid)
+- Return word dictionaries with positions and direction
+
+**Signature:**
+```gdscript
+func find_words(grid: Array[Array]) -> Array:
+    # Returns: [{"word": String, "start": Vector2i, "end": Vector2i, "direction": String}]
+```
+
+#### Step 3: Create Word Validator Integration
+**File**: Update `scripts/logic/word_validator.gd`
+
+**Changes:**
+- Add `validate_words_from_grid(grid: Array[Array]) -> Dictionary` method
+- Integrate with PlayStateManager for combined state
+- Return validation results with detailed feedback
+- Support dictionary loading (already implemented)
+
+**Return Format:**
+```gdscript
+{
+    "valid": bool,
+    "words": Array,  # All detected words
+    "invalid_words": Array,  # Words not in dictionary
+    "score": int  # Total score if valid
+}
+```
+
+#### Step 4: Add Dictionary Loading
+**File**: `Data/Dictionaries/english_words.txt`
+
+**Actions:**
+- Copy dictionary file from old codebase
+- Ensure UTF-8 encoding, one word per line
+- Load in GameplayController._ready() or GameManager.start_game()
+
+**Loading Code:**
+```gdscript
+func _ready():
+    _word_validator = WordValidator.new()
+    _word_validator.load_word_list("res://Data/Dictionaries/english_words.txt")
+```
+
+#### Step 5: Integrate PlayStateManager with GameplayController
+**File**: `scripts/controllers/gameplay_controller.gd`
+
+**Changes:**
+- Create PlayStateManager instance
+- Update `_place_tile_on_cell_silent()` to update PlayStateManager
+- Call validation after every placement
+- Update Play button based on validation results
+- Remove `_get_unplayed_board_tiles()` - use PlayStateManager instead
+
+**Key Integration Points:**
+```gdscript
+var _play_state_manager: PlayStateManager = null
+
+func _ready():
+    _play_state_manager = PlayStateManager.new()
+    # Initialize grid when board ready
+
+func _place_tile_on_cell_silent(tile: Tile, cell: BoardCell):
+    # ... existing placement code ...
+    _play_state_manager.place_temporary_tile(tile, cell.grid_position)
+    _validate_current_placement()  # NEW: Real-time validation
+
+func _validate_current_placement():
+    var grid = _play_state_manager.get_combined_grid()
+    var validation = _word_validator.validate_words_from_grid(grid)
+    _update_play_button_from_validation(validation)
+```
+
+#### Step 6: Update Play Button Logic
+**File**: `scripts/controllers/gameplay_controller.gd`
+
+**New Logic:**
+```gdscript
+func _update_play_button_from_validation(validation: Dictionary):
+    var enabled = validation.valid and not _play_state_manager.get_temporary_positions().is_empty()
+    main_hud.set_play_button_enabled(enabled)
+    
+    # Optional: Show invalid word feedback
+    if not validation.valid and not validation.invalid_words.is_empty():
+        print("[Gameplay] Invalid words: %s" % validation.invalid_words)
+```
+
+#### Step 7: Update Play Commit Flow
+**File**: `scripts/controllers/gameplay_controller.gd`
+
+**Changes to `_on_play_requested()`:**
+```gdscript
+func _on_play_requested():
+    # Get validated words and score (already computed)
+    var validation = _play_state_manager.get_last_validation()
+    
+    if not validation.valid:
+        return  # Should never happen - button disabled
+    
+    var temp_tiles = _play_state_manager.get_temporary_tiles()
+    
+    # Lock all tiles
+    for tile in temp_tiles:
+        tile.set_locked(true)
+    
+    # Commit to permanent state
+    _play_state_manager.commit_temporary_tiles()
+    
+    # Animate and emit events
+    TileAnimator.animate_stomp_batch(temp_tiles)
+    EventBus.tiles_played.emit(temp_tiles, validation.words)
+    
+    # Update game state with score
+    GameManager.commit_play(validation.score)
+    
+    # Refill hand
+    HandManager.refill_hand()
+```
+
+#### Step 8: Testing & Validation
+**Test Cases:**
+1. Place valid word → Play button enables ✅
+2. Place invalid word → Play button disabled ❌
+3. Add letter to make valid → Play button enables ✅
+4. Remove letter to make invalid → Play button disables ❌
+5. Multiple words → All must be valid for Play to enable
+6. Cross-words → Validate both main word and cross-words
+7. Locked tiles + new tiles → Only validate complete words
+
+---
+
+### Key Design Decisions
+
+**Why Dual-State (Temporary/Permanent)?**
+- Clear separation of "this turn" vs "previous turns"
+- Easy to cancel placement (just clear temporary)
+- Efficient word finding (only check relevant tiles)
+- Supports undo/redo in future
+
+**Why Grid Cache?**
+- O(1) lookup vs O(r×c) scan
+- WordFinder needs grid format anyway
+- Synced with BoardCells for consistency
+- Minimal memory overhead (just references)
+
+**Why Validate on Placement?**
+- Instant feedback to player
+- No invalid plays possible
+- Better UX than post-validation
+- Negligible performance cost (O(k) where k is small)
+
+**Why Keep BoardCell as Source of Truth?**
+- Visual representation tied to cells
+- Drag-drop logic uses cell references
+- Clean separation: Board = UI, PlayStateManager = Logic
+- Atomic cell binding prevents inconsistency
 
 **Architecture Philosophy:**
 - Each phase builds on previous phases
