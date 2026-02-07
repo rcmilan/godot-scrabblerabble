@@ -42,7 +42,7 @@ var points_earned_this_turn: int = 0
 # =============================================================================
 
 const DEFAULT_HAND_SIZE: int = 10
-const DEFAULT_PLAYS_PER_ROUND: int = 10
+const DEFAULT_PLAYS_PER_ROUND: int = 2
 const DEFAULT_TARGET_SCORE: int = 100
 
 
@@ -142,7 +142,11 @@ func commit_play(score: int) -> void:
 	if current_score >= target_score:
 		_complete_round(true)
 	elif plays_remaining <= 0:
-		_complete_round(false)
+		if RunManager.is_debug_auto_win():
+			print("[GameManager] Debug auto-win enabled - treating as round win")
+			_complete_round(true)
+		else:
+			_complete_round(false)
 
 
 ## Returns tiles to hand and resets turn state.
@@ -165,6 +169,25 @@ func start_round(round_num: int, target: int = DEFAULT_TARGET_SCORE, plays: int 
 	EventBus.round_started.emit(current_round)
 
 	print("[GameManager] Round %d started - Target: %d | Plays: %d" % [
+		current_round, target_score, plays_remaining
+	])
+
+
+## Sets up a round from a RoundConfig object.
+func setup_round(config: RoundConfig) -> void:
+	current_round = config.round_number
+	target_score = config.target_score
+	plays_per_round = config.plays_per_round
+	plays_remaining = config.plays_per_round
+	current_score = 0
+	tiles_placed_this_turn.clear()
+	words_scored_this_turn.clear()
+	points_earned_this_turn = 0
+
+	_set_phase(GamePhase.PLAYING)
+	EventBus.round_started.emit(current_round)
+
+	print("[GameManager] Round %d setup - Target: %d | Plays: %d" % [
 		current_round, target_score, plays_remaining
 	])
 
@@ -232,11 +255,9 @@ func _complete_round(success: bool) -> void:
 		print("[GameManager] Round %d complete! Score: %d/%d" % [
 			current_round, current_score, target_score
 		])
-		# For now, winning the round = winning the game
-		# Future: progress to next round or shop
-		end_game(true)
+		# RunManager handles what comes next (shop or victory)
 	else:
 		print("[GameManager] Round %d failed. Score: %d/%d" % [
 			current_round, current_score, target_score
 		])
-		end_game(false)
+		# RunManager handles game over

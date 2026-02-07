@@ -25,6 +25,7 @@ HandManager="*res://autoload/hand_manager.gd"
 SelectionManager="*res://autoload/selection_manager.gd"
 TileAnimator="*res://autoload/tile_animator.gd"
 DragManager="*res://autoload/drag_manager.gd"
+RunManager="*res://autoload/run_manager.gd"
 
 [dotnet]
 

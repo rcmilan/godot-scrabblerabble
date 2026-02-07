@@ -162,3 +162,19 @@ signal multi_drag_started(tiles: Array)
 
 ## Emitted when multi-tile drag ends.
 signal multi_drag_ended(tiles: Array, success: bool)
+
+# =============================================================================
+# RUN EVENTS
+# =============================================================================
+
+## Emitted when RunManager has prepared the next round's config.
+signal run_round_ready(config: RoundConfig)
+
+## Emitted when a successful round triggers the shop transition.
+signal run_shop_requested(round_number: int)
+
+## Emitted when the run ends (win or lose).
+signal run_ended(victory: bool, total_score: int)
+
+## Emitted when the player leaves the shop.
+signal shop_completed()

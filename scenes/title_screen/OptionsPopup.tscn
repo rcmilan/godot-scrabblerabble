@@ -29,9 +29,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -200.0
-offset_top = -150.0
+offset_top = -200.0
 offset_right = 200.0
-offset_bottom = 150.0
+offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -49,7 +49,7 @@ theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -63,9 +63,31 @@ layout_mode = 2
 [node name="SettingsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
-[node name="FullscreenLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="GameSettingsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Game Settings"
+
+[node name="PlaysContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+
+[node name="PlaysLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer/PlaysContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Plays per Round:"
+
+[node name="PlaysSpinBox" type="SpinBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+min_value = 1.0
+max_value = 20.0
+value = 2.0
+
+[node name="AutoWinCheck" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+layout_mode = 2
+text = "Auto-win when plays exhausted"
+
+[node name="GraphicsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
 layout_mode = 2
 text = "Graphics"
 

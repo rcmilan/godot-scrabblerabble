@@ -49,6 +49,11 @@ func _ready() -> void:
 	_word_validator = WordValidator.new()
 
 
+## Returns the word validator instance for external scoring.
+func get_word_validator() -> WordValidator:
+	return _word_validator
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not _is_active:
 		return

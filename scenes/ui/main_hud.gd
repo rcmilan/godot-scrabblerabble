@@ -7,13 +7,13 @@ extends CanvasLayer
 signal play_requested
 
 # === Node References ===
+@onready var round_label: Label = $RoundLabel
 @onready var plays_label: Label = $PlaysLabel
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var deck_label: Label = $DeckLabel
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
-@onready var game_over_label: Label = $GameOverLabel
 @onready var play_button: Button = $PlayButton
 
 
@@ -31,8 +31,7 @@ func _connect_signals() -> void:
 	EventBus.discard_count_changed.connect(_on_discard_count_changed)
 	EventBus.play_completed.connect(_on_play_completed)
 	EventBus.round_started.connect(_on_round_started)
-	EventBus.game_won.connect(_on_game_won)
-	EventBus.game_lost.connect(_on_game_lost)
+	EventBus.run_round_ready.connect(_on_run_round_ready)
 
 
 func _setup_buttons() -> void:
@@ -41,9 +40,8 @@ func _setup_buttons() -> void:
 
 
 func _initialize_display() -> void:
-	game_over_label.hide()
-
 	# Set initial values
+	_update_round(GameManager.current_round)
 	_update_plays(GameManager.plays_remaining)
 	_update_score(GameManager.current_score)
 	_update_target(GameManager.target_score)
@@ -74,23 +72,23 @@ func _on_play_completed(plays_remaining: int) -> void:
 	_update_plays(plays_remaining)
 
 
-func _on_round_started(_round_number: int) -> void:
-	game_over_label.hide()
+func _on_round_started(round_number: int) -> void:
+	_update_round(round_number)
 	_update_plays(GameManager.plays_remaining)
 	_update_target(GameManager.target_score)
 
 
-func _on_game_won() -> void:
-	game_over_label.text = "You Win!\nTarget Reached!"
-	game_over_label.show()
-
-
-func _on_game_lost() -> void:
-	game_over_label.text = "Game Over\nOut of Plays"
-	game_over_label.show()
+func _on_run_round_ready(config: RoundConfig) -> void:
+	_update_round(config.round_number)
+	_update_plays(config.plays_per_round)
+	_update_target(config.target_score)
 
 
 # === UI Updates ===
+
+func _update_round(round_number: int) -> void:
+	round_label.text = "Round: %d" % round_number
+
 
 func _update_plays(count: int) -> void:
 	plays_label.text = "Plays: %d" % count

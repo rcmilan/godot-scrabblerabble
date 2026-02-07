@@ -29,8 +29,12 @@ var _is_initialized: bool = false
 signal initialized
 
 
-## Returns true if HandManager has been initialized.
+## Returns true if HandManager has valid references to the current scene.
 func is_initialized() -> bool:
+	if _is_initialized and not is_instance_valid(_hand_ui):
+		_is_initialized = false
+		# Re-resolve references (Main may already be in the tree)
+		_try_initialize()
 	return _is_initialized
 
 
@@ -215,10 +219,12 @@ func _try_initialize() -> void:
 
 
 func _ensure_initialized() -> bool:
-	if not _is_initialized:
-		push_error("[HandManager] Not initialized - call after scene is ready")
-		return false
-	return true
+	if _is_initialized and is_instance_valid(_hand_ui):
+		return true
+	# References are stale or not yet initialized — re-resolve them
+	_is_initialized = false
+	_try_initialize()
+	return _is_initialized
 
 
 func _connect_tile_signals(tile: Tile) -> void:
