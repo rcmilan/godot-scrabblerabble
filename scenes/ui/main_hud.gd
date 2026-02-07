@@ -5,6 +5,7 @@ extends CanvasLayer
 
 # === Signals ===
 signal play_requested
+signal draw_requested
 
 # === Node References ===
 @onready var round_label: Label = $RoundLabel
@@ -14,6 +15,7 @@ signal play_requested
 @onready var deck_label: Label = $DeckLabel
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
+@onready var draw_button: Button = $DrawButton
 @onready var play_button: Button = $PlayButton
 
 
@@ -35,6 +37,7 @@ func _connect_signals() -> void:
 
 
 func _setup_buttons() -> void:
+	draw_button.pressed.connect(_on_draw_button_pressed)
 	play_button.pressed.connect(_on_play_button_pressed)
 	play_button.disabled = true
 
@@ -58,10 +61,12 @@ func _on_score_updated(total: int, _delta: int) -> void:
 
 func _on_hand_count_changed(count: int) -> void:
 	_update_hand(count)
+	_update_draw_button(count)
 
 
 func _on_bag_count_changed(count: int) -> void:
 	_update_deck(count)
+	_update_draw_button(HandManager.get_hand_size())
 
 
 func _on_discard_count_changed(count: int) -> void:
@@ -116,11 +121,27 @@ func _update_discard(count: int) -> void:
 
 # === Button Handlers ===
 
+func _on_draw_button_pressed() -> void:
+	draw_requested.emit()
+
+
 func _on_play_button_pressed() -> void:
 	play_requested.emit()
+
+
+# === Draw Button State ===
+
+func _update_draw_button(hand_count: int) -> void:
+	var hand_full: bool = hand_count >= HandManager.hand_size
+	var bag_empty: bool = TileBag.is_empty()
+	draw_button.disabled = hand_full or bag_empty
 
 
 # === Public API ===
 
 func set_play_button_enabled(enabled: bool) -> void:
 	play_button.disabled = not enabled
+
+
+func set_play_button_mode(is_end_round: bool) -> void:
+	play_button.text = "End Round" if is_end_round else "Play"

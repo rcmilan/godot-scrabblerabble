@@ -80,6 +80,7 @@ func activate() -> void:
 		return
 	_is_active = true
 	_connect_signals()
+	_update_play_button_state()
 	print("[GameplayController] Activated")
 
 
@@ -108,10 +109,15 @@ func _connect_signals() -> void:
 
 	# HUD signals
 	if main_hud:
+		main_hud.draw_requested.connect(_on_draw_requested)
 		main_hud.play_requested.connect(_on_play_requested)
 
 	# Drag signals
 	DragManager.drag_release_requested.connect(_handle_drag_release)
+
+	# Tile supply signals (for Play/End Round button state)
+	EventBus.hand_count_changed.connect(_on_tile_supply_changed)
+	EventBus.bag_count_changed.connect(_on_tile_supply_changed)
 
 
 func _disconnect_signals() -> void:
@@ -133,12 +139,20 @@ func _disconnect_signals() -> void:
 		discard_pile.peek_requested.disconnect(_on_discard_pile_peek_requested)
 
 	# HUD signals
+	if main_hud and main_hud.draw_requested.is_connected(_on_draw_requested):
+		main_hud.draw_requested.disconnect(_on_draw_requested)
 	if main_hud and main_hud.play_requested.is_connected(_on_play_requested):
 		main_hud.play_requested.disconnect(_on_play_requested)
 
 	# Drag signals
 	if DragManager.drag_release_requested.is_connected(_handle_drag_release):
 		DragManager.drag_release_requested.disconnect(_handle_drag_release)
+
+	# Tile supply signals
+	if EventBus.hand_count_changed.is_connected(_on_tile_supply_changed):
+		EventBus.hand_count_changed.disconnect(_on_tile_supply_changed)
+	if EventBus.bag_count_changed.is_connected(_on_tile_supply_changed):
+		EventBus.bag_count_changed.disconnect(_on_tile_supply_changed)
 
 
 # =============================================================================
@@ -379,6 +393,8 @@ func _place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
 	if cell.is_occupied():
 		return
 
+	var was_in_hand: bool = tile.location == Tile.TileLocation.IN_HAND
+
 	# Reparent tile to cell's tile anchor
 	if tile.get_parent():
 		tile.get_parent().remove_child(tile)
@@ -389,6 +405,9 @@ func _place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
 	tile.attach_to_cell(cell)
 
 	_clear_all_cell_hovers()
+
+	if was_in_hand:
+		EventBus.hand_count_changed.emit(hand.get_tile_count())
 
 	EventBus.tile_placed.emit(tile, cell)
 	tile_placement_completed.emit(tile, cell)
@@ -407,6 +426,7 @@ func _return_tile_to_hand_internal(tile: Tile, preserve_selection: bool) -> void
 		hand.add_tile(tile)
 		tile.move_to_hand()  # Atomic state update
 		tile.modulate = Color.WHITE
+		EventBus.hand_count_changed.emit(hand.get_tile_count())
 		if not preserve_selection:
 			SelectionManager.deselect_tile(tile)
 		return
@@ -676,6 +696,7 @@ func _complete_discard(tiles: Array[Tile]) -> void:
 	print("[Gameplay] Discarded %d tiles, refilled %d" % [tiles.size(), refilled])
 
 	_update_interaction_state()
+	_update_play_button_state()
 
 
 ## Gets the center position of the discard pile for animation targeting.
@@ -683,6 +704,22 @@ func _get_discard_pile_center() -> Vector2:
 	if discard_pile:
 		return discard_pile.global_position + (discard_pile.size / 2.0)
 	return Vector2.ZERO
+
+
+# =============================================================================
+# DRAW HANDLER
+# =============================================================================
+
+func _on_draw_requested() -> void:
+	if not _is_active:
+		return
+
+	var drawn: int = HandManager.refill_hand()
+	print("[Gameplay] Draw requested: refilled %d tiles" % drawn)
+
+
+func _on_tile_supply_changed(_count: int) -> void:
+	_update_play_button_state()
 
 
 # =============================================================================
@@ -696,6 +733,9 @@ func _on_play_requested() -> void:
 	var unplayed_tiles: Array[Tile] = _get_unplayed_board_tiles()
 
 	if unplayed_tiles.is_empty():
+		if not _has_valid_moves() and GameManager.plays_remaining > 0:
+			_auto_end_round()
+			return
 		print("[Gameplay] Play rejected: no unplayed tiles on board")
 		return
 
@@ -730,6 +770,50 @@ func _on_play_requested() -> void:
 	])
 
 
+func _auto_end_round() -> void:
+	print("[Gameplay] Auto end round: consuming %d remaining plays" % GameManager.plays_remaining)
+
+	# Disable button during auto-play sequence
+	main_hud.set_play_button_enabled(false)
+
+	# Get all board tiles and their positions
+	var all_tiles: Array[Tile] = _get_all_board_tiles()
+	if all_tiles.is_empty():
+		print("[Gameplay] Auto end round: no tiles on board")
+		_update_play_button_state()
+		return
+
+	# Lock any remaining unlocked tiles
+	for tile in all_tiles:
+		if not tile.is_locked:
+			tile.set_locked(true)
+
+	# Calculate score once (board state is constant across all auto-plays)
+	var positions: Array[Vector2i] = []
+	for tile in all_tiles:
+		if tile.current_cell:
+			positions.append(tile.current_cell.grid_position)
+
+	var words: Array = _word_validator.find_formed_words(board, positions)
+	var total_score: int = 0
+	for word_info in words:
+		var score_result: Dictionary = _word_validator.calculate_placement_score(
+			word_info.tiles, word_info.cells
+		)
+		total_score += score_result.total
+
+	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
+
+	# Loop: stomp → await → commit for each remaining play
+	while GameManager.current_phase == GameManager.GamePhase.PLAYING and GameManager.plays_remaining > 0:
+		TileAnimator.animate_stomp_batch(all_tiles)
+		await TileAnimator.animation_completed
+		GameManager.commit_play(total_score)
+
+	_update_play_button_state()
+	print("[Gameplay] Auto end round complete")
+
+
 func _get_unplayed_board_tiles() -> Array[Tile]:
 	var tiles: Array[Tile] = []
 	for cell in board.get_all_cells():
@@ -738,10 +822,46 @@ func _get_unplayed_board_tiles() -> Array[Tile]:
 	return tiles
 
 
+func _get_all_board_tiles() -> Array[Tile]:
+	var tiles: Array[Tile] = []
+	for cell in board.get_all_cells():
+		if cell.is_occupied():
+			tiles.append(cell.tile)
+	return tiles
+
+
+func _has_valid_moves() -> bool:
+	# Valid moves exist if there are unplayed tiles on the board
+	if not _get_unplayed_board_tiles().is_empty():
+		return true
+
+	# Otherwise, check if the player can still place tiles:
+	# Need tiles available (hand or bag) AND empty cells on the board
+	var has_tiles_available: bool = not HandManager.is_hand_empty() or not TileBag.is_empty()
+	var has_empty_cells: bool = false
+	for cell in board.get_all_cells():
+		if not cell.is_occupied():
+			has_empty_cells = true
+			break
+
+	return has_tiles_available and has_empty_cells
+
+
 func _update_play_button_state() -> void:
-	if main_hud:
-		var has_unplayed_tiles: bool = not _get_unplayed_board_tiles().is_empty()
-		main_hud.set_play_button_enabled(has_unplayed_tiles)
+	if not main_hud:
+		return
+
+	var has_unplayed_tiles: bool = not _get_unplayed_board_tiles().is_empty()
+
+	if has_unplayed_tiles:
+		main_hud.set_play_button_enabled(true)
+		main_hud.set_play_button_mode(false)
+	elif not _has_valid_moves() and GameManager.plays_remaining > 0:
+		main_hud.set_play_button_enabled(true)
+		main_hud.set_play_button_mode(true)
+	else:
+		main_hud.set_play_button_enabled(false)
+		main_hud.set_play_button_mode(false)
 
 
 # =============================================================================
