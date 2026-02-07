@@ -18,11 +18,13 @@ signal play_completed(tiles: Array[Tile], words: Array)
 var board: Board = null
 var main_hud: CanvasLayer = null
 var _word_validator: WordValidator = null
+var _selection: SelectionManager = null
 
 
-func setup(p_board: Board, p_hud: CanvasLayer) -> void:
+func setup(p_board: Board, p_hud: CanvasLayer, p_selection: SelectionManager) -> void:
 	board = p_board
 	main_hud = p_hud
+	_selection = p_selection
 	_word_validator = WordValidator.new()
 
 
@@ -40,7 +42,7 @@ func on_play_requested() -> void:
 	var unplayed_tiles: Array[Tile] = _get_unplayed_board_tiles()
 
 	if unplayed_tiles.is_empty():
-		if not has_valid_moves() and GameManager.plays_remaining > 0:
+		if not has_valid_moves() and GameManager.get_plays_remaining() > 0:
 			_auto_end_round()
 			return
 		print("[Gameplay] Play rejected: no unplayed tiles on board")
@@ -63,7 +65,7 @@ func on_play_requested() -> void:
 	for tile in unplayed_tiles:
 		tile.set_locked(true)
 
-	SelectionManager.deselect_all()
+	_selection.deselect_all()
 
 	TileAnimator.animate_stomp_batch(unplayed_tiles)
 
@@ -81,7 +83,7 @@ func on_play_requested() -> void:
 # =============================================================================
 
 func _auto_end_round() -> void:
-	print("[Gameplay] Auto end round: consuming %d remaining plays" % GameManager.plays_remaining)
+	print("[Gameplay] Auto end round: consuming %d remaining plays" % GameManager.get_plays_remaining())
 
 	# Disable button during auto-play sequence
 	main_hud.set_play_button_enabled(false)
@@ -115,7 +117,7 @@ func _auto_end_round() -> void:
 	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
 
 	# Loop: stomp -> await -> commit for each remaining play
-	while GameManager.current_phase == GameManager.GamePhase.PLAYING and GameManager.plays_remaining > 0:
+	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
 		TileAnimator.animate_stomp_batch(all_tiles)
 		await TileAnimator.animation_completed
 		GameManager.commit_play(total_score)
@@ -178,7 +180,7 @@ func update_play_button_state() -> void:
 	if has_unplayed_tiles:
 		main_hud.set_play_button_enabled(true)
 		main_hud.set_play_button_mode(false)
-	elif not has_valid_moves() and GameManager.plays_remaining > 0:
+	elif not has_valid_moves() and GameManager.get_plays_remaining() > 0:
 		main_hud.set_play_button_enabled(true)
 		main_hud.set_play_button_mode(true)
 	else:

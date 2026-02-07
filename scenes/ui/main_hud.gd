@@ -44,10 +44,10 @@ func _setup_buttons() -> void:
 
 func _initialize_display() -> void:
 	# Set initial values
-	_update_round(GameManager.current_round)
-	_update_plays(GameManager.plays_remaining)
-	_update_score(GameManager.current_score)
-	_update_target(GameManager.target_score)
+	_update_round(GameManager.get_current_round())
+	_update_plays(GameManager.get_plays_remaining())
+	_update_score(GameManager.get_current_score())
+	_update_target(GameManager.get_target_score())
 	_update_deck(TileBag.tiles_remaining())
 	_update_hand(HandManager.get_hand_size())
 	_update_discard(HandManager.get_discard_count())
@@ -79,8 +79,8 @@ func _on_play_completed(plays_remaining: int) -> void:
 
 func _on_round_started(round_number: int) -> void:
 	_update_round(round_number)
-	_update_plays(GameManager.plays_remaining)
-	_update_target(GameManager.target_score)
+	_update_plays(GameManager.get_plays_remaining())
+	_update_target(GameManager.get_target_score())
 
 
 func _on_run_round_ready(config: RoundConfig) -> void:

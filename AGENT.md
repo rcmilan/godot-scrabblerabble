@@ -11,14 +11,13 @@ Godot 4.5.1 (Mobile renderer)
 Wordatro/
 ├── autoload/               # Global singleton managers
 │   ├── event_bus.gd        # Signal hub
-│   ├── game_manager.gd     # Game state
+│   ├── game_manager.gd     # Game state (encapsulated behind getters)
 │   ├── hand_manager.gd     # Hand operations
 │   ├── tile_bag.gd         # Tile pool (deck)
-│   ├── selection_manager.gd # Selection state
+│   ├── selection_manager.gd # Selection state (local node, created by Main)
 │   ├── tile_animator.gd    # Animation coordinator
-│   ├── drag_manager.gd    # Multi-tile drag coordination
-│   ├── run_manager.gd     # Run progression
-│   └── debug_manager.gd    # Debug tools
+│   ├── drag_manager.gd     # Multi-tile drag (local node, created by GameplayController)
+│   └── run_manager.gd      # Run progression
 │
 ├── scenes/                 # Game scenes
 │   ├── title_screen/       # Main menu / title screen
@@ -28,7 +27,7 @@ Wordatro/
 │   ├── hand/               # Hand component
 │   ├── tile/               # Tile component
 │   ├── ui/                 # UI components
-│   └── debug/              # Debug tools
+│   └── debug/              # Debug tools (DebugConsole + DebugManager)
 │
 ├── scripts/                # Utility scripts
 │   ├── controllers/        # Game controllers (coordinator + handlers)
@@ -68,12 +67,14 @@ Wordatro/
 | **Board** | Dynamic grid (default 8x8), cell management |
 | **Tile** | Letter tiles with drag-and-drop |
 | **Hand** | Player's available tiles (max 10) |
-| **SelectionManager** | Single/multi-select state |
+| **SelectionManager** | Single/multi-select state (local node, injected) |
+| **DragManager** | Multi-tile drag coordination (local node, injected) |
 | **TileAnimator** | Animation coordination |
 | **EventBus** | Decoupled signal communication |
-| **GameManager** | Game state and phase control |
+| **GameManager** | Game state and phase control (encapsulated) |
 | **TileBag** | Tile pool (deck) management |
 | **HandManager** | Draw, discard, refill operations |
+| **DebugManager** | Debug commands (RefCounted, owned by DebugConsole) |
 
 ### State Machines
 

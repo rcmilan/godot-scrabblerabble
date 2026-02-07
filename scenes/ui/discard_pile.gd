@@ -19,9 +19,15 @@ const COLOR_DROP_INVALID: Color = Color(0.6, 0.3, 0.3, 0.9)
 @onready var title_label: Label = $Background/TitleLabel
 @onready var drop_zone: Control = $DropZone
 
+var _selection: SelectionManager = null
 var _is_drag_hovering: bool = false
 var _discard_count: int = 0
 var _is_drag_active: bool = false
+
+
+## Sets the SelectionManager reference (injected by Main).
+func set_selection_manager(sm: SelectionManager) -> void:
+	_selection = sm
 
 
 func _ready() -> void:
@@ -53,7 +59,7 @@ func _input(event: InputEvent) -> void:
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
 			if _is_mouse_over_pile() and not _is_drag_active:
 				# If tiles are selected, emit discard_clicked
-				if SelectionManager.has_selection():
+				if _selection and _selection.has_selection():
 					discard_clicked.emit()
 				else:
 					# No selection - peek at discard pile (future feature)
@@ -80,7 +86,7 @@ func _on_multi_drag_ended(_tiles: Array, _success: bool) -> void:
 
 
 func _on_drop_zone_mouse_entered() -> void:
-	if SelectionManager.has_selection():
+	if _selection and _selection.has_selection():
 		_is_drag_hovering = true
 		_show_drop_valid()
 	else:

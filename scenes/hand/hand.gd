@@ -13,12 +13,20 @@ signal hand_empty()
 # === Configuration ===
 @export var max_hand_size: int = 10
 
+# === Dependencies ===
+var _selection: SelectionManager = null
+
 # === Node References ===
 @onready var tile_container: HBoxContainer = $TileContainer
 
 
 func _ready() -> void:
 	pass
+
+
+## Sets the SelectionManager reference (injected by Main).
+func set_selection_manager(sm: SelectionManager) -> void:
+	_selection = sm
 
 
 # === Public API: Tile Management ===
@@ -41,7 +49,8 @@ func remove_tile(tile: Tile) -> bool:
 		return false
 
 	# Deselect if selected (via SelectionManager)
-	SelectionManager.deselect_tile(tile)
+	if _selection:
+		_selection.deselect_tile(tile)
 
 	tile_container.remove_child(tile)
 	tile_removed.emit(tile)
@@ -58,7 +67,8 @@ func clear_hand() -> Array[Tile]:
 
 	# Deselect tiles that are in hand
 	for tile in tiles:
-		SelectionManager.deselect_tile(tile)
+		if _selection:
+			_selection.deselect_tile(tile)
 		tile_container.remove_child(tile)
 
 	hand_empty.emit()
@@ -70,33 +80,38 @@ func clear_hand() -> Array[Tile]:
 
 ## Selects a tile (mode-aware via SelectionManager).
 func select_tile(tile: Tile) -> void:
-	if not _has_tile(tile):
+	if not _has_tile(tile) or not _selection:
 		return
-	SelectionManager.select_tile(tile)
+	_selection.select_tile(tile)
 
 
 ## Toggles selection state of a tile (for multi-select).
 func toggle_tile_selection(tile: Tile) -> void:
-	if not _has_tile(tile):
+	if not _has_tile(tile) or not _selection:
 		return
 	# In multi-select mode, SelectionManager.select_tile toggles
-	SelectionManager.select_tile(tile)
+	_selection.select_tile(tile)
 
 
 ## Deselects all tiles.
 func deselect_all() -> void:
-	SelectionManager.deselect_all()
+	if _selection:
+		_selection.deselect_all()
 
 
 ## Selects all tiles in the hand.
 func select_all() -> void:
+	if not _selection:
+		return
 	for tile in get_tiles():
-		SelectionManager.select_tile(tile)
+		_selection.select_tile(tile)
 
 
 ## Returns currently selected tiles that are in this hand.
 func get_selected_tiles() -> Array[Tile]:
-	var all_selected: Array[Tile] = SelectionManager.get_selected_tiles()
+	if not _selection:
+		return []
+	var all_selected: Array[Tile] = _selection.get_selected_tiles()
 	var in_hand: Array[Tile] = []
 	for tile in all_selected:
 		if _has_tile(tile):

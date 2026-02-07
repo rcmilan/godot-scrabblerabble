@@ -11,11 +11,13 @@ extends RefCounted
 
 var board: Board = null
 var hand: Hand = null
+var _selection: SelectionManager = null
 
 
-func setup(p_board: Board, p_hand: Hand) -> void:
+func setup(p_board: Board, p_hand: Hand, p_selection: SelectionManager) -> void:
 	board = p_board
 	hand = p_hand
+	_selection = p_selection
 
 
 # =============================================================================
@@ -28,7 +30,7 @@ func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
 		return
 
 	place_tile_on_cell_silent(tile, cell)
-	SelectionManager.deselect_tile(tile)
+	_selection.deselect_tile(tile)
 
 
 ## Places a tile on a cell without updating selection state.
@@ -71,7 +73,7 @@ func return_tile_to_hand(tile: Tile, preserve_selection: bool = false) -> void:
 		tile.modulate = Color.WHITE
 		EventBus.hand_count_changed.emit(hand.get_tile_count())
 		if not preserve_selection:
-			SelectionManager.deselect_tile(tile)
+			_selection.deselect_tile(tile)
 		return
 
 	if tile.current_cell == null:
@@ -82,7 +84,7 @@ func return_tile_to_hand(tile: Tile, preserve_selection: bool = false) -> void:
 	TileAnimator.animate_return_to_hand(tile, hand, cell)
 
 	if not preserve_selection:
-		SelectionManager.deselect_tile(tile)
+		_selection.deselect_tile(tile)
 
 	clear_all_cell_hovers()
 

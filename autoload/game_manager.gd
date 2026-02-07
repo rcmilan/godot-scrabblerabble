@@ -21,13 +21,39 @@ enum GamePhase {
 # GAME STATE
 # =============================================================================
 
-var current_phase: GamePhase = GamePhase.SETUP
-var current_round: int = 1
-var current_score: int = 0
-var target_score: int = 100
-var plays_remaining: int = 10
-var plays_per_round: int = 10
-var difficulty: int = 0
+var _current_phase: GamePhase = GamePhase.SETUP
+var _current_round: int = 1
+var _current_score: int = 0
+var _target_score: int = 100
+var _plays_remaining: int = 10
+var _plays_per_round: int = 10
+var _difficulty: int = 0
+
+
+# =============================================================================
+# GETTERS
+# =============================================================================
+
+func get_current_phase() -> GamePhase:
+	return _current_phase
+
+func get_current_round() -> int:
+	return _current_round
+
+func get_current_score() -> int:
+	return _current_score
+
+func get_target_score() -> int:
+	return _target_score
+
+func get_plays_remaining() -> int:
+	return _plays_remaining
+
+func get_plays_per_round() -> int:
+	return _plays_per_round
+
+func get_difficulty() -> int:
+	return _difficulty
 
 # =============================================================================
 # CONFIGURATION
@@ -46,36 +72,6 @@ func _ready() -> void:
 # PUBLIC API: GAME LIFECYCLE
 # =============================================================================
 
-## Starts a new game with the given configuration.
-func start_game(bag_config: BagDistribution, game_difficulty: int = 0) -> void:
-	if bag_config == null:
-		push_error("[GameManager] Cannot start game without bag configuration!")
-		return
-
-	# Reset state
-	difficulty = game_difficulty
-	current_round = 1
-	current_score = 0
-	plays_remaining = plays_per_round
-
-	# Initialize bag
-	TileBag.populate_bag(bag_config)
-
-	# Transition to playing
-	_set_phase(GamePhase.PLAYING)
-
-	# Wait for HandManager to be ready before drawing
-	if not HandManager.is_initialized():
-		await HandManager.initialized
-
-	HandManager.refill_hand()
-
-	EventBus.game_started.emit()
-	EventBus.round_started.emit(current_round)
-
-	print("[GameManager] Game started - Round: %d | Difficulty: %d" % [current_round, difficulty])
-
-
 ## Ends the current game.
 func end_game(victory: bool) -> void:
 	_set_phase(GamePhase.VICTORY if victory else GamePhase.GAME_OVER)
@@ -83,22 +79,22 @@ func end_game(victory: bool) -> void:
 
 	if victory:
 		EventBus.game_won.emit()
-		print("[GameManager] Victory! Final score: %d" % current_score)
+		print("[GameManager] Victory! Final score: %d" % _current_score)
 	else:
 		EventBus.game_lost.emit()
-		print("[GameManager] Game Over. Final score: %d" % current_score)
+		print("[GameManager] Game Over. Final score: %d" % _current_score)
 
 
 ## Pauses the game.
 func pause_game() -> void:
-	if current_phase == GamePhase.PLAYING:
+	if _current_phase == GamePhase.PLAYING:
 		_set_phase(GamePhase.PAUSED)
 		EventBus.game_paused.emit()
 
 
 ## Resumes the game.
 func resume_game() -> void:
-	if current_phase == GamePhase.PAUSED:
+	if _current_phase == GamePhase.PAUSED:
 		_set_phase(GamePhase.PLAYING)
 		EventBus.game_resumed.emit()
 
@@ -109,26 +105,26 @@ func resume_game() -> void:
 
 ## Commits the current play and processes scoring.
 func commit_play(score: int) -> void:
-	if current_phase != GamePhase.PLAYING:
+	if _current_phase != GamePhase.PLAYING:
 		return
 
 	# Update score
-	current_score += score
+	_current_score += score
 
 	# Update plays
-	plays_remaining -= 1
+	_plays_remaining -= 1
 
-	EventBus.score_updated.emit(current_score, score)
-	EventBus.play_completed.emit(plays_remaining)
+	EventBus.score_updated.emit(_current_score, score)
+	EventBus.play_completed.emit(_plays_remaining)
 
 	print("[GameManager] Play committed: +%d pts | Total: %d | Plays left: %d" % [
-		score, current_score, plays_remaining
+		score, _current_score, _plays_remaining
 	])
 
 	# Check win/lose conditions
-	if current_score >= target_score:
+	if _current_score >= _target_score:
 		_complete_round(true)
-	elif plays_remaining <= 0:
+	elif _plays_remaining <= 0:
 		if RunManager.is_debug_auto_win():
 			print("[GameManager] Debug auto-win enabled - treating as round win")
 			_complete_round(true)
@@ -138,32 +134,32 @@ func commit_play(score: int) -> void:
 
 ## Starts a new round.
 func start_round(round_num: int, target: int = DEFAULT_TARGET_SCORE, plays: int = DEFAULT_PLAYS_PER_ROUND) -> void:
-	current_round = round_num
-	target_score = target
-	plays_per_round = plays
-	plays_remaining = plays
+	_current_round = round_num
+	_target_score = target
+	_plays_per_round = plays
+	_plays_remaining = plays
 
 	_set_phase(GamePhase.PLAYING)
-	EventBus.round_started.emit(current_round)
+	EventBus.round_started.emit(_current_round)
 
 	print("[GameManager] Round %d started - Target: %d | Plays: %d" % [
-		current_round, target_score, plays_remaining
+		_current_round, _target_score, _plays_remaining
 	])
 
 
 ## Sets up a round from a RoundConfig object.
 func setup_round(config: RoundConfig) -> void:
-	current_round = config.round_number
-	target_score = config.target_score
-	plays_per_round = config.plays_per_round
-	plays_remaining = config.plays_per_round
-	current_score = 0
+	_current_round = config.round_number
+	_target_score = config.target_score
+	_plays_per_round = config.plays_per_round
+	_plays_remaining = config.plays_per_round
+	_current_score = 0
 
 	_set_phase(GamePhase.PLAYING)
-	EventBus.round_started.emit(current_round)
+	EventBus.round_started.emit(_current_round)
 
 	print("[GameManager] Round %d setup - Target: %d | Plays: %d" % [
-		current_round, target_score, plays_remaining
+		_current_round, _target_score, _plays_remaining
 	])
 
 
@@ -172,11 +168,11 @@ func setup_round(config: RoundConfig) -> void:
 # =============================================================================
 
 func is_playing() -> bool:
-	return current_phase == GamePhase.PLAYING
+	return _current_phase == GamePhase.PLAYING
 
 
 func is_game_over() -> bool:
-	return current_phase in [GamePhase.GAME_OVER, GamePhase.VICTORY]
+	return _current_phase in [GamePhase.GAME_OVER, GamePhase.VICTORY]
 
 
 # =============================================================================
@@ -184,8 +180,8 @@ func is_game_over() -> bool:
 # =============================================================================
 
 func _set_phase(new_phase: GamePhase) -> void:
-	var old_phase: GamePhase = current_phase
-	current_phase = new_phase
+	var old_phase: GamePhase = _current_phase
+	_current_phase = new_phase
 	print("[GameManager] Phase: %s -> %s" % [
 		GamePhase.keys()[old_phase],
 		GamePhase.keys()[new_phase]
@@ -194,15 +190,15 @@ func _set_phase(new_phase: GamePhase) -> void:
 
 func _complete_round(success: bool) -> void:
 	_set_phase(GamePhase.ROUND_END)
-	EventBus.round_ended.emit(current_round, success)
+	EventBus.round_ended.emit(_current_round, success)
 
 	if success:
 		print("[GameManager] Round %d complete! Score: %d/%d" % [
-			current_round, current_score, target_score
+			_current_round, _current_score, _target_score
 		])
 		# RunManager handles what comes next (shop or victory)
 	else:
 		print("[GameManager] Round %d failed. Score: %d/%d" % [
-			current_round, current_score, target_score
+			_current_round, _current_score, _target_score
 		])
 		# RunManager handles game over

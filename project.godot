@@ -19,12 +19,9 @@ config/icon="res://icon.svg"
 
 EventBus="*res://autoload/event_bus.gd"
 GameManager="*res://autoload/game_manager.gd"
-DebugManager="*res://autoload/debug_manager.gd"
 TileBag="*res://autoload/tile_bag.gd"
 HandManager="*res://autoload/hand_manager.gd"
-SelectionManager="*res://autoload/selection_manager.gd"
 TileAnimator="*res://autoload/tile_animator.gd"
-DragManager="*res://autoload/drag_manager.gd"
 RunManager="*res://autoload/run_manager.gd"
 
 [dotnet]

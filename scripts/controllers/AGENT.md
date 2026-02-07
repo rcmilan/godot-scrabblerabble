@@ -15,14 +15,15 @@ Controllers encapsulate specific game behaviors that can be activated/deactivate
 ## GameplayController (Coordinator)
 
 ### Purpose
-Coordinator that routes input events and signals to specialized handlers. Retains discard logic, interaction state, tile registration, and signal management.
+Coordinator that routes input events and signals to specialized handlers. Owns DragManager as a local child node. Retains discard logic, interaction state, tile registration, and signal management.
 
 ### Architecture
 ```
 GameplayController (coordinator)
-  ├── TilePlacementHandler  (placement, return, cell helpers)
-  ├── DropHandler            (drag release, drop validation)
-  └── PlayHandler            (play/score, auto-end-round, button state)
+  ├── DragManager             (local child node)
+  ├── TilePlacementHandler    (placement, return, cell helpers)
+  ├── DropHandler             (drag release, drop validation)
+  └── PlayHandler             (play/score, auto-end-round, button state)
 ```
 
 ### Lifecycle
@@ -31,8 +32,8 @@ GameplayController (coordinator)
 var controller = GameplayController.new()
 add_child(controller)
 
-# Inject scene dependencies (creates handlers internally)
-controller.setup(board, hand, discard_pile, discard_dialog, main_hud)
+# Inject scene dependencies including SelectionManager (creates handlers internally)
+controller.setup(board, hand, discard_pile, discard_dialog, main_hud, selection_manager)
 
 # Activate when gameplay should be enabled
 controller.activate()
@@ -49,25 +50,12 @@ controller.deactivate()
 | `play_completed` | `tiles, words` | Tiles played (locked) |
 
 ### Signal Connection Management
-Uses `_safe_connect()` / `_disconnect_all()` pattern with a tracking array to eliminate boilerplate:
-```gdscript
-var _connections: Array[Dictionary] = []
-
-func _safe_connect(sig: Signal, handler: Callable) -> void:
-    sig.connect(handler)
-    _connections.append({"signal": sig, "handler": handler})
-
-func _disconnect_all() -> void:
-    for conn in _connections:
-        if conn.signal.is_connected(conn.handler):
-            conn.signal.disconnect(conn.handler)
-    _connections.clear()
-```
+Uses `_safe_connect()` / `_disconnect_all()` pattern with a tracking array to eliminate boilerplate.
 
 ### Key Methods
 ```gdscript
 # Setup and lifecycle
-setup(board, hand, discard_pile, discard_dialog, hud) -> void
+setup(board, hand, discard_pile, discard_dialog, hud, selection_manager) -> void
 activate() -> void
 deactivate() -> void
 
@@ -78,15 +66,16 @@ register_tile(tile: Tile) -> void
 get_word_validator() -> WordValidator
 ```
 
-### Responsibilities Retained
-- Signal connection management (activate/deactivate)
-- Input routing (`_unhandled_input` for toggle_multi_select, discard_tiles)
-- Tile selection (`_on_tile_selected`, `_on_tile_right_clicked`)
-- Drag coordination (`_on_tile_drag_started`, `_on_tile_drag_ended`, `_handle_drag_release`)
-- Cell interaction (`_on_cell_clicked`, `_on_cell_hovered`, `_on_cell_unhovered`)
-- Discard handlers (`_request_discard`, `_discard_tiles_animated`, `_complete_discard`)
-- Interaction state (`_update_interaction_state`, `_set_hand_tiles_hover_enabled`)
-- Tile registration (`register_tile`)
+### Dependency Injection Chain
+```
+Main creates SelectionManager
+  → Main injects into: hand, discard_pile, multi_select_indicator
+  → Main passes to: GameplayController.setup()
+      → GameplayController creates DragManager (local child)
+      → _placement.setup(board, hand, selection)
+      → _drop.setup(_placement, hand, selection, drag_mgr)
+      → _play.setup(board, main_hud, selection)
+```
 
 ---
 
@@ -98,12 +87,11 @@ Manages tile placement on board cells and returning tiles to hand. Provides cell
 ### Class: `TilePlacementHandler extends RefCounted`
 
 ### Dependencies
-- `Board` and `Hand` (injected via `setup()`)
-- Uses `SelectionManager`, `TileAnimator`, `EventBus` (global autoloads)
+- `Board`, `Hand`, `SelectionManager` (injected via `setup()`)
 
 ### Key Methods
 ```gdscript
-setup(board: Board, hand: Hand) -> void
+setup(board: Board, hand: Hand, selection: SelectionManager) -> void
 place_tile_on_cell(tile: Tile, cell: BoardCell) -> void
 place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void
 return_tile_to_hand(tile: Tile, preserve_selection: bool = false) -> void
@@ -124,12 +112,11 @@ Handles drag-and-drop release validation and execution. Validates drop targets a
 ### Class: `DropHandler extends RefCounted`
 
 ### Dependencies
-- `TilePlacementHandler` and `Hand` (injected via `setup()`)
-- Uses `DragManager`, `SelectionManager`, `TileAnimator` (global autoloads)
+- `TilePlacementHandler`, `Hand`, `SelectionManager`, `DragManager` (injected via `setup()`)
 
 ### Key Methods
 ```gdscript
-setup(placement: TilePlacementHandler, hand: Hand) -> void
+setup(placement: TilePlacementHandler, hand: Hand, selection: SelectionManager, drag_mgr: DragManager) -> void
 handle_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> bool
 ```
 
@@ -153,12 +140,12 @@ Manages play submission, word validation, scoring, and auto-end-round logic. Con
 | `play_completed` | `tiles, words` | Play submitted (forwarded to coordinator) |
 
 ### Dependencies
-- `Board` and `MainHUD` (injected via `setup()`)
-- Uses `GameManager`, `HandManager`, `TileBag`, `TileAnimator`, `SelectionManager`, `EventBus` (global autoloads)
+- `Board`, `MainHUD`, `SelectionManager` (injected via `setup()`)
+- Uses `GameManager`, `HandManager`, `TileBag`, `TileAnimator`, `EventBus` (global autoloads)
 
 ### Key Methods
 ```gdscript
-setup(board: Board, hud: CanvasLayer) -> void
+setup(board: Board, hud: CanvasLayer, selection: SelectionManager) -> void
 on_play_requested() -> void
 update_play_button_state() -> void
 get_word_validator() -> WordValidator
@@ -170,60 +157,32 @@ has_valid_moves() -> bool
 ## MenuController
 
 ### Purpose
-Manages menu navigation and input handling for the title screen including:
-- Keyboard navigation (WASD and arrow keys)
-- Mouse interaction (clicks and hover)
-- Quick navigation shortcuts (A/D for first/last)
-- Focus management and visual feedback
+Manages menu navigation and input handling for the title screen.
 
 ### Lifecycle
 ```gdscript
-# Created and added as child of TitleScreen
 var controller = MenuController.new()
 add_child(controller)
-
-# Inject menu button dependencies
 controller.setup(new_game_btn, options_btn, exit_btn)
-
-# Activate when menu should be enabled
 controller.activate()
-
-# Deactivate for popups or transitions
-controller.deactivate()
 ```
-
-### Signals
-| Signal | Parameters | Description |
-|--------|------------|-------------|
-| `menu_item_selected` | `index` | Menu item focused/highlighted |
-| `new_game_requested` | - | New Game option selected |
-| `options_requested` | - | Options option selected |
-| `exit_requested` | - | Exit option selected |
 
 ---
 
 ## Design Principles
 
 ### Composition Over Inheritance
-Controllers are added as children of the scene they control, not extended. This allows:
-- Easy activation/deactivation
-- Clean separation of concerns
-- Testability in isolation
+Controllers are added as children of the scene they control, not extended.
 
 ### Dependency Injection
-Controllers receive their dependencies via `setup()` rather than finding nodes themselves. This:
-- Makes dependencies explicit
-- Allows different configurations
-- Enables testing with mock objects
+Controllers receive their dependencies via `setup()` rather than finding nodes themselves. SelectionManager and DragManager are injected — not accessed as autoloads.
 
 ### Coordinator Pattern
 GameplayController delegates to focused handlers (RefCounted objects) while retaining:
 - Signal management (connect/disconnect lifecycle)
 - Input routing and event dispatching
 - Cross-cutting concerns (discard straddles placement + UI)
+- DragManager ownership (local child node)
 
 ### Signal-Based Communication
-Controllers emit signals for completed actions rather than directly calling scene methods. This:
-- Decouples controller from specific scene implementation
-- Allows multiple listeners
-- Makes data flow explicit
+Controllers emit signals for completed actions rather than directly calling scene methods.

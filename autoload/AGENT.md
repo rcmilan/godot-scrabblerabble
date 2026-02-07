@@ -3,15 +3,22 @@
 ## Overview
 Global singleton managers that coordinate game-wide systems. These are automatically loaded by Godot and accessible from any script.
 
+**Active Autoloads (6):** EventBus, GameManager, TileBag, HandManager, TileAnimator, RunManager
+
+**Demoted (3):**
+- **SelectionManager** → Local node created by Main, injected via `set_selection_manager()`
+- **DragManager** → Local node created by GameplayController, injected via `setup()`
+- **DebugManager** → RefCounted helper owned by DebugConsole
+
 ## Files
 - `event_bus.gd` - Global signal hub
-- `game_manager.gd` - Game state and phase management
+- `game_manager.gd` - Game state and phase management (encapsulated behind getters)
 - `hand_manager.gd` - Hand operations and discard pile
 - `tile_bag.gd` - Tile pool (deck) management
-- `selection_manager.gd` - Tile selection state (single/multi-select)
+- `selection_manager.gd` - Tile selection state (NOT an autoload — local node)
 - `tile_animator.gd` - Tile animation coordinator
-- `drag_manager.gd` - Multi-tile drag coordination
-- `debug_manager.gd` - Debug commands and logging
+- `drag_manager.gd` - Multi-tile drag coordination (NOT an autoload — local node)
+- `run_manager.gd` - Run lifecycle orchestrator
 
 ---
 
@@ -49,11 +56,9 @@ Centralized signal hub for decoupled communication between systems.
 | `discard_count_changed` | `count: int` | Discard pile size changed |
 | `discard_pile_changed` | `tiles: Array` | Discard pile modified |
 
-#### Selection Events
+#### Drag Events
 | Signal | Parameters | Description |
 |--------|------------|-------------|
-| `selection_mode_changed` | `is_multi: bool` | Single/multi mode toggled |
-| `selection_changed` | `tiles: Array` | Selection changed |
 | `multi_drag_started` | `tiles: Array` | Multi-tile drag began |
 | `multi_drag_ended` | `tiles, success` | Multi-tile drag ended |
 
@@ -97,18 +102,39 @@ Centralized signal hub for decoupled communication between systems.
 ```gdscript
 # Connect to signals
 EventBus.tile_placed.connect(_on_tile_placed)
-EventBus.selection_changed.connect(_on_selection_changed)
 
 # Emit signals
 EventBus.score_updated.emit(total_score, points_earned)
 ```
 
+**Note:** Selection signals (`mode_changed`, `selection_changed`) are now on SelectionManager (local node), not EventBus.
+
 ---
 
-## SelectionManager
+## SelectionManager (Local Node — NOT Autoload)
 
 ### Purpose
 Central source of truth for tile selection state. Manages single-select and multi-select modes with ordered selection tracking.
+
+### Lifecycle
+Created by Main and injected into consumers:
+```gdscript
+# In Main._ready():
+_selection_manager = SelectionManager.new()
+_selection_manager.name = "SelectionManager"
+add_child(_selection_manager)
+
+hand.set_selection_manager(_selection_manager)
+discard_pile.set_selection_manager(_selection_manager)
+multi_select_indicator.set_selection_manager(_selection_manager)
+gameplay_controller.setup(..., _selection_manager)
+```
+
+### Signals (on SelectionManager instance, not EventBus)
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `mode_changed` | `is_multi: bool` | Single/multi mode toggled |
+| `selection_changed` | `tiles: Array` | Selection changed |
 
 ### Selection Modes
 ```gdscript
@@ -118,47 +144,17 @@ enum SelectionMode {
 }
 ```
 
-### Key Properties
-```gdscript
-var mode: SelectionMode = SelectionMode.SINGLE
-var _selected_tiles: Array[Tile]  # Ordered by selection time
-```
-
 ### Key Methods
 ```gdscript
-# Mode management
-toggle_mode() -> void               # Switch between single/multi
-set_mode(new_mode: SelectionMode)   # Set mode explicitly
-is_multi_select_enabled() -> bool   # Check if multi-select active
-
-# Selection operations
-select_tile(tile: Tile) -> void     # Select (mode-aware)
-deselect_tile(tile: Tile) -> void   # Deselect specific tile
-deselect_all() -> void              # Clear all selection
-
-# Queries
-get_selected_tiles() -> Array[Tile] # Get selected in order
-get_selection_count() -> int        # Number selected
-get_tile_order(tile: Tile) -> int   # Position in selection (-1 if not)
-has_selection() -> bool             # Check if any selected
-```
-
-### Mode Behavior
-- **SINGLE mode**: Clicking selects only that tile, deselects others
-- **MULTI mode**: Clicking toggles tile selection, order preserved
-- **Leaving MULTI mode**: All tiles are deselected
-
-### Usage
-```gdscript
-# Toggle multi-select
-SelectionManager.toggle_mode()
-
-# Select tiles
-SelectionManager.select_tile(tile1)
-SelectionManager.select_tile(tile2)
-
-# Get selection for discard/placement
-var tiles = SelectionManager.get_selected_tiles()
+toggle_mode() -> void
+set_mode(new_mode: SelectionMode)
+is_multi_select_enabled() -> bool
+select_tile(tile: Tile) -> void
+deselect_tile(tile: Tile) -> void
+deselect_all() -> void
+get_selected_tiles() -> Array[Tile]
+get_selection_count() -> int
+has_selection() -> bool
 ```
 
 ---
@@ -166,41 +162,28 @@ var tiles = SelectionManager.get_selected_tiles()
 ## GameManager
 
 ### Purpose
-Central game state controller. Manages phases, scoring, and round progression.
+Central game state controller. Manages phases, scoring, and round progression. State is encapsulated behind getters.
 
 ### Game Phases
 ```gdscript
 enum GamePhase {
-    SETUP,      # Loading/initialization
-    PLAYING,    # Active gameplay
-    PAUSED,     # Game paused
-    ROUND_END,  # Processing round results
-    GAME_OVER,  # Game lost
-    VICTORY     # Game won
+    SETUP, PLAYING, PAUSED, ROUND_END, GAME_OVER, VICTORY
 }
 ```
 
-### Key Properties
+### Getters (state is private)
 ```gdscript
-var current_phase: GamePhase
-var current_round: int
-var current_score: int
-var target_score: int
-var plays_remaining: int
-var plays_per_round: int
-var difficulty: int
-```
-
-### Configuration Constants
-```gdscript
-const DEFAULT_HAND_SIZE: int = 10
-const DEFAULT_PLAYS_PER_ROUND: int = 2
-const DEFAULT_TARGET_SCORE: int = 1000000
+get_current_phase() -> GamePhase
+get_current_round() -> int
+get_current_score() -> int
+get_target_score() -> int
+get_plays_remaining() -> int
+get_plays_per_round() -> int
+get_difficulty() -> int
 ```
 
 ### Key Methods
 ```gdscript
-start_game(bag_config, difficulty) -> void
 end_game(victory: bool) -> void
 pause_game() -> void
 resume_game() -> void
@@ -211,20 +194,6 @@ is_playing() -> bool
 is_game_over() -> bool
 ```
 
-### Usage
-```gdscript
-# Start a new game
-var bag = load("res://Data/BagDistribution/bag_default.tres")
-GameManager.start_game(bag, 0)
-
-# Commit a play
-GameManager.commit_play(calculated_score)
-
-# Check state
-if GameManager.is_playing():
-    # Accept input
-```
-
 ---
 
 ## HandManager
@@ -232,161 +201,69 @@ if GameManager.is_playing():
 ### Purpose
 Manages tile flow between bag, hand, and discard pile.
 
-### Configuration
+### Initialization
+Single initialization path via `set_references(hand_ui: Node)` called from Main._ready().
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `initialized` | none | References are set and ready |
+| `tile_ready` | `tile: Tile` | New tile drawn, ready for registration |
+
+### Key Methods
 ```gdscript
-const DEFAULT_HAND_SIZE: int = 10
-const MAX_HAND_SIZE: int = 15
+set_references(hand_ui: Node) -> void
+draw_tiles(count: int) -> int
+refill_hand() -> int
+discard_tile(tile: Tile) -> bool
+get_hand_size() -> int
+is_hand_empty() -> bool
+set_hand_size(size: int) -> void
 ```
 
-### Key Properties
+### Tile Registration
+When tiles are drawn, HandManager emits `tile_ready(tile)`. Main connects this to `register_tile()` which wires tile signals to GameplayController.
+
+---
+
+## DragManager (Local Node — NOT Autoload)
+
+### Purpose
+Coordinates multi-tile drag operations. Created by GameplayController.
+
+### Lifecycle
 ```gdscript
-var hand_size: int = 10  # Target hand size
-var discard_pile: Array[Tile]
+# In GameplayController.setup():
+_drag_mgr = DragManager.new()
+_drag_mgr.name = "DragManager"
+add_child(_drag_mgr)
 ```
 
 ### Key Methods
 ```gdscript
-# Drawing
-draw_tiles(count: int) -> int       # Draw from bag
-refill_hand() -> int                # Fill to hand_size
-
-# Discarding
-discard_tile(tile: Tile) -> bool    # Discard single tile
-discard_selected() -> int           # Discard selected tiles
-get_discard_pile() -> Array[Tile]   # Get discarded tiles
-get_discard_count() -> int          # Count discarded
-clear_discard_pile() -> Array[Tile] # Clear and return pile
-
-# Queries
-get_hand_size() -> int
-is_hand_empty() -> bool
-is_hand_full() -> bool
-set_hand_size(size: int) -> void
+start_drag(lead: Tile, tiles: Array[Tile]) -> void
+end_drag(success: bool) -> void
+cancel_drag() -> void
+restore_tiles_to_parents() -> void
+get_dragged_tiles() -> Array[Tile]
 ```
 
-### Initialization
-HandManager supports two initialization modes:
-- **Explicit injection** (preferred): `set_references(main, hand_ui)` called from Main._ready()
-- **Fallback**: `_try_initialize()` searches scene tree for Main/Hand nodes (retries each frame)
-- Emits `initialized` signal when ready
-- GameManager.start_game() waits for this signal before drawing
-
-### Tile Signal Registration
-When tiles are drawn:
-1. HandManager.draw_tiles() adds tile to Hand UI
-2. `_connect_tile_signals(tile)` calls Main.register_tile(tile)
-3. Main connects tile events to its gameplay handler
-4. Ensures tile events are properly wired to game flow
-
-### Atomic State Management
-When discarding tiles:
-```gdscript
-# Discard flow is atomic:
-_hand_ui.remove_tile(tile)        # Remove from UI
-tile.move_to_discard()            # Atomic state: location = IN_DISCARD
-discard_pile.append(tile)         # Add to pile
-EventBus.tile_discarded.emit(tile) # Signal listeners
-# Either fully complete or not at all—no partial state
-```
-
-### Usage
-```gdscript
-# Start game - waits for initialization
-await HandManager.initialized
-HandManager.refill_hand()
-
-# Refill hand at round start
-HandManager.refill_hand()
-
-# Discard a tile
-HandManager.discard_tile(unwanted_tile)
-
-# Get discard pile for effects
-var discarded = HandManager.get_discard_pile()
-
-# Discard all selected
-var count = HandManager.discard_selected()
-```
+### EventBus Integration
+DragManager still emits `EventBus.multi_drag_started` and `EventBus.multi_drag_ended` for DiscardPile to receive.
 
 ---
 
 ## TileBag
 
 ### Purpose
-Manages the pool of available tiles (the deck). Handles tile creation, shuffling, and drawing.
-
-### Key Properties
-```gdscript
-var available_tiles: Array[Tile]
-var drawn_tiles: Array[Tile]
-var current_distribution: BagDistribution
-```
+Manages the pool of available tiles (the deck).
 
 ### Key Methods
 ```gdscript
-# Bag management
 populate_bag(distribution: BagDistribution) -> bool
-shuffle_bag() -> void
-reset_bag() -> void
-
-# Drawing
 draw_tile() -> Tile
-draw_tiles(count: int) -> Array[Tile]
-return_tile(tile: Tile) -> void
-
-# Queries
 tiles_remaining() -> int
 is_empty() -> bool
-get_initial_count() -> int
-get_drawn_count() -> int
-peek_tiles(count: int) -> Array[Tile]
-```
-
-### Usage
-```gdscript
-# Populate bag with distribution
-var config = load("res://Data/BagDistribution/bag_default.tres")
-TileBag.populate_bag(config)
-
-# Draw tiles
-var tile = TileBag.draw_tile()
-if tile:
-    hand.add_tile(tile)
-
-# Check remaining
-print("Tiles left: ", TileBag.tiles_remaining())
-```
-
----
-
-## DebugManager
-
-### Purpose
-Command-based debug system for testing and development. Provides console commands for rapid testing of tile creation, drawing, and board manipulation.
-
-### Commands
-| Command | Usage | Description |
-|---------|-------|-------------|
-| `help` | `help` | Show all available commands |
-| `spawn` | `spawn <letter> [count]` | Spawn tiles directly to hand (e.g., `spawn A 3`) |
-| `draw` | `draw [count]` | Draw tiles from bag (e.g., `draw 5`) |
-| `clear_board` | `clear_board` | Remove all tiles from board |
-| `close/exit` | `close` or `exit` | Hide the debug console |
-
-### Implementation Details
-- Parses console input as space-separated commands
-- Spawned tiles are registered via `Main.register_tile()` for proper signal wiring
-- `clear_board` detaches tiles from cells and returns them to hand directly
-- Communicates with HandManager and Board for operations
-- Logs all debug activity to console and debug console UI
-
-### Usage Example
-```gdscript
-# In debug console:
-help              # Shows available commands
-spawn A 5         # Creates 5 A tiles in hand
-draw 3            # Draws 3 tiles from bag
-clear_board       # Removes all board tiles
 ```
 
 ---
@@ -394,182 +271,20 @@ clear_board       # Removes all board tiles
 ## TileAnimator
 
 ### Purpose
-Coordinates tile animations across the game. Uses Strategy pattern with Executor composition for flexibility.
-
-### Architecture
-TileAnimator acts as a **thin facade** that delegates to specialized executors:
-
-```
-TileAnimator (facade)
-├── AnimationContext (shared state)
-├── BatchAnimationExecutor (draw animations)
-├── ReturnAnimationExecutor (return/cancel animations)
-├── ShakeAnimationExecutor (shake effect)
-└── StompAnimationExecutor (stomp with particles)
-```
-
-### Signals
-| Signal | Parameters | Description |
-|--------|------------|-------------|
-| `animation_started` | `tiles: Array[Tile]` | Batch animation began |
-| `animation_completed` | `tiles: Array[Tile]` | Batch animation finished |
-| `single_tile_animated` | `tile: Tile` | Individual tile completed |
+Coordinates tile animations. Uses Strategy pattern with Executor composition.
 
 ### Key Methods
 ```gdscript
-# Main API
-animate_draw_batch(tiles: Array[Tile]) -> void          # Draw animation (tiles rise from below)
-animate_return_to_hand(tile, hand, cell) -> void        # Return single tile from board to hand
-animate_cancel_to_hand(tiles, hand) -> void             # Animate batch return during drag cancel
-animate_shake(tile: Tile) -> void                       # Illegal action feedback (shake left-right)
-animate_stomp_batch(tiles: Array[Tile]) -> void         # Play confirmation (stomp with particles)
-animate_discard_batch(tiles, target, callback) -> void  # Discard animation (glide to pile, call callback)
-
-# State queries
-is_animating() -> bool                                  # Check if any animations active
-
-# Control
-cancel_all() -> void                                    # Cancel all active animations
-cancel_tile_animation(tile: Tile) -> void               # Cancel specific tile's animation
+animate_draw_batch(tiles: Array[Tile]) -> void
+animate_return_to_hand(tile, hand, cell) -> void
+animate_cancel_to_hand(tiles, hand, restore_fn: Callable) -> void
+animate_shake(tile: Tile) -> void
+animate_stomp_batch(tiles: Array[Tile]) -> void
+animate_discard_batch(tiles, target, callback) -> void
+cancel_all() -> void
 ```
 
-### Animation Flow
-
-#### Draw Animation
-```
-1. HandManager.draw_tiles() collects drawn tiles into hand
-2. TileAnimator.animate_draw_batch(tiles) called
-3. await process_frame (HBoxContainer layout calculates final positions)
-4. For each tile (staggered with delays):
-   - Capture final position in hand
-   - Set position to below-screen (start state)
-   - Tween: move to final position, scale from 0→1, fade in
-5. Emit animation_completed signal
-```
-
-#### Discard Animation
-```
-1. User confirms discard (Z key or drag to pile)
-2. TileAnimator.animate_discard_batch(tiles, target_pos, callback) called
-3. For each selected tile:
-   - Glide from current position to discard pile
-   - Run callback when all complete
-4. HandManager.discard_tile() removes from hand (during callback)
-5. HandManager.refill_hand() draws replacements
-```
-
-**Critical Note**: `await process_frame` is essential—it allows layout calculations before capturing final positions. Without it, positions are wrong.
-
-### Usage
-```gdscript
-# Draw animation is automatic via HandManager
-HandManager.draw_tiles(5)  # Tiles animate automatically
-
-# Listen for animation events
-TileAnimator.animation_completed.connect(_on_draw_complete)
-
-# Check if animating
-if TileAnimator.is_animating():
-    # Wait or skip interaction
-```
-
-### Strategy Pattern
-TileAnimator uses animation strategies from `scripts/animation/`:
-- **DrawTileAnimation** - Tiles rise from below, scale up, fade in
-- **GlideTileAnimation** - Tiles glide smoothly between positions (return, discard, etc.)
-- **ShakeTileAnimation** - Tiles shake left-right for illegal action feedback
-- **StompTileAnimation** - Tiles stomp (scale up/down) with impact particles
-
-### Executor Classes
-Located in `scripts/animation/executors/`:
-- **AnimationContext** - Shared state (active tweens, signals)
-- **AnimationExecutor** - Base class with common helpers
-- **BatchAnimationExecutor** - Staggered batch animations
-- **ReturnAnimationExecutor** - Return-to-hand and cancel animations
-- **ShakeAnimationExecutor** - Shake effect for illegal actions
-- **StompAnimationExecutor** - Stomp effect with particle spawning
-
-See [scripts/animation/AGENT.md](../scripts/animation/AGENT.md) for creating custom animations.
-
----
-
-## DragManager
-
-### Purpose
-Coordinates multi-tile drag operations. When multiple tiles are selected and dragged, all selected tiles move together as a preview.
-
-### Key Properties
-```gdscript
-var is_dragging: bool = false
-var dragged_tiles: Array[Tile] = []
-var lead_tile: Tile = null  # The tile directly dragged by user
-```
-
-### Signals
-| Signal | Parameters | Description |
-|--------|------------|-------------|
-| `drag_started` | `tiles: Array[Tile]` | Multi-drag began |
-| `drag_ended` | `tiles, success` | Drag finished |
-| `drag_cancelled` | `tiles: Array[Tile]` | Drag was cancelled |
-| `drag_release_requested` | `lead_tile: Tile` | Mouse released during drag |
-
-### Key Methods
-```gdscript
-# Drag lifecycle
-start_drag(lead: Tile, tiles: Array[Tile]) -> void   # Start drag (lead must be in tiles)
-end_drag(success: bool) -> void                       # End drag operation
-cancel_drag() -> void                                 # Cancel and restore
-
-# Tile restoration
-restore_tiles_to_parents() -> void   # Return tiles to original parents (before placement)
-
-# Queries
-get_drag_position() -> Vector2       # Lead tile's position
-get_dragged_tiles() -> Array[Tile]   # Currently dragged tiles (copy)
-get_original_parent(tile) -> Node    # Tile's original parent
-get_original_position(tile) -> Vector2  # Tile's position before drag
-```
-
-### Atomic State Management
-DragManager implements **atomic state management** for tile consistency:
-- **Suspend/Restore Cell Binding**: When dragging tiles from board, cell references are suspended so cells become available for new placements. After drag ends, bindings are restored if tiles weren't placed.
-- **Parent Tracking**: Stores original parent node, position, and child index before reparenting to drag container
-- **Force State Reset**: `force_end_drag()` on tiles resets their internal drag state flag
-- **Consistency Guarantee**: Either placement succeeds (tiles placed) or original state is restored—no in-between states
-
-### Configuration
-```gdscript
-const DRAG_Z_INDEX: int = 100        # Z-index during drag
-const TILE_SPACING: float = 68.0     # Spacing between multi-selected tiles in drag preview
-```
-
-### Drag Flow
-```
-1. User starts dragging a selected tile
-2. Main._on_tile_drag_started() gets all selected tiles
-3. DragManager.start_drag(lead, tiles) called
-   - Stores original parents, positions, indices
-   - Reparents all tiles to DragContainer
-   - Calculates relative offsets from lead
-4. During drag: DragManager._process() updates follower positions
-5. On drop: Main._on_tile_drag_ended()
-   - DragManager.restore_tiles_to_parents() returns tiles
-   - Place tiles on board OR cancel
-   - DragManager.end_drag(success) cleans up
-```
-
-### Usage
-```gdscript
-# In Main._on_tile_drag_started:
-var tiles_to_drag = SelectionManager.get_selected_tiles()
-DragManager.start_drag(tile, tiles_to_drag)
-
-# In Main._on_tile_drag_ended:
-var tiles = DragManager.get_dragged_tiles()
-DragManager.restore_tiles_to_parents()
-# ... place tiles or cancel
-DragManager.end_drag(success)
-```
+**Note:** `animate_cancel_to_hand` now accepts a `restore_fn` callable parameter instead of calling DragManager directly.
 
 ---
 
@@ -577,22 +292,18 @@ DragManager.end_drag(success)
 Autoloads are loaded in the order specified in `project.godot`:
 1. EventBus
 2. GameManager
-3. DebugManager
-4. TileBag
-5. HandManager
-6. SelectionManager
-7. TileAnimator
-8. DragManager
-9. RunManager
+3. TileBag
+4. HandManager
+5. TileAnimator
+6. RunManager
 
-**Note**: Autoloads load before scenes, so they cannot reference scene types directly at declaration time. Use runtime type checking instead.
+**Note**: DebugManager, SelectionManager, and DragManager are no longer autoloads.
 
 ---
 
 ## Input Actions
-These input actions are used by the autoload systems:
 
-| Action | Key | Manager |
+| Action | Key | Consumer |
 |--------|-----|---------|
-| `toggle_multi_select` | Q | SelectionManager (via Main) |
-| `discard_tiles` | Z | HandManager (via Main) |
+| `toggle_multi_select` | Q | GameplayController → SelectionManager |
+| `discard_tiles` | Z | GameplayController → discard flow |

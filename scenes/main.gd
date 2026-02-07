@@ -12,6 +12,12 @@ class_name Main
 var _gameplay_controller: GameplayController = null
 
 # =============================================================================
+# LOCAL MANAGERS
+# =============================================================================
+
+var _selection_manager: SelectionManager = null
+
+# =============================================================================
 # NODE REFERENCES
 # =============================================================================
 
@@ -22,6 +28,7 @@ var _gameplay_controller: GameplayController = null
 @onready var main_hud: CanvasLayer = $MainHUD
 @onready var shop_overlay: ShopOverlay = $ShopOverlay
 @onready var game_over_popup: GameOverPopup = $GameOverPopup
+@onready var multi_select_indicator: Control = $MultiSelectIndicator
 
 
 # =============================================================================
@@ -29,16 +36,28 @@ var _gameplay_controller: GameplayController = null
 # =============================================================================
 
 func _ready() -> void:
-	HandManager.set_references(self, hand)
+	_setup_selection_manager()
+	HandManager.set_references(hand)
+	HandManager.tile_ready.connect(register_tile)
 	_setup_controllers()
 	_connect_run_signals()
 	_start_run()
 
 
+func _setup_selection_manager() -> void:
+	_selection_manager = SelectionManager.new()
+	_selection_manager.name = "SelectionManager"
+	add_child(_selection_manager)
+
+	hand.set_selection_manager(_selection_manager)
+	discard_pile.set_selection_manager(_selection_manager)
+	multi_select_indicator.set_selection_manager(_selection_manager)
+
+
 func _setup_controllers() -> void:
 	_gameplay_controller = GameplayController.new()
 	add_child(_gameplay_controller)
-	_gameplay_controller.setup(board, hand, discard_pile, discard_dialog, main_hud)
+	_gameplay_controller.setup(board, hand, discard_pile, discard_dialog, main_hud, _selection_manager)
 	_gameplay_controller.play_completed.connect(_on_play_completed)
 
 
@@ -124,8 +143,8 @@ func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
 
 	GameManager.commit_play(total_score)
 	print("[Main] Play committed: %d pts from %d words | Score: %d/%d | Plays left: %d" % [
-		total_score, words.size(), GameManager.current_score,
-		GameManager.target_score, GameManager.plays_remaining
+		total_score, words.size(), GameManager.get_current_score(),
+		GameManager.get_target_score(), GameManager.get_plays_remaining()
 	])
 
 
@@ -141,7 +160,7 @@ func _on_shop_requested(round_number: int) -> void:
 	var next_config: RoundConfig = RunManager.progression_rules.get_round_config(
 		RunManager.run_state
 	)
-	shop_overlay.show_shop(round_number, GameManager.current_score, next_config)
+	shop_overlay.show_shop(round_number, GameManager.get_current_score(), next_config)
 	print("[Main] Showing shop after round %d" % round_number)
 
 

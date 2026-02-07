@@ -2,6 +2,14 @@ extends Node
 
 ## SelectionManager: Central source of truth for tile selection state and mode.
 ## Manages single/multi-select modes and maintains ordered selection.
+## Created as a local node by Main and injected into consumers via setup().
+
+# =============================================================================
+# SIGNALS
+# =============================================================================
+
+signal mode_changed(is_multi: bool)
+signal selection_changed(selected_tiles: Array)
 
 # =============================================================================
 # ENUMS
@@ -17,7 +25,7 @@ enum SelectionMode {
 # =============================================================================
 
 var mode: SelectionMode = SelectionMode.MULTI
-var _selected_tiles: Array[Tile] = []  # Ordered by selection time
+var _selected_tiles: Array[Tile] = []
 
 # =============================================================================
 # MODE MANAGEMENT
@@ -43,7 +51,7 @@ func set_mode(new_mode: SelectionMode) -> void:
 	if was_multi and mode == SelectionMode.SINGLE:
 		deselect_all()
 
-	EventBus.selection_mode_changed.emit(is_multi_select_enabled())
+	mode_changed.emit(is_multi_select_enabled())
 	print("[SelectionManager] Mode changed to: %s" % SelectionMode.keys()[mode])
 
 
@@ -79,7 +87,7 @@ func deselect_tile(tile: Tile) -> void:
 	# Update order for remaining tiles
 	_update_selection_orders()
 
-	EventBus.selection_changed.emit(get_selected_tiles())
+	selection_changed.emit(get_selected_tiles())
 
 
 ## Deselects all tiles.
@@ -89,7 +97,7 @@ func deselect_all() -> void:
 		tile.set_selection_order(-1)
 
 	_selected_tiles.clear()
-	EventBus.selection_changed.emit([])
+	selection_changed.emit([])
 
 
 ## Returns the currently selected tiles in selection order.
@@ -144,7 +152,7 @@ func _select_single(tile: Tile) -> void:
 	tile.set_selected(true)
 	tile.set_selection_order(0)
 
-	EventBus.selection_changed.emit(get_selected_tiles())
+	selection_changed.emit(get_selected_tiles())
 
 
 func _toggle_multi(tile: Tile) -> void:
@@ -157,7 +165,7 @@ func _toggle_multi(tile: Tile) -> void:
 		tile.set_selected(true)
 		tile.set_selection_order(_selected_tiles.size() - 1)
 
-		EventBus.selection_changed.emit(get_selected_tiles())
+		selection_changed.emit(get_selected_tiles())
 
 
 func _update_selection_orders() -> void:

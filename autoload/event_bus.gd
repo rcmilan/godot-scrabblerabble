@@ -112,14 +112,8 @@ signal game_paused()
 signal game_resumed()
 
 # =============================================================================
-# SELECTION EVENTS
+# DRAG EVENTS
 # =============================================================================
-
-## Emitted when selection mode changes (single <-> multi).
-signal selection_mode_changed(is_multi_select: bool)
-
-## Emitted when selection changes.
-signal selection_changed(selected_tiles: Array)
 
 ## Emitted when multi-tile drag starts.
 signal multi_drag_started(tiles: Array)

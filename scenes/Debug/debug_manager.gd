@@ -1,32 +1,31 @@
-extends Node
+class_name DebugManager
+extends RefCounted
 
-
-##This script handles debugging functions and logic
-##The current debug system uses a console 
-##Debug functionality is centralized here to avoid making main.gd difficult to maintain and contextually sane
+## DebugManager: Debug command helper owned by DebugConsole.
+## Provides console commands for rapid testing of tile creation, drawing, and board manipulation.
 
 # Referencing game systems
-var main_scene: Node = null
+var _main_scene: Node = null
+var _log_fn: Callable
 var tile_scene: PackedScene = preload("res://scenes/tile/Tile.tscn")
 
-# Console callback
-var console_print: Callable
 
-func _ready() -> void:
-	#Getting main scene reference
-	await get_tree().process_frame
-	main_scene = get_tree().root.get_node("Main")
-	print("[DebugManager] is Ready")
-	
-#Parse and execute a console command
+## Sets up the debug manager with references.
+func setup(main: Node, log_fn: Callable) -> void:
+	_main_scene = main
+	_log_fn = log_fn
+	print("[DebugManager] Initialized")
+
+
+## Parse and execute a console command.
 func execute_command(command: String) -> void:
 	var parts = command.split(" ", false)
 	if parts.is_empty():
 		return
-		
+
 	var cmd = parts[0].to_lower()
 	var args = parts.slice(1)
-	
+
 	match cmd:
 		"help":
 			cmd_help()
@@ -42,10 +41,9 @@ func execute_command(command: String) -> void:
 			log_output("Unknown command: %s (type 'help' for available commands)" % cmd)
 
 
-#commands
+# commands
 
-
-##help
+## help
 func cmd_help() -> void:
 	log_output("Available commands: ")
 	log_output("  help - Shows debug helper menu")
@@ -54,40 +52,45 @@ func cmd_help() -> void:
 	log_output("  draw [count] - Draw tile(s) from bag (e.g., 'draw' or 'draw 5')")
 	log_output("  clear_board - Remove all tiles from board")
 
-##close console
+
+## close console
 func cmd_close() -> void:
-	# Access the console through the scene tree
-	var console = get_tree().root.get_node("Main/DebugConsole")
+	if _main_scene == null:
+		log_output("Error: Main scene not found")
+		return
+	var console = _main_scene.get_node_or_null("DebugConsole")
 	if console:
 		console.hide_console()
 	else:
 		log_output("Error: Console not found")
-	
-##spawn a tile for a specific letter in the hand
+
+
+## spawn a tile for a specific letter in the hand
 func cmd_spawn(args: Array) -> void:
 	if args.is_empty():
 		log_output("Please give a letter as argument: spawn <letter> [count]")
 		return
-	
+
 	var letter = args[0].to_upper()
 	var count = int(args[1]) if args.size() > 1 else 1
-	
+
 	if letter.length() != 1 or not letter.unicode_at(0) >= 65 or not letter.unicode_at(0) <= 90:
 		log_output("Error: Must be a valid letter from the English alphabet")
 		return
-	
+
 	spawn_tile(letter, count)
-	
-#board clearer
+
+
+## board clearer
 func cmd_clear_board() -> void:
-	if main_scene == null:
+	if _main_scene == null:
 		log_output("Error: Main scene not found.")
 		return
 
-	var board = main_scene.get_node("Board")
+	var board = _main_scene.get_node("Board")
 	var tiles_cleared = 0
 
-	var hand = main_scene.get_node("Hand")
+	var hand = _main_scene.get_node("Hand")
 	for cell in board.get_all_cells():
 		if cell.is_occupied() and cell.tile != null:
 			var tile: Tile = cell.tile
@@ -104,9 +107,9 @@ func cmd_clear_board() -> void:
 	log_output("Cleared %d tile(s) from board" % tiles_cleared)
 
 
-#creating tile spawning function
+## creating tile spawning function
 func spawn_tile(letter: String, count: int = 1) -> void:
-	if main_scene == null:
+	if _main_scene == null:
 		log_output("Error: Main scene not found.")
 		return
 
@@ -118,7 +121,7 @@ func spawn_tile(letter: String, count: int = 1) -> void:
 		log_output("Error: Failed to load tile data for letter: %s" % letter)
 		return
 
-	var hand = main_scene.get_node("Hand")
+	var hand = _main_scene.get_node("Hand")
 
 	for i in count:
 		var new_tile = tile_scene.instantiate()
@@ -126,24 +129,24 @@ func spawn_tile(letter: String, count: int = 1) -> void:
 		hand.add_tile(new_tile)
 
 		# Register tile with the gameplay controller via Main
-		main_scene.register_tile(new_tile)
+		_main_scene.register_tile(new_tile)
 
 	log_output("Spawned %d x '%s' tile(s)" % [count, letter])
 
-##debug draw command
+
+## debug draw command
 func cmd_draw(args: Array) -> void:
 	var count = int(args[0]) if args.size() > 0 else 1
-	
+
 	if count < 1:
 		log_output("Error: Count must be at least 1")
 		return
-	
+
 	HandManager.draw_tiles(count)
-	
 
 
-#logging to console
+## logging to console
 func log_output(message: String) -> void:
 	print("[Debug] %s" % message)
-	if console_print.is_valid():
-		console_print.call(message)
+	if _log_fn.is_valid():
+		_log_fn.call(message)

@@ -11,14 +11,18 @@ extends RefCounted
 
 var _placement: TilePlacementHandler = null
 var hand: Hand = null
+var _selection: SelectionManager = null
+var _drag_mgr: DragManager = null
 
 ## Tracks whether the last drop was successful (read by coordinator).
 var last_placement_success: bool = false
 
 
-func setup(placement: TilePlacementHandler, p_hand: Hand) -> void:
+func setup(placement: TilePlacementHandler, p_hand: Hand, p_selection: SelectionManager, p_drag_mgr: DragManager) -> void:
 	_placement = placement
 	hand = p_hand
+	_selection = p_selection
+	_drag_mgr = p_drag_mgr
 
 
 # =============================================================================
@@ -75,7 +79,7 @@ func _get_target_cells_for_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> Arr
 		return [drop_cell]
 
 	# Multi-tile - get sequential cells centered on lead tile
-	var lead_tile: Tile = DragManager.lead_tile
+	var lead_tile: Tile = _drag_mgr.lead_tile
 	var lead_index: int = tiles.find(lead_tile)
 	if lead_index == -1:
 		lead_index = 0
@@ -92,7 +96,7 @@ func _handle_invalid_drop(tiles: Array[Tile], has_board_tiles: bool, drop_cell: 
 
 	if has_board_tiles:
 		# Board tiles - restore to original positions without animation
-		DragManager.restore_tiles_to_parents()
+		_drag_mgr.restore_tiles_to_parents()
 		for tile in tiles:
 			if tile.location == Tile.TileLocation.ON_BOARD:
 				_placement.return_to_original_cell(tile)
@@ -106,20 +110,20 @@ func _handle_invalid_drop(tiles: Array[Tile], has_board_tiles: bool, drop_cell: 
 ## Animates tiles back to hand with proper selection handling.
 func _animate_tiles_back_to_hand(tiles: Array[Tile]) -> void:
 	# In single-select mode with one tile, deselect it
-	if tiles.size() == 1 and not SelectionManager.is_multi_select_enabled():
-		SelectionManager.deselect_tile(tiles[0])
+	if tiles.size() == 1 and not _selection.is_multi_select_enabled():
+		_selection.deselect_tile(tiles[0])
 
-	# Animate all tiles back to hand
-	TileAnimator.animate_cancel_to_hand(tiles, hand)
+	# Animate all tiles back to hand, passing restore callable
+	TileAnimator.animate_cancel_to_hand(tiles, hand, _drag_mgr.restore_tiles_to_parents)
 	print("[Gameplay] Animating %d tile(s) back to hand" % tiles.size())
 
 
 ## Executes a valid drop by restoring and placing tiles.
 func _execute_valid_drop(tiles: Array[Tile], target_cells: Array[BoardCell]) -> void:
-	DragManager.restore_tiles_to_parents()
+	_drag_mgr.restore_tiles_to_parents()
 
 	for i in tiles.size():
 		_placement.place_tile_on_cell_silent(tiles[i], target_cells[i])
 
-	SelectionManager.deselect_all()
+	_selection.deselect_all()
 	print("[Gameplay] Placed %d tile(s) on board" % tiles.size())

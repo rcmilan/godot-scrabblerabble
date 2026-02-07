@@ -121,7 +121,7 @@ func _on_round_ended(round_number: int, success: bool) -> void:
 		return
 
 	if success:
-		run_state.complete_round(GameManager.current_score)
+		run_state.complete_round(GameManager.get_current_score())
 		EventBus.run_shop_requested.emit(run_state.current_round)
 		print("[RunManager] Round %d won - proceeding to shop" % round_number)
 	else:

@@ -1,4 +1,5 @@
 extends Node
+class_name DragManager
 
 ## DragManager: Coordinates multi-tile drag operations.
 ## Handles visual positioning of all dragged tiles during drag.
