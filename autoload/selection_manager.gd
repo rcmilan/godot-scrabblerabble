@@ -1,4 +1,5 @@
 extends Node
+class_name SelectionManager
 
 ## SelectionManager: Central source of truth for tile selection state and mode.
 ## Manages single/multi-select modes and maintains ordered selection.
