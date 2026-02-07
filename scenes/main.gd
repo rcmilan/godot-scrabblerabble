@@ -106,11 +106,8 @@ func _on_round_ready(config: RoundConfig) -> void:
 # =============================================================================
 
 ## Called when tiles are played (locked on board).
+## Always consumes a play. Words may be empty if no valid words were formed.
 func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
-	if words.is_empty():
-		print("[Main] Play completed but no words formed")
-		return
-
 	var total_score: int = 0
 	var word_validator: WordValidator = _gameplay_controller.get_word_validator()
 
@@ -120,10 +117,12 @@ func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
 		)
 		total_score += score_result.total
 		EventBus.score_calculated.emit(score_result.total, score_result)
-		print("[Main] Word '%s' scored %d pts" % [word_info.word, score_result.total])
 
 	GameManager.commit_play(total_score)
-	print("[Main] Play committed: %d total points" % total_score)
+	print("[Main] Play committed: %d pts from %d words | Score: %d/%d | Plays left: %d" % [
+		total_score, words.size(), GameManager.current_score,
+		GameManager.target_score, GameManager.plays_remaining
+	])
 
 
 # =============================================================================

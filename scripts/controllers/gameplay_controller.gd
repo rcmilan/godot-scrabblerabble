@@ -693,12 +693,10 @@ func _on_play_requested() -> void:
 	if not _is_active:
 		return
 
-	print("[Gameplay] Play requested")
-
 	var unplayed_tiles: Array[Tile] = _get_unplayed_board_tiles()
 
 	if unplayed_tiles.is_empty():
-		print("[Gameplay] No tiles to play")
+		print("[Gameplay] Play rejected: no unplayed tiles on board")
 		return
 
 	var positions: Array[Vector2i] = []
@@ -706,16 +704,18 @@ func _on_play_requested() -> void:
 		if tile.current_cell:
 			positions.append(tile.current_cell.grid_position)
 
+	# Find all words formed by the placed tiles
 	var words: Array = _word_validator.find_formed_words(board, positions)
 
-	print("[Gameplay] Found %d words from %d tiles" % [words.size(), unplayed_tiles.size()])
 	for word_info in words:
-		print("[Gameplay] Word: '%s' (%s)" % [word_info.word, word_info.direction])
+		print("[Gameplay] Word formed: '%s' (%s, %d letters)" % [
+			word_info.word, word_info.direction, word_info.word.length()
+		])
 
+	# Always lock tiles and commit the play
 	for tile in unplayed_tiles:
-		tile.set_locked(true)  # Use setter to update visuals
+		tile.set_locked(true)
 
-	# Clear any selection - locked tiles cannot remain selected
 	SelectionManager.deselect_all()
 	_update_interaction_state()
 
@@ -725,7 +725,9 @@ func _on_play_requested() -> void:
 	play_completed.emit(unplayed_tiles, words)
 
 	_update_play_button_state()
-	print("[Gameplay] Played %d tiles, formed %d words" % [unplayed_tiles.size(), words.size()])
+	print("[Gameplay] Play accepted: %d tiles locked, %d words found" % [
+		unplayed_tiles.size(), words.size()
+	])
 
 
 func _get_unplayed_board_tiles() -> Array[Tile]:
