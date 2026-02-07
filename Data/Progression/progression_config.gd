@@ -4,7 +4,7 @@ class_name ProgressionConfig
 ## ProgressionConfig: Data resource for progression scaling parameters.
 ## Edit in inspector or create multiple .tres files for different difficulties.
 
-@export var base_target_score: int = 100
+@export var base_target_score: int = 1000000
 @export var target_score_increment: int = 50
 
 ## Board size thresholds: processed in order, first match wins.

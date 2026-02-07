@@ -43,7 +43,7 @@ var points_earned_this_turn: int = 0
 
 const DEFAULT_HAND_SIZE: int = 10
 const DEFAULT_PLAYS_PER_ROUND: int = 2
-const DEFAULT_TARGET_SCORE: int = 100
+const DEFAULT_TARGET_SCORE: int = 1000000
 
 
 func _ready() -> void:

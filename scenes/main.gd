@@ -71,6 +71,9 @@ func _on_round_ready(config: RoundConfig) -> void:
 	# Deactivate controller during setup
 	_gameplay_controller.deactivate()
 
+	# Cancel any in-flight animations from the previous round before freeing tiles
+	TileAnimator.cancel_all()
+
 	# Configure board size for this round
 	board.resize_board(config.board_rows, config.board_columns)
 	board.clear_board()
