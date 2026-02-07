@@ -66,17 +66,15 @@ func _setup_ui() -> void:
 # =============================================================================
 
 func _on_new_game_requested() -> void:
-	"""Start a new game with default configuration."""
+	"""Start a new game with configured settings."""
 	print("[TitleScreen] Starting new game...")
 
-	# Future: Pass game configuration parameters here
-	# var config = GameConfiguration.new()
-	# config.board_size = Vector2i(8, 8)
-	# config.hand_size = 10
-	# config.max_rounds = 10
-	# config.target_score = 100
+	var default_bag: BagDistribution = load("res://Data/BagDistribution/bag_default.tres")
+	var plays: int = _options_popup.get_plays_per_round()
 
-	# Load gameplay scene
+	RunManager.initialize_run(default_bag, plays)
+	RunManager.set_debug_auto_win(_options_popup.get_auto_win())
+
 	get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
 
 

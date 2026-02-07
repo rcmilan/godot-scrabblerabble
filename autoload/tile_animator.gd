@@ -95,12 +95,12 @@ func animate_stomp_batch(tiles: Array[Tile]) -> void:
 
 
 ## Animates tiles returning to hand from a cancelled drag.
-func animate_cancel_to_hand(tiles: Array[Tile], hand: Node) -> void:
+func animate_cancel_to_hand(tiles: Array[Tile], hand: Node, restore_fn: Callable = Callable()) -> void:
 	if tiles.is_empty() or hand == null:
 		return
 
 	_ensure_glide_resources()
-	_return_executor.execute_cancel_batch(tiles, hand, _glide_animation)
+	_return_executor.execute_cancel_batch(tiles, hand, _glide_animation, restore_fn)
 
 
 ## Animates tiles moving from hand to discard pile.

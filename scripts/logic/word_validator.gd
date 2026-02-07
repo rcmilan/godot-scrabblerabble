@@ -185,56 +185,66 @@ func find_formed_words(board: Board, placed_positions: Array[Vector2i]) -> Array
 	var words: Array = []
 
 	if placed_positions.is_empty():
-		print("[WordValidator] find_formed_words: No positions provided")
 		return words
 
-	print("[WordValidator] find_formed_words: Checking %d placed positions" % placed_positions.size())
-
-	# Get the direction of placement
+	# Check if tiles form a straight line
 	var validation: Dictionary = validate_placement(placed_positions)
-	if not validation.valid:
-		print("[WordValidator] find_formed_words: Invalid placement - %s" % validation.get("error", "unknown"))
-		return words
 
-	var direction: String = validation.direction
-	print("[WordValidator] find_formed_words: Placement direction is '%s'" % direction)
+	if validation.valid:
+		# Collinear placement — find main word + cross words
+		words = _find_words_collinear(board, placed_positions, validation.direction)
+	else:
+		# Scattered placement — find words through each tile individually
+		words = _find_words_scattered(board, placed_positions)
 
-	# Find the main word formed by the placement
+	return words
+
+
+## Finds words when all placed tiles are in a straight line (original logic).
+func _find_words_collinear(board: Board, placed_positions: Array[Vector2i], direction: String) -> Array:
+	var words: Array = []
+
 	var main_word: Dictionary = _find_word_at_positions(board, placed_positions, direction)
 	if main_word.word.length() >= MIN_WORD_LENGTH:
 		words.append(main_word)
-		print("[WordValidator] find_formed_words: Main word found: '%s' (%d letters)" % [main_word.word, main_word.word.length()])
 
-	# Find cross-words formed by each placed tile
 	var cross_direction: String = "vertical" if direction == "horizontal" else "horizontal"
 	if direction == "single":
-		# For single tile, check both directions
-		var h_word: Dictionary = _find_word_through_position(board, placed_positions[0], "horizontal")
-		var v_word: Dictionary = _find_word_through_position(board, placed_positions[0], "vertical")
-
-		if h_word.word.length() >= MIN_WORD_LENGTH:
-			words.append(h_word)
-			print("[WordValidator] find_formed_words: Horizontal word: '%s'" % h_word.word)
-		if v_word.word.length() >= MIN_WORD_LENGTH:
-			words.append(v_word)
-			print("[WordValidator] find_formed_words: Vertical word: '%s'" % v_word.word)
+		for dir in ["horizontal", "vertical"]:
+			var word: Dictionary = _find_word_through_position(board, placed_positions[0], dir)
+			if word.word.length() >= MIN_WORD_LENGTH:
+				words.append(word)
 	else:
-		# Check cross-words for each placed tile
 		for pos in placed_positions:
 			var cross_word: Dictionary = _find_word_through_position(board, pos, cross_direction)
 			if cross_word.word.length() >= MIN_WORD_LENGTH:
-				# Avoid duplicates
-				var is_duplicate: bool = false
-				for existing in words:
-					if existing.word == cross_word.word and existing.positions == cross_word.positions:
-						is_duplicate = true
-						break
-				if not is_duplicate:
+				if not _is_duplicate_word(words, cross_word):
 					words.append(cross_word)
-					print("[WordValidator] find_formed_words: Cross-word found: '%s' at %s" % [cross_word.word, pos])
 
-	print("[WordValidator] find_formed_words: Total words found: %d" % words.size())
 	return words
+
+
+## Finds words when placed tiles are scattered (not in a straight line).
+## Checks horizontal and vertical words through each placed position.
+func _find_words_scattered(board: Board, placed_positions: Array[Vector2i]) -> Array:
+	var words: Array = []
+
+	for pos in placed_positions:
+		for direction in ["horizontal", "vertical"]:
+			var word: Dictionary = _find_word_through_position(board, pos, direction)
+			if word.word.length() >= MIN_WORD_LENGTH:
+				if not _is_duplicate_word(words, word):
+					words.append(word)
+
+	return words
+
+
+## Checks if a word already exists in the list (same start position and direction).
+func _is_duplicate_word(words: Array, candidate: Dictionary) -> bool:
+	for existing in words:
+		if existing.positions == candidate.positions and existing.direction == candidate.direction:
+			return true
+	return false
 
 
 ## Finds a word formed by connected tiles at given positions.

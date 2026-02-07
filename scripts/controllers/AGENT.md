@@ -4,20 +4,27 @@
 Controllers encapsulate specific game behaviors that can be activated/deactivated based on game state. They follow the composition pattern to keep scene scripts simple.
 
 ## Files
-- `gameplay_controller.gd` - All tile-based gameplay interaction
+- `gameplay_controller.gd` - Coordinator for tile-based gameplay interaction
+- `tile_placement_handler.gd` - Tile placement and return operations
+- `drop_handler.gd` - Drag-and-drop validation and execution
+- `play_handler.gd` - Play submission, scoring, auto-end-round
 - `menu_controller.gd` - Title screen menu navigation and input
 
 ---
 
-## GameplayController
+## GameplayController (Coordinator)
 
 ### Purpose
-Manages all tile-based gameplay interaction including:
-- Tile selection and multi-select
-- Drag and drop (single and multi-tile)
-- Tile placement on board
-- Discard pile interaction
-- Play/submit action
+Coordinator that routes input events and signals to specialized handlers. Owns DragManager as a local child node. Retains discard logic, interaction state, tile registration, and signal management.
+
+### Architecture
+```
+GameplayController (coordinator)
+  ├── DragManager             (local child node)
+  ├── TilePlacementHandler    (placement, return, cell helpers)
+  ├── DropHandler             (drag release, drop validation)
+  └── PlayHandler             (play/score, auto-end-round, button state)
+```
 
 ### Lifecycle
 ```gdscript
@@ -25,8 +32,8 @@ Manages all tile-based gameplay interaction including:
 var controller = GameplayController.new()
 add_child(controller)
 
-# Inject scene dependencies
-controller.setup(board, hand, discard_pile, discard_dialog, main_hud)
+# Inject scene dependencies including SelectionManager (creates handlers internally)
+controller.setup(board, hand, discard_pile, discard_dialog, main_hud, selection_manager)
 
 # Activate when gameplay should be enabled
 controller.activate()
@@ -42,42 +49,107 @@ controller.deactivate()
 | `tile_returned_to_hand` | `tile` | Tile returned from board |
 | `play_completed` | `tiles, words` | Tiles played (locked) |
 
+### Signal Connection Management
+Uses `_safe_connect()` / `_disconnect_all()` pattern with a tracking array to eliminate boilerplate.
+
 ### Key Methods
 ```gdscript
 # Setup and lifecycle
-setup(board, hand, discard_pile, discard_dialog, hud) -> void
+setup(board, hand, discard_pile, discard_dialog, hud, selection_manager) -> void
 activate() -> void
 deactivate() -> void
 
 # Tile registration (called by HandManager via Main)
 register_tile(tile: Tile) -> void
+
+# Delegated to PlayHandler
+get_word_validator() -> WordValidator
 ```
 
-### State
-```gdscript
-enum InteractionMode { IDLE, TILE_SELECTED, DRAGGING }
-
-var interaction_mode: InteractionMode
-var selected_tile: Tile
-var _is_active: bool
+### Dependency Injection Chain
+```
+Main creates SelectionManager
+  → Main injects into: hand, discard_pile, multi_select_indicator
+  → Main passes to: GameplayController.setup()
+      → GameplayController creates DragManager (local child)
+      → _placement.setup(board, hand, selection)
+      → _drop.setup(_placement, hand, selection, drag_mgr)
+      → _play.setup(board, main_hud, selection)
 ```
 
-### Usage in Main.gd
+---
+
+## TilePlacementHandler
+
+### Purpose
+Manages tile placement on board cells and returning tiles to hand. Provides cell query helpers.
+
+### Class: `TilePlacementHandler extends RefCounted`
+
+### Dependencies
+- `Board`, `Hand`, `SelectionManager` (injected via `setup()`)
+
+### Key Methods
 ```gdscript
-func _ready():
-    _gameplay_controller = GameplayController.new()
-    add_child(_gameplay_controller)
-    _gameplay_controller.setup(board, hand, discard_pile, discard_dialog, main_hud)
-    _gameplay_controller.activate()
+setup(board: Board, hand: Hand, selection: SelectionManager) -> void
+place_tile_on_cell(tile: Tile, cell: BoardCell) -> void
+place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void
+return_tile_to_hand(tile: Tile, preserve_selection: bool = false) -> void
+get_sequential_cells(start: BoardCell, count: int) -> Array[BoardCell]
+get_sequential_cells_centered(drop_cell, count, lead_index) -> Array[BoardCell]
+return_to_original_cell(tile: Tile) -> void
+get_cell_under_mouse(viewport: Viewport) -> BoardCell
+clear_all_cell_hovers() -> void
+```
 
-func pause_gameplay():
-    _gameplay_controller.deactivate()
+---
 
-func resume_gameplay():
-    _gameplay_controller.activate()
+## DropHandler
 
-func register_tile(tile: Tile):
-    _gameplay_controller.register_tile(tile)
+### Purpose
+Handles drag-and-drop release validation and execution. Validates drop targets and delegates placement to TilePlacementHandler.
+
+### Class: `DropHandler extends RefCounted`
+
+### Dependencies
+- `TilePlacementHandler`, `Hand`, `SelectionManager`, `DragManager` (injected via `setup()`)
+
+### Key Methods
+```gdscript
+setup(placement: TilePlacementHandler, hand: Hand, selection: SelectionManager, drag_mgr: DragManager) -> void
+handle_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> bool
+```
+
+### Properties
+```gdscript
+var last_placement_success: bool  # Read by coordinator after drop
+```
+
+---
+
+## PlayHandler
+
+### Purpose
+Manages play submission, word validation, scoring, and auto-end-round logic. Controls Play/End Round button state.
+
+### Class: `PlayHandler extends RefCounted`
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `play_completed` | `tiles, words` | Play submitted (forwarded to coordinator) |
+
+### Dependencies
+- `Board`, `MainHUD`, `SelectionManager` (injected via `setup()`)
+- Uses `GameManager`, `HandManager`, `TileBag`, `TileAnimator`, `EventBus` (global autoloads)
+
+### Key Methods
+```gdscript
+setup(board: Board, hud: CanvasLayer, selection: SelectionManager) -> void
+on_play_requested() -> void
+update_play_button_state() -> void
+get_word_validator() -> WordValidator
+has_valid_moves() -> bool
 ```
 
 ---
@@ -85,72 +157,14 @@ func register_tile(tile: Tile):
 ## MenuController
 
 ### Purpose
-Manages menu navigation and input handling for the title screen including:
-- Keyboard navigation (WASD and arrow keys)
-- Mouse interaction (clicks and hover)
-- Quick navigation shortcuts (A/D for first/last)
-- Focus management and visual feedback
+Manages menu navigation and input handling for the title screen.
 
 ### Lifecycle
 ```gdscript
-# Created and added as child of TitleScreen
 var controller = MenuController.new()
 add_child(controller)
-
-# Inject menu button dependencies
 controller.setup(new_game_btn, options_btn, exit_btn)
-
-# Activate when menu should be enabled
 controller.activate()
-
-# Deactivate for popups or transitions
-controller.deactivate()
-```
-
-### Signals
-| Signal | Parameters | Description |
-|--------|------------|-------------|
-| `menu_item_selected` | `index` | Menu item focused/highlighted |
-| `new_game_requested` | - | New Game option selected |
-| `options_requested` | - | Options option selected |
-| `exit_requested` | - | Exit option selected |
-
-### Key Methods
-```gdscript
-# Setup and lifecycle
-setup(new_game_btn, options_btn, exit_btn) -> void
-activate() -> void
-deactivate() -> void
-```
-
-### Input Mapping
-| Input | Action |
-|-------|--------|
-| W / Up Arrow | Navigate up (wraps) |
-| S / Down Arrow | Navigate down (wraps) |
-| A | Jump to first item |
-| D | Jump to last item |
-| Enter / Space | Activate current item |
-| Mouse Click | Activate clicked item |
-| Mouse Hover | Focus hovered item |
-
-### Usage in TitleScreen.gd
-```gdscript
-func _ready():
-    _menu_controller = MenuController.new()
-    add_child(_menu_controller)
-    _menu_controller.setup(_new_game_button, _options_button, _exit_button)
-    _menu_controller.new_game_requested.connect(_on_new_game_requested)
-    _menu_controller.options_requested.connect(_on_options_requested)
-    _menu_controller.exit_requested.connect(_on_exit_requested)
-    _menu_controller.activate()
-
-func _on_options_requested():
-    _menu_controller.deactivate()  # Disable menu while options popup is open
-    _options_popup.show_popup()
-
-func _on_options_closed():
-    _menu_controller.activate()  # Re-enable menu when popup closes
 ```
 
 ---
@@ -158,32 +172,17 @@ func _on_options_closed():
 ## Design Principles
 
 ### Composition Over Inheritance
-Controllers are added as children of the scene they control, not extended. This allows:
-- Easy activation/deactivation
-- Clean separation of concerns
-- Testability in isolation
+Controllers are added as children of the scene they control, not extended.
 
 ### Dependency Injection
-Controllers receive their dependencies via `setup()` rather than finding nodes themselves. This:
-- Makes dependencies explicit
-- Allows different configurations
-- Enables testing with mock objects
+Controllers receive their dependencies via `setup()` rather than finding nodes themselves. SelectionManager and DragManager are injected — not accessed as autoloads.
+
+### Coordinator Pattern
+GameplayController delegates to focused handlers (RefCounted objects) while retaining:
+- Signal management (connect/disconnect lifecycle)
+- Input routing and event dispatching
+- Cross-cutting concerns (discard straddles placement + UI)
+- DragManager ownership (local child node)
 
 ### Signal-Based Communication
-Controllers emit signals for completed actions rather than directly calling scene methods. This:
-- Decouples controller from specific scene implementation
-- Allows multiple listeners
-- Makes data flow explicit
-
----
-
-## Future Controllers
-
-As the game grows, additional controllers may be added:
-
-- **SettingsController** - Settings UI interaction (for actual options implementation)
-- **TutorialController** - Tutorial flow management
-- **ScoreController** - Score display and animations
-- **ConfigurationController** - Game setup and customization
-
-Each follows the same pattern: setup, activate, deactivate, signals.
+Controllers emit signals for completed actions rather than directly calling scene methods.

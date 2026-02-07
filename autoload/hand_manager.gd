@@ -12,6 +12,13 @@ const DEFAULT_HAND_SIZE: int = 10
 const MAX_HAND_SIZE: int = 15
 
 # =============================================================================
+# SIGNALS
+# =============================================================================
+
+signal initialized
+signal tile_ready(tile: Tile)
+
+# =============================================================================
 # STATE
 # =============================================================================
 
@@ -23,25 +30,18 @@ var discard_pile: Array[Tile] = []
 # =============================================================================
 
 var _hand_ui: Node = null  # Hand component (typed at runtime)
-var _main_scene: Node = null  # Main scene (typed at runtime)
 var _is_initialized: bool = false
 
-signal initialized
 
-
-## Returns true if HandManager has been initialized.
+## Returns true if HandManager has valid references to the current scene.
 func is_initialized() -> bool:
+	if _is_initialized and not is_instance_valid(_hand_ui):
+		_is_initialized = false
 	return _is_initialized
 
 
 func _ready() -> void:
-	# Wait for scene tree to be ready, then initialize
-	get_tree().process_frame.connect(_on_first_frame, CONNECT_ONE_SHOT)
-
-
-func _on_first_frame() -> void:
-	# Try to initialize, retry if Main scene isn't ready yet
-	_try_initialize()
+	print("[HandManager] Ready")
 
 
 # =============================================================================
@@ -68,7 +68,7 @@ func draw_tiles(count: int) -> int:
 			break
 
 		_hand_ui.add_tile(tile)
-		_connect_tile_signals(tile)
+		tile_ready.emit(tile)
 		drawn_tiles.append(tile)
 		drawn += 1
 
@@ -190,41 +190,19 @@ func set_hand_size(size: int) -> void:
 
 
 # =============================================================================
-# PRIVATE: INITIALIZATION
+# INITIALIZATION
 # =============================================================================
 
-func _try_initialize() -> void:
-	var root: Node = get_tree().root
-	_main_scene = root.get_node_or_null("Main")
-
-	if _main_scene == null:
-		# Main scene not ready yet, try again next frame
-		get_tree().process_frame.connect(_try_initialize, CONNECT_ONE_SHOT)
-		return
-
-	_hand_ui = _main_scene.get_node_or_null("Hand")
-
-	if _hand_ui == null:
-		# Hand not ready yet, try again next frame
-		get_tree().process_frame.connect(_try_initialize, CONNECT_ONE_SHOT)
-		return
-
+## Sets references from Main scene. Only initialization path.
+func set_references(hand_ui: Node) -> void:
+	_hand_ui = hand_ui
 	_is_initialized = true
 	initialized.emit()
-	print("[HandManager] Initialized")
+	print("[HandManager] Initialized via set_references()")
 
 
 func _ensure_initialized() -> bool:
-	if not _is_initialized:
-		push_error("[HandManager] Not initialized - call after scene is ready")
-		return false
-	return true
-
-
-func _connect_tile_signals(tile: Tile) -> void:
-	if _main_scene == null:
-		return
-
-	# Register tile with Main's gameplay controller
-	if _main_scene.has_method("register_tile"):
-		_main_scene.register_tile(tile)
+	if _is_initialized and is_instance_valid(_hand_ui):
+		return true
+	push_warning("[HandManager] Not initialized - call set_references() first")
+	return false

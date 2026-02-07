@@ -11,12 +11,13 @@ Godot 4.5.1 (Mobile renderer)
 Wordatro/
 ├── autoload/               # Global singleton managers
 │   ├── event_bus.gd        # Signal hub
-│   ├── game_manager.gd     # Game state
+│   ├── game_manager.gd     # Game state (encapsulated behind getters)
 │   ├── hand_manager.gd     # Hand operations
 │   ├── tile_bag.gd         # Tile pool (deck)
-│   ├── selection_manager.gd # Selection state
+│   ├── selection_manager.gd # Selection state (local node, created by Main)
 │   ├── tile_animator.gd    # Animation coordinator
-│   └── debug_manager.gd    # Debug tools
+│   ├── drag_manager.gd     # Multi-tile drag (local node, created by GameplayController)
+│   └── run_manager.gd      # Run progression
 │
 ├── scenes/                 # Game scenes
 │   ├── title_screen/       # Main menu / title screen
@@ -26,10 +27,11 @@ Wordatro/
 │   ├── hand/               # Hand component
 │   ├── tile/               # Tile component
 │   ├── ui/                 # UI components
-│   └── debug/              # Debug tools
+│   └── debug/              # Debug tools (DebugConsole + DebugManager)
 │
 ├── scripts/                # Utility scripts
-│   ├── controllers/        # Game controllers
+│   ├── controllers/        # Game controllers (coordinator + handlers)
+│   ├── interaction/        # Input interaction helpers
 │   ├── animation/          # Animation strategies
 │   └── logic/              # Game logic services
 │
@@ -53,7 +55,8 @@ Wordatro/
 7. Player can discard tiles (Z key or drag to pile)
 8. Score is calculated based on letters and multipliers
 9. Round ends when target score reached or plays exhausted
-10. (Future) Progress to shop/next round
+10. Shop phase between rounds (upgrades/purchases)
+11. Progress through rounds until run victory or game over
 
 ### Key Components
 
@@ -64,12 +67,14 @@ Wordatro/
 | **Board** | Dynamic grid (default 8x8), cell management |
 | **Tile** | Letter tiles with drag-and-drop |
 | **Hand** | Player's available tiles (max 10) |
-| **SelectionManager** | Single/multi-select state |
+| **SelectionManager** | Single/multi-select state (local node, injected) |
+| **DragManager** | Multi-tile drag coordination (local node, injected) |
 | **TileAnimator** | Animation coordination |
 | **EventBus** | Decoupled signal communication |
-| **GameManager** | Game state and phase control |
+| **GameManager** | Game state and phase control (encapsulated) |
 | **TileBag** | Tile pool (deck) management |
 | **HandManager** | Draw, discard, refill operations |
+| **DebugManager** | Debug commands (RefCounted, owned by DebugConsole) |
 
 ### State Machines
 
@@ -123,8 +128,8 @@ HandManager.MAX_HAND_SIZE = 15  # Maximum
 
 ### Game Defaults
 ```gdscript
-GameManager.DEFAULT_PLAYS_PER_ROUND = 10
-GameManager.DEFAULT_TARGET_SCORE = 100
+GameManager.DEFAULT_PLAYS_PER_ROUND = 2
+GameManager.DEFAULT_TARGET_SCORE = 1000000
 ```
 
 ### Tile Distribution
@@ -135,17 +140,16 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 ### Implemented
 - [x] Title screen with main menu
 - [x] Menu navigation (keyboard: WASD/arrows, mouse: click/hover)
-- [x] Options popup with mocked settings
+- [x] Options popup with game settings and debug options
 - [x] Tile placement on board
 - [x] Drag-and-drop tiles
 - [x] Single-select mode
 - [x] Multi-select mode (Q key)
 - [x] Multi-tile placement (sequential)
 - [x] Discard system (Z key)
-- [x] Discard confirmation dialog
 - [x] Visual discard pile drop zone
 - [x] Selection scale animation (5% larger)
-- [x] HUD with game stats
+- [x] HUD with game stats (score, plays, bag count, draw button)
 - [x] Tile bag with distributions
 - [x] Hand refill after discard
 - [x] Tile draw animations (rise from bottom)
@@ -154,18 +158,20 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [x] Tile stomp animations (play confirmation)
 - [x] Play button to lock placed tiles
 - [x] Word detection on board (find_formed_words)
+- [x] Score calculation with placement scoring
 - [x] Locked tiles cannot be moved/returned
+- [x] Multi-round run with progression (RoundConfig, ProgressionRules)
+- [x] Shop phase between rounds
+- [x] Auto-end-round when no valid moves remain
+- [x] Run state management (RunManager, RunState)
+- [x] Game over and victory screens
 - [x] Debug console
 
 ### Future
 - [ ] Game configuration in title screen (board size, hand size, rounds, target score)
 - [ ] Actual options implementation (fullscreen, vsync, volume)
-- [ ] Word validation dictionary
-- [ ] Score calculation with multipliers
 - [ ] Cell multipliers (2x letter, 3x word, etc.)
-- [ ] Multiple rounds with shop phase
 - [ ] Discard pile peek (view discarded tiles)
-- [ ] Flexible board (add rows/columns)
 - [ ] Save/load system
 - [ ] Multiple starting decks
 - [ ] Special tile types

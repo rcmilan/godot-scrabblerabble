@@ -5,15 +5,17 @@ extends CanvasLayer
 
 # === Signals ===
 signal play_requested
+signal draw_requested
 
 # === Node References ===
+@onready var round_label: Label = $RoundLabel
 @onready var plays_label: Label = $PlaysLabel
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var deck_label: Label = $DeckLabel
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
-@onready var game_over_label: Label = $GameOverLabel
+@onready var draw_button: Button = $DrawButton
 @onready var play_button: Button = $PlayButton
 
 
@@ -31,22 +33,21 @@ func _connect_signals() -> void:
 	EventBus.discard_count_changed.connect(_on_discard_count_changed)
 	EventBus.play_completed.connect(_on_play_completed)
 	EventBus.round_started.connect(_on_round_started)
-	EventBus.game_won.connect(_on_game_won)
-	EventBus.game_lost.connect(_on_game_lost)
+	EventBus.run_round_ready.connect(_on_run_round_ready)
 
 
 func _setup_buttons() -> void:
+	draw_button.pressed.connect(_on_draw_button_pressed)
 	play_button.pressed.connect(_on_play_button_pressed)
 	play_button.disabled = true
 
 
 func _initialize_display() -> void:
-	game_over_label.hide()
-
 	# Set initial values
-	_update_plays(GameManager.plays_remaining)
-	_update_score(GameManager.current_score)
-	_update_target(GameManager.target_score)
+	_update_round(GameManager.get_current_round())
+	_update_plays(GameManager.get_plays_remaining())
+	_update_score(GameManager.get_current_score())
+	_update_target(GameManager.get_target_score())
 	_update_deck(TileBag.tiles_remaining())
 	_update_hand(HandManager.get_hand_size())
 	_update_discard(HandManager.get_discard_count())
@@ -60,10 +61,12 @@ func _on_score_updated(total: int, _delta: int) -> void:
 
 func _on_hand_count_changed(count: int) -> void:
 	_update_hand(count)
+	_update_draw_button(count)
 
 
 func _on_bag_count_changed(count: int) -> void:
 	_update_deck(count)
+	_update_draw_button(HandManager.get_hand_size())
 
 
 func _on_discard_count_changed(count: int) -> void:
@@ -74,23 +77,23 @@ func _on_play_completed(plays_remaining: int) -> void:
 	_update_plays(plays_remaining)
 
 
-func _on_round_started(_round_number: int) -> void:
-	game_over_label.hide()
-	_update_plays(GameManager.plays_remaining)
-	_update_target(GameManager.target_score)
+func _on_round_started(round_number: int) -> void:
+	_update_round(round_number)
+	_update_plays(GameManager.get_plays_remaining())
+	_update_target(GameManager.get_target_score())
 
 
-func _on_game_won() -> void:
-	game_over_label.text = "You Win!\nTarget Reached!"
-	game_over_label.show()
-
-
-func _on_game_lost() -> void:
-	game_over_label.text = "Game Over\nOut of Plays"
-	game_over_label.show()
+func _on_run_round_ready(config: RoundConfig) -> void:
+	_update_round(config.round_number)
+	_update_plays(config.plays_per_round)
+	_update_target(config.target_score)
 
 
 # === UI Updates ===
+
+func _update_round(round_number: int) -> void:
+	round_label.text = "Round: %d" % round_number
+
 
 func _update_plays(count: int) -> void:
 	plays_label.text = "Plays: %d" % count
@@ -118,11 +121,27 @@ func _update_discard(count: int) -> void:
 
 # === Button Handlers ===
 
+func _on_draw_button_pressed() -> void:
+	draw_requested.emit()
+
+
 func _on_play_button_pressed() -> void:
 	play_requested.emit()
+
+
+# === Draw Button State ===
+
+func _update_draw_button(hand_count: int) -> void:
+	var hand_full: bool = hand_count >= HandManager.hand_size
+	var bag_empty: bool = TileBag.is_empty()
+	draw_button.disabled = hand_full or bag_empty
 
 
 # === Public API ===
 
 func set_play_button_enabled(enabled: bool) -> void:
 	play_button.disabled = not enabled
+
+
+func set_play_button_mode(is_end_round: bool) -> void:
+	play_button.text = "End Round" if is_end_round else "Play"

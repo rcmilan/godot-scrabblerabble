@@ -40,7 +40,7 @@ func execute_single(tile: Tile, hand: Node, cell: Node, strategy: TileAnimationS
 
 
 ## Animates a batch of tiles returning to hand from a cancelled drag.
-func execute_cancel_batch(tiles: Array[Tile], hand: Node, strategy: TileAnimationStrategy) -> void:
+func execute_cancel_batch(tiles: Array[Tile], hand: Node, strategy: TileAnimationStrategy, restore_fn: Callable = Callable()) -> void:
 	_context.is_animating = true
 	_context.emit_animation_started(tiles)
 
@@ -50,8 +50,9 @@ func execute_cancel_batch(tiles: Array[Tile], hand: Node, strategy: TileAnimatio
 		if is_instance_valid(tile):
 			start_positions[tile] = tile.global_position
 
-	# Step 2: Restore tiles to hand via DragManager
-	DragManager.restore_tiles_to_parents()
+	# Step 2: Restore tiles to hand via provided callable
+	if restore_fn.is_valid():
+		restore_fn.call()
 
 	# Step 3: Wait for layout
 	await _context.get_tree().process_frame

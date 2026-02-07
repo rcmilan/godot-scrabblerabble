@@ -187,9 +187,11 @@ func _create_tile(data: LetterTileData) -> Tile:
 
 func _clear_all_tiles() -> void:
 	for tile in available_tiles:
-		tile.queue_free()
+		if is_instance_valid(tile):
+			tile.queue_free()
 	for tile in drawn_tiles:
-		tile.queue_free()
+		if is_instance_valid(tile):
+			tile.queue_free()
 
 	available_tiles.clear()
 	drawn_tiles.clear()

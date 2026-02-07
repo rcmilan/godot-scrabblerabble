@@ -4,6 +4,7 @@ class_name Tile
 ## A letter tile that can be placed on the board or held in hand.
 ## Supports click-to-select and drag-and-drop interactions.
 ## Manages its own visual state and emits signals for game events.
+## Drag state machine is delegated to TileDragHelper.
 
 # === Signals ===
 signal tile_selected(tile: Tile)
@@ -12,20 +13,12 @@ signal tile_drag_started(tile: Tile)
 signal tile_drag_ended(tile: Tile)
 
 # === Constants ===
-const DRAG_THRESHOLD: float = 8.0  # Pixels before drag starts
 const DRAG_Z_INDEX: int = 100      # Z-index while dragging
 const SELECTED_SCALE: Vector2 = Vector2(1.05, 1.05)
 const NORMAL_SCALE: Vector2 = Vector2(1.0, 1.0)
 const SCALE_TWEEN_DURATION: float = 0.1
 
 # === Enums ===
-
-## Drag interaction state machine
-enum DragState {
-	IDLE,      # No interaction
-	PRESSED,   # Mouse down, waiting for drag threshold
-	DRAGGING   # Actively dragging
-}
 
 ## Where the tile currently resides
 enum TileLocation {
@@ -55,12 +48,9 @@ var is_selected: bool = false
 var allow_hover_feedback: bool = true
 var selection_order: int = -1  # -1 = not selected
 
-# === Drag State ===
-var _drag_state: DragState = DragState.IDLE
-var _drag_offset: Vector2 = Vector2.ZERO
-var _press_position: Vector2 = Vector2.ZERO
+# === Drag State (delegated to TileDragHelper) ===
+var _drag: TileDragHelper = null
 var _original_z_index: int = 0
-var _is_lead_tile: bool = false  # True if this tile is being directly dragged
 
 # === Pending initialization (applied in _ready) ===
 var _pending_texture: Texture2D = null
@@ -73,6 +63,10 @@ var _pending_texture: Texture2D = null
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	_drag = TileDragHelper.new()
+	_drag.drag_threshold_reached.connect(_on_drag_threshold_reached)
+	_drag.drag_ended.connect(_on_drag_ended)
+
 	# Apply pending texture if initialize() was called before _ready()
 	if _pending_texture and texture_rect:
 		texture_rect.texture = _pending_texture
@@ -84,8 +78,8 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# Only update position if we're the lead tile (directly dragged)
 	# DragManager handles positioning for follower tiles
-	if _drag_state == DragState.DRAGGING and _is_lead_tile:
-		global_position = get_global_mouse_position() - _drag_offset
+	if _drag.is_dragging() and _drag.is_lead_tile:
+		global_position = get_global_mouse_position() - _drag.drag_offset
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -241,8 +235,8 @@ func reset() -> void:
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE
-	_drag_state = DragState.IDLE
-	_is_lead_tile = false
+	if _drag:
+		_drag.force_end()
 	_cell_binding_suspended = false
 	_update_visual()
 
@@ -253,16 +247,16 @@ func set_as_drag_follower() -> bool:
 	if not can_interact():
 		return false
 
-	_drag_state = DragState.DRAGGING
-	_is_lead_tile = false
+	if not _drag.set_as_follower():
+		return false
+
 	allow_hover_feedback = false
 	return true
 
 
 ## Force-resets all drag state (called by DragManager for all tiles when drag ends).
 func force_end_drag() -> void:
-	_drag_state = DragState.IDLE
-	_is_lead_tile = false
+	_drag.force_end()
 	allow_hover_feedback = true
 	modulate = Color.WHITE
 	z_index = 0
@@ -274,58 +268,32 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:
 			if event.is_pressed():
-				_on_press(event.position)
+				if can_interact():
+					_drag.on_press(event.position, get_global_mouse_position(), global_position)
 			else:
-				_on_release()
+				if _drag.on_release():
+					# Was a click, not a drag
+					tile_selected.emit(self)
+				allow_hover_feedback = true
+				modulate = Color.WHITE
 		MOUSE_BUTTON_RIGHT:
 			if event.is_pressed():
 				tile_right_clicked.emit(self)
 
 
 func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
-	match _drag_state:
-		DragState.DRAGGING:
-			# Position updated in _process for smoother dragging
-			pass
-		DragState.PRESSED:
-			var delta: Vector2 = event.position - _press_position
-			if delta.length() >= DRAG_THRESHOLD:
-				_start_drag()
+	# on_motion returns true if drag threshold was just reached
+	_drag.on_motion(event.position)
 
 
-func _on_press(pos: Vector2) -> void:
-	# Prevent interaction with locked or non-interactable tiles
+# === Private: Drag Signal Handlers ===
+
+func _on_drag_threshold_reached() -> void:
+	# Safety check - should have been caught in on_press but double-check
 	if not can_interact():
+		_drag.force_end()
 		return
 
-	_drag_state = DragState.PRESSED
-	_press_position = pos
-	_drag_offset = get_global_mouse_position() - global_position
-
-
-func _on_release() -> void:
-	match _drag_state:
-		DragState.PRESSED:
-			# Short click = selection
-			tile_selected.emit(self)
-		DragState.DRAGGING:
-			_end_drag()
-
-	_drag_state = DragState.IDLE
-	allow_hover_feedback = true
-	modulate = Color.WHITE
-
-
-# === Private: Drag Operations ===
-
-func _start_drag() -> void:
-	# Safety check - should have been caught in _on_press but double-check
-	if not can_interact():
-		_drag_state = DragState.IDLE
-		return
-
-	_drag_state = DragState.DRAGGING
-	_is_lead_tile = true  # We're the directly dragged tile
 	allow_hover_feedback = false
 
 	_original_z_index = z_index
@@ -341,9 +309,8 @@ func _start_drag() -> void:
 	tile_drag_started.emit(self)
 
 
-func _end_drag() -> void:
+func _on_drag_ended() -> void:
 	z_index = _original_z_index
-	_is_lead_tile = false
 
 	var cell_info: String = String(current_cell.name) if current_cell else "none"
 	print("[Tile] Drag end: %s | Location: %s | Cell: %s" % [
@@ -364,7 +331,7 @@ func _update_visual() -> void:
 	# Apply locked visual state
 	if is_locked:
 		modulate = LOCKED_TINT
-	elif not _drag_state == DragState.DRAGGING:
+	elif _drag == null or not _drag.is_dragging():
 		modulate = Color.WHITE
 
 
