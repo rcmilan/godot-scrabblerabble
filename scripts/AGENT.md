@@ -6,6 +6,14 @@ Contains utility scripts and game logic services that aren't tied to specific sc
 ## Structure
 ```
 scripts/
+├── controllers/
+│   ├── gameplay_controller.gd       # Coordinator for gameplay interaction
+│   ├── tile_placement_handler.gd    # Tile placement/return operations
+│   ├── drop_handler.gd             # Drag-and-drop validation
+│   ├── play_handler.gd             # Play submission and scoring
+│   └── menu_controller.gd          # Title screen menu navigation
+├── interaction/
+│   └── tile_drag_helper.gd         # Drag state machine for tiles
 ├── animation/
 │   ├── tile_animation_strategy.gd   # Base animation strategy (Resource)
 │   ├── draw_tile_animation.gd       # Draw animation implementation
@@ -119,6 +127,59 @@ print("Word multiplier: ", score_info.word_multiplier)
 
 ---
 
+## TileDragHelper
+
+### Purpose
+Encapsulates the drag state machine extracted from Tile.gd. Handles press detection, drag threshold, and state transitions.
+
+### Class: `TileDragHelper extends RefCounted`
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `drag_threshold_reached` | none | Mouse moved past drag threshold |
+| `drag_ended` | none | Drag operation ended (mouse released) |
+
+### State Machine
+```
+IDLE → PRESSED (on mouse press)
+PRESSED → DRAGGING (on threshold reached)
+PRESSED → IDLE (on release = click)
+DRAGGING → IDLE (on release = drag end)
+```
+
+### Key Methods
+```gdscript
+on_press(pos, global_mouse, tile_global_pos) -> void  # Start tracking
+on_motion(pos: Vector2) -> bool     # Returns true if drag just started
+on_release() -> bool                # Returns true if was click (not drag)
+force_end() -> void                 # Reset all state
+set_as_follower() -> bool           # Set as multi-drag follower
+is_dragging() -> bool
+is_idle() -> bool
+```
+
+### Usage in Tile.gd
+```gdscript
+# Created in _ready()
+_drag = TileDragHelper.new()
+_drag.drag_threshold_reached.connect(_on_drag_threshold_reached)
+_drag.drag_ended.connect(_on_drag_ended)
+
+# Input delegation
+func _handle_mouse_button(event):
+    if event.is_pressed():
+        _drag.on_press(event.position, get_global_mouse_position(), global_position)
+    else:
+        if _drag.on_release():
+            tile_selected.emit(self)  # Was click
+
+func _handle_mouse_motion(event):
+    _drag.on_motion(event.position)
+```
+
+---
+
 ## Integration Points
 
 ### With GameManager
@@ -166,11 +227,15 @@ TileAnimator.animate_stomp_batch(tiles)
 
 ---
 
+## Controllers
+See [controllers/AGENT.md](controllers/AGENT.md) for detailed documentation on:
+- GameplayController (coordinator pattern)
+- TilePlacementHandler, DropHandler, PlayHandler
+- MenuController
+
 ## Future Scripts
 - `animation/discard_tile_animation.gd` - Discard animation
 - `animation/place_tile_animation.gd` - Board placement animation
-- `deck_manager.gd` - Deck building and management
 - `modifier_system.gd` - Tile/cell modifier effects
 - `achievement_tracker.gd` - Achievement system
 - `save_manager.gd` - Save/load functionality
-- `cross_word_detector.gd` - Find all words formed by placement

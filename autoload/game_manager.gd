@@ -30,14 +30,6 @@ var plays_per_round: int = 10
 var difficulty: int = 0
 
 # =============================================================================
-# TURN STATE
-# =============================================================================
-
-var tiles_placed_this_turn: Array[Tile] = []
-var words_scored_this_turn: Array[String] = []
-var points_earned_this_turn: int = 0
-
-# =============================================================================
 # CONFIGURATION
 # =============================================================================
 
@@ -47,7 +39,6 @@ const DEFAULT_TARGET_SCORE: int = 1000000
 
 
 func _ready() -> void:
-	_connect_signals()
 	print("[GameManager] Ready")
 
 
@@ -66,9 +57,6 @@ func start_game(bag_config: BagDistribution, game_difficulty: int = 0) -> void:
 	current_round = 1
 	current_score = 0
 	plays_remaining = plays_per_round
-	tiles_placed_this_turn.clear()
-	words_scored_this_turn.clear()
-	points_earned_this_turn = 0
 
 	# Initialize bag
 	TileBag.populate_bag(bag_config)
@@ -126,7 +114,6 @@ func commit_play(score: int) -> void:
 
 	# Update score
 	current_score += score
-	points_earned_this_turn += score
 
 	# Update plays
 	plays_remaining -= 1
@@ -149,21 +136,12 @@ func commit_play(score: int) -> void:
 			_complete_round(false)
 
 
-## Returns tiles to hand and resets turn state.
-func cancel_play() -> void:
-	tiles_placed_this_turn.clear()
-	print("[GameManager] Play cancelled")
-
-
 ## Starts a new round.
 func start_round(round_num: int, target: int = DEFAULT_TARGET_SCORE, plays: int = DEFAULT_PLAYS_PER_ROUND) -> void:
 	current_round = round_num
 	target_score = target
 	plays_per_round = plays
 	plays_remaining = plays
-	tiles_placed_this_turn.clear()
-	words_scored_this_turn.clear()
-	points_earned_this_turn = 0
 
 	_set_phase(GamePhase.PLAYING)
 	EventBus.round_started.emit(current_round)
@@ -180,9 +158,6 @@ func setup_round(config: RoundConfig) -> void:
 	plays_per_round = config.plays_per_round
 	plays_remaining = config.plays_per_round
 	current_score = 0
-	tiles_placed_this_turn.clear()
-	words_scored_this_turn.clear()
-	points_earned_this_turn = 0
 
 	_set_phase(GamePhase.PLAYING)
 	EventBus.round_started.emit(current_round)
@@ -202,36 +177,6 @@ func is_playing() -> bool:
 
 func is_game_over() -> bool:
 	return current_phase in [GamePhase.GAME_OVER, GamePhase.VICTORY]
-
-
-func get_tiles_placed_count() -> int:
-	return tiles_placed_this_turn.size()
-
-
-func has_placed_tiles() -> bool:
-	return not tiles_placed_this_turn.is_empty()
-
-
-# =============================================================================
-# PRIVATE: SIGNAL HANDLERS
-# =============================================================================
-
-func _connect_signals() -> void:
-	EventBus.tile_placed.connect(_on_tile_placed)
-	EventBus.tile_removed.connect(_on_tile_removed)
-
-
-func _on_tile_placed(tile: Tile, _cell: BoardCell) -> void:
-	if current_phase != GamePhase.PLAYING:
-		return
-
-	tiles_placed_this_turn.append(tile)
-	print("[GameManager] Tile placed: %s | Count: %d" % [tile.letter, tiles_placed_this_turn.size()])
-
-
-func _on_tile_removed(tile: Tile, _cell: BoardCell) -> void:
-	tiles_placed_this_turn.erase(tile)
-	print("[GameManager] Tile removed: %s | Count: %d" % [tile.letter, tiles_placed_this_turn.size()])
 
 
 # =============================================================================

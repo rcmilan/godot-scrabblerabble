@@ -29,6 +29,7 @@ var _gameplay_controller: GameplayController = null
 # =============================================================================
 
 func _ready() -> void:
+	HandManager.set_references(self, hand)
 	_setup_controllers()
 	_connect_run_signals()
 	_start_run()

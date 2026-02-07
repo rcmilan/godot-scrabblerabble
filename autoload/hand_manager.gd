@@ -194,8 +194,17 @@ func set_hand_size(size: int) -> void:
 
 
 # =============================================================================
-# PRIVATE: INITIALIZATION
+# INITIALIZATION
 # =============================================================================
+
+## Explicitly sets references from Main scene. Preferred over scene-tree search.
+func set_references(main: Node, hand_ui: Node) -> void:
+	_main_scene = main
+	_hand_ui = hand_ui
+	_is_initialized = true
+	initialized.emit()
+	print("[HandManager] Initialized via set_references()")
+
 
 func _try_initialize() -> void:
 	var root: Node = get_tree().root

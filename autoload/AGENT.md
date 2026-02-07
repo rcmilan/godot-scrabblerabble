@@ -48,9 +48,6 @@ Centralized signal hub for decoupled communication between systems.
 |--------|------------|-------------|
 | `discard_count_changed` | `count: int` | Discard pile size changed |
 | `discard_pile_changed` | `tiles: Array` | Discard pile modified |
-| `discard_confirmation_requested` | `tile_count: int` | Discard confirmation shown |
-| `discard_confirmed` | none | User confirmed discard |
-| `discard_cancelled` | none | User cancelled discard |
 
 #### Selection Events
 | Signal | Parameters | Description |
@@ -87,8 +84,14 @@ Centralized signal hub for decoupled communication between systems.
 #### Play Events
 | Signal | Parameters | Description |
 |--------|------------|-------------|
-| `play_requested` | none | Player pressed Play button |
 | `tiles_played` | `tiles, words` | Tiles locked, words formed |
+
+#### Run Events
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `run_round_ready` | `config: RoundConfig` | Next round config prepared |
+| `run_shop_requested` | `round_number: int` | Shop transition triggered |
+| `run_ended` | `victory, total_score` | Run ended (win or lose) |
 
 ### Usage
 ```gdscript
@@ -184,14 +187,15 @@ var current_round: int
 var current_score: int
 var target_score: int
 var plays_remaining: int
-var tiles_placed_this_turn: Array[Tile]
+var plays_per_round: int
+var difficulty: int
 ```
 
 ### Configuration Constants
 ```gdscript
 const DEFAULT_HAND_SIZE: int = 10
-const DEFAULT_PLAYS_PER_ROUND: int = 10
-const DEFAULT_TARGET_SCORE: int = 100
+const DEFAULT_PLAYS_PER_ROUND: int = 2
+const DEFAULT_TARGET_SCORE: int = 1000000
 ```
 
 ### Key Methods
@@ -201,9 +205,10 @@ end_game(victory: bool) -> void
 pause_game() -> void
 resume_game() -> void
 commit_play(score: int) -> void
-cancel_play() -> void
 start_round(round_num, target, plays) -> void
+setup_round(config: RoundConfig) -> void
 is_playing() -> bool
+is_game_over() -> bool
 ```
 
 ### Usage
@@ -260,11 +265,9 @@ set_hand_size(size: int) -> void
 ```
 
 ### Initialization
-HandManager requires **deferred initialization**:
-- Autoloads cannot reference scene nodes at startup
-- `_ready()` waits for process frame
-- `_try_initialize()` looks for Main → Hand nodes in tree
-- Retries each frame until both are found
+HandManager supports two initialization modes:
+- **Explicit injection** (preferred): `set_references(main, hand_ui)` called from Main._ready()
+- **Fallback**: `_try_initialize()` searches scene tree for Main/Hand nodes (retries each frame)
 - Emits `initialized` signal when ready
 - GameManager.start_game() waits for this signal before drawing
 
@@ -372,7 +375,8 @@ Command-based debug system for testing and development. Provides console command
 
 ### Implementation Details
 - Parses console input as space-separated commands
-- Spawned tiles are connected to Main's tile event handlers
+- Spawned tiles are registered via `Main.register_tile()` for proper signal wiring
+- `clear_board` detaches tiles from cells and returns them to hand directly
 - Communicates with HandManager and Board for operations
 - Logs all debug activity to console and debug console UI
 
@@ -579,6 +583,7 @@ Autoloads are loaded in the order specified in `project.godot`:
 6. SelectionManager
 7. TileAnimator
 8. DragManager
+9. RunManager
 
 **Note**: Autoloads load before scenes, so they cannot reference scene types directly at declaration time. Use runtime type checking instead.
 

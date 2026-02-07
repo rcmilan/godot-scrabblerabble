@@ -57,14 +57,6 @@ signal discard_count_changed(count: int)
 ## Emitted when discard pile is modified.
 signal discard_pile_changed(tiles: Array)
 
-## Emitted when discard confirmation is requested.
-signal discard_confirmation_requested(tile_count: int)
-
-## Emitted when discard is confirmed by user.
-signal discard_confirmed()
-
-## Emitted when discard is cancelled by user.
-signal discard_cancelled()
 
 # =============================================================================
 # ROUND/TURN EVENTS
@@ -76,11 +68,6 @@ signal round_started(round_number: int)
 ## Emitted when a round ends.
 signal round_ended(round_number: int, success: bool)
 
-## Emitted when a player's turn begins (for future multiplayer).
-signal turn_started(player_id: int)
-
-## Emitted when a player's turn ends.
-signal turn_ended(player_id: int)
 
 ## Emitted when a play is completed (tiles committed).
 signal play_completed(plays_remaining: int)
@@ -89,21 +76,8 @@ signal play_completed(plays_remaining: int)
 # PLAY EVENTS
 # =============================================================================
 
-## Emitted when player requests to play the current hand.
-signal play_requested()
-
 ## Emitted when tiles are locked/played (made permanent).
 signal tiles_played(tiles: Array[Tile], words: Array)
-
-# =============================================================================
-# WORD EVENTS
-# =============================================================================
-
-## Emitted when player submits placed tiles as a word.
-signal word_submitted(word: String, tiles: Array)
-
-## Emitted after word validation completes.
-signal word_validated(word: String, is_valid: bool)
 
 # =============================================================================
 # SCORE EVENTS
@@ -138,16 +112,6 @@ signal game_paused()
 signal game_resumed()
 
 # =============================================================================
-# UI EVENTS
-# =============================================================================
-
-## Emitted to request UI updates.
-signal ui_refresh_requested()
-
-## Emitted when a notification should be shown.
-signal notification_requested(message: String, type: String)
-
-# =============================================================================
 # SELECTION EVENTS
 # =============================================================================
 
@@ -176,5 +140,3 @@ signal run_shop_requested(round_number: int)
 ## Emitted when the run ends (win or lose).
 signal run_ended(victory: bool, total_score: int)
 
-## Emitted when the player leaves the shop.
-signal shop_completed()

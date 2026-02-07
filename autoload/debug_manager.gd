@@ -87,11 +87,20 @@ func cmd_clear_board() -> void:
 	var board = main_scene.get_node("Board")
 	var tiles_cleared = 0
 
+	var hand = main_scene.get_node("Hand")
 	for cell in board.get_all_cells():
 		if cell.is_occupied() and cell.tile != null:
-			main_scene.return_tile_to_hand(cell.tile)
+			var tile: Tile = cell.tile
+			tile.detach_from_cell()
+			tile.set_locked(false)
+			if tile.get_parent():
+				tile.get_parent().remove_child(tile)
+			hand.add_tile(tile)
+			tile.move_to_hand()
 			tiles_cleared += 1
 
+	if tiles_cleared > 0:
+		EventBus.hand_count_changed.emit(hand.get_tile_count())
 	log_output("Cleared %d tile(s) from board" % tiles_cleared)
 
 
@@ -116,10 +125,8 @@ func spawn_tile(letter: String, count: int = 1) -> void:
 		new_tile.initialize(tile_data)
 		hand.add_tile(new_tile)
 
-		# Connect tile signals to main scene
-		new_tile.tile_selected.connect(main_scene._on_tile_selected)
-		new_tile.tile_right_clicked.connect(main_scene._on_tile_right_clicked)
-		new_tile.tile_drag_ended.connect(main_scene._on_tile_drag_ended)
+		# Register tile with the gameplay controller via Main
+		main_scene.register_tile(new_tile)
 
 	log_output("Spawned %d x '%s' tile(s)" % [count, letter])
 
