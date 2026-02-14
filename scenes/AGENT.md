@@ -56,7 +56,10 @@ Main (Control)
 ├── MultiSelectIndicator            # Selection mode indicator
 ├── MainHUD                         # Game state display
 ├── DiscardPile                     # Discard drop zone
-└── DiscardConfirmationDialog       # Discard confirmation popup
+├── DiscardConfirmationDialog       # Discard confirmation popup
+├── ShopOverlay                     # Shop between rounds
+├── PauseMenu                       # Pause menu overlay
+└── GameOverPopup                   # Victory/defeat screen
 ```
 
 ### Interaction State Machine

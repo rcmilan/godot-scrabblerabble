@@ -1,8 +1,8 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scenes/ui/game_over_popup.gd" id="1_script"]
+[ext_resource type="Script" path="res://scenes/ui/pause_menu/pause_menu.gd" id="1_script"]
 
-[node name="GameOverPopup" type="CanvasLayer"]
+[node name="PauseMenu" type="CanvasLayer"]
 layer = 10
 script = ExtResource("1_script")
 
@@ -12,7 +12,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
+color = Color(0, 0, 0, 0.5)
 
 [node name="Panel" type="Panel" parent="."]
 anchors_preset = 8
@@ -43,20 +43,20 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="MessageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Game Over"
+text = "Paused"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ScoreLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Final Score: 0"
-horizontal_alignment = 1
-vertical_alignment = 1
 
-[node name="ReturnButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="ResumeButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Resume"
+
+[node name="ReturnToTitleButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Return to Title"
