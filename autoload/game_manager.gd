@@ -164,6 +164,16 @@ func setup_round(config: RoundConfig) -> void:
 
 
 # =============================================================================
+# PUBLIC API: FORCED ROUND END (used by timer qualities)
+# =============================================================================
+
+## Forces the current round to end. Used by timer qualities to trigger round failure.
+func force_round_end(success: bool) -> void:
+	if _current_phase == GamePhase.PLAYING:
+		_complete_round(success)
+
+
+# =============================================================================
 # PUBLIC API: QUERIES
 # =============================================================================
 

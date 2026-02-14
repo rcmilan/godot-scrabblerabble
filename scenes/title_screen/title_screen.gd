@@ -26,6 +26,7 @@ var _menu_controller: MenuController = null
 @onready var _options_button: Button = $MenuContainer/VBoxContainer/OptionsButton
 @onready var _exit_button: Button = $MenuContainer/VBoxContainer/ExitButton
 @onready var _options_popup: OptionsPopup = $OptionsPopup
+@onready var _run_setup_popup: RunSetupPopup = $RunSetupPopup
 @onready var _title_label: Label = $TitleLabel
 
 # =============================================================================
@@ -61,21 +62,18 @@ func _setup_ui() -> void:
 	# Connect options popup
 	_options_popup.closed.connect(_on_options_closed)
 
+	# Connect run setup popup
+	_run_setup_popup.run_confirmed.connect(_on_run_confirmed)
+	_run_setup_popup.cancelled.connect(_on_run_setup_cancelled)
+
 # =============================================================================
 # MENU ACTIONS
 # =============================================================================
 
 func _on_new_game_requested() -> void:
-	"""Start a new game with configured settings."""
-	print("[TitleScreen] Starting new game...")
-
-	var default_bag: BagDistribution = load("res://Data/BagDistribution/bag_default.tres")
-	var plays: int = _options_popup.get_plays_per_round()
-
-	RunManager.initialize_run(default_bag, plays)
-	RunManager.set_debug_auto_win(_options_popup.get_auto_win())
-
-	get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
+	"""Show run setup popup for quality selection."""
+	_menu_controller.deactivate()
+	_run_setup_popup.show_popup()
 
 
 func _on_options_requested() -> void:
@@ -88,6 +86,24 @@ func _on_exit_requested() -> void:
 	"""Exit the game."""
 	print("[TitleScreen] Exiting game...")
 	get_tree().quit()
+
+# =============================================================================
+# RUN SETUP POPUP
+# =============================================================================
+
+func _on_run_confirmed(run: Run) -> void:
+	"""Start a new game with the configured run."""
+	print("[TitleScreen] Starting run with %d qualities..." % run.qualities.size())
+
+	RunManager.initialize_run_from_builder(run)
+	RunManager.set_debug_auto_win(_options_popup.get_auto_win())
+
+	get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
+
+
+func _on_run_setup_cancelled() -> void:
+	"""Re-activate menu when run setup is cancelled."""
+	_menu_controller.activate()
 
 # =============================================================================
 # OPTIONS POPUP
