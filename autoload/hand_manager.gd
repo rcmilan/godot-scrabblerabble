@@ -7,9 +7,8 @@ extends Node
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
-
-const DEFAULT_HAND_SIZE: int = 10
-const MAX_HAND_SIZE: int = 15
+# Hand size default comes from ProgressionConfig.default_hand_size.
+# At runtime, set via set_hand_size() which syncs to the Hand UI.
 
 # =============================================================================
 # SIGNALS
@@ -22,7 +21,7 @@ signal tile_ready(tile: Tile)
 # STATE
 # =============================================================================
 
-var hand_size: int = DEFAULT_HAND_SIZE
+var hand_size: int = 10
 var discard_pile: Array[Tile] = []
 
 # =============================================================================
@@ -184,9 +183,11 @@ func is_hand_full() -> bool:
 	return _hand_ui.is_full()
 
 
-## Sets the target hand size for refilling.
+## Sets the target hand size for refilling. Syncs to Hand UI.
 func set_hand_size(size: int) -> void:
-	hand_size = clampi(size, 1, MAX_HAND_SIZE)
+	hand_size = maxi(size, 1)
+	if _hand_ui and is_instance_valid(_hand_ui):
+		_hand_ui.max_hand_size = hand_size
 
 
 # =============================================================================
@@ -196,6 +197,7 @@ func set_hand_size(size: int) -> void:
 ## Sets references from Main scene. Only initialization path.
 func set_references(hand_ui: Node) -> void:
 	_hand_ui = hand_ui
+	_hand_ui.max_hand_size = hand_size
 	_is_initialized = true
 	initialized.emit()
 	print("[HandManager] Initialized via set_references()")

@@ -25,7 +25,7 @@ The Hand component manages the player's collection of available tiles. Selection
 
 ## Key Properties
 ```gdscript
-@export var max_hand_size: int = 10  # Maximum tiles allowed
+var max_hand_size: int = 10  # Set by HandManager.set_hand_size()
 @onready var tile_container: HBoxContainer = $TileContainer
 ```
 

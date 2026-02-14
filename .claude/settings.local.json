@@ -11,7 +11,9 @@
       "Bash(do if [ ! -f \"$dir/AGENT.md\" ])",
       "Bash(then echo \"MISSING: $dir\")",
       "Bash(fi)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

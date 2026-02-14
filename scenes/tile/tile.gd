@@ -47,6 +47,7 @@ var _cell_binding_suspended: bool = false  # True during drag operations
 var is_selected: bool = false
 var allow_hover_feedback: bool = true
 var selection_order: int = -1  # -1 = not selected
+var external_scale_management: bool = false  # When true, fan layout controls scale
 
 # === Drag State (delegated to TileDragHelper) ===
 var _drag: TileDragHelper = null
@@ -138,6 +139,8 @@ func set_selection_order(order: int) -> void:
 
 
 func _animate_selection_scale() -> void:
+	if external_scale_management:
+		return
 	var target_scale: Vector2 = SELECTED_SCALE if is_selected else NORMAL_SCALE
 	var tween: Tween = create_tween()
 	tween.tween_property(self, "scale", target_scale, SCALE_TWEEN_DURATION) \

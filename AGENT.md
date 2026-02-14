@@ -122,8 +122,9 @@ board.columns = 8
 
 ### Hand Size
 ```gdscript
-HandManager.hand_size = 10  # Default
-HandManager.MAX_HAND_SIZE = 15  # Maximum
+# Single source of truth: ProgressionConfig.default_hand_size
+# At runtime: HandManager.set_hand_size(n) syncs to Hand UI
+HandManager.hand_size = 10  # Runtime value (set per round from RoundConfig)
 ```
 
 ### Game Defaults

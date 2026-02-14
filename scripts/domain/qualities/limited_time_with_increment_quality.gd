@@ -1,0 +1,63 @@
+extends RunQuality
+class_name LimitedTimeWithIncrementQuality
+
+## LimitedTimeWithIncrementQuality: Countdown timer that gains time on each play.
+
+const DEFAULT_TIME: float = 60.0
+const INCREMENT_PER_PLAY: float = 15.0
+
+var _time_remaining: float = DEFAULT_TIME
+var _is_active: bool = false
+
+
+func get_quality_id() -> StringName:
+	return &"limited_time_with_increment"
+
+
+func get_quality_name() -> String:
+	return "Time + Increment"
+
+
+func get_description() -> String:
+	return "%ds per round, +%ds per play." % [int(DEFAULT_TIME), int(INCREMENT_PER_PLAY)]
+
+
+func has_timer() -> bool:
+	return true
+
+
+func on_round_started(round_number: int) -> void:
+	_time_remaining = DEFAULT_TIME
+	_is_active = true
+
+
+func on_play_completed(plays_remaining: int) -> void:
+	if _is_active:
+		_time_remaining += INCREMENT_PER_PLAY
+		time_incremented.emit(INCREMENT_PER_PLAY)
+		time_updated.emit(_time_remaining)
+
+
+func on_round_ended(round_number: int, success: bool) -> void:
+	_is_active = false
+
+
+func on_process(delta: float) -> void:
+	if not _is_active:
+		return
+
+	_time_remaining -= delta
+	time_updated.emit(_time_remaining)
+
+	if _time_remaining <= 0.0:
+		_time_remaining = 0.0
+		_is_active = false
+		time_expired.emit()
+
+
+func to_dict() -> Dictionary:
+	return {
+		"quality_id": get_quality_id(),
+		"default_time": DEFAULT_TIME,
+		"increment": INCREMENT_PER_PLAY,
+	}

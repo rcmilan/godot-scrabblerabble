@@ -91,6 +91,34 @@ grow_horizontal = 0
 text = "Discard: 0"
 horizontal_alignment = 2
 
+[node name="TimerLabel" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -60.0
+offset_top = 5.0
+offset_right = 60.0
+offset_bottom = 30.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 20
+text = "2:00"
+horizontal_alignment = 1
+visible = false
+
+[node name="TimerIncrementLabel" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = 65.0
+offset_top = 8.0
+offset_right = 125.0
+offset_bottom = 26.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.3, 1, 0.3, 1)
+text = "+15s"
+visible = false
+
 [node name="DrawButton" type="Button" parent="."]
 offset_left = 865.0
 offset_top = 498.0

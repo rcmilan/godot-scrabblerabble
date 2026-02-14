@@ -59,7 +59,6 @@ func get_difficulty() -> int:
 # CONFIGURATION
 # =============================================================================
 
-const DEFAULT_HAND_SIZE: int = 10
 const DEFAULT_PLAYS_PER_ROUND: int = 2
 const DEFAULT_TARGET_SCORE: int = 1000000
 
@@ -161,6 +160,16 @@ func setup_round(config: RoundConfig) -> void:
 	print("[GameManager] Round %d setup - Target: %d | Plays: %d" % [
 		_current_round, _target_score, _plays_remaining
 	])
+
+
+# =============================================================================
+# PUBLIC API: FORCED ROUND END (used by timer qualities)
+# =============================================================================
+
+## Forces the current round to end. Used by timer qualities to trigger round failure.
+func force_round_end(success: bool) -> void:
+	if _current_phase == GamePhase.PLAYING:
+		_complete_round(success)
 
 
 # =============================================================================
