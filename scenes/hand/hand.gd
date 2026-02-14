@@ -16,12 +16,18 @@ var max_hand_size: int = 10
 # === Dependencies ===
 var _selection: SelectionManager = null
 
+# === Layout ===
+var _fan_layout: HandFanLayout = null
+
 # === Node References ===
-@onready var tile_container: HBoxContainer = $TileContainer
+@onready var tile_container: Control = $TileContainer
 
 
 func _ready() -> void:
-	pass
+	_fan_layout = HandFanLayout.new()
+	_fan_layout.setup(tile_container)
+	tile_container.child_order_changed.connect(_on_tile_order_changed)
+	tile_container.resized.connect(_on_tile_order_changed)
 
 
 ## Sets the SelectionManager reference (injected by Main).
@@ -184,3 +190,8 @@ func find_tiles_by_letter(letter: String) -> Array[Tile]:
 
 func _has_tile(tile: Tile) -> bool:
 	return tile.get_parent() == tile_container
+
+
+func _on_tile_order_changed() -> void:
+	if _fan_layout:
+		_fan_layout.update_layout()
