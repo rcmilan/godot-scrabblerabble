@@ -9,25 +9,92 @@ scripts/
 ├── controllers/
 │   ├── gameplay_controller.gd       # Coordinator for gameplay interaction
 │   ├── tile_placement_handler.gd    # Tile placement/return operations
-│   ├── drop_handler.gd             # Drag-and-drop validation
-│   ├── play_handler.gd             # Play submission and scoring
-│   └── menu_controller.gd          # Title screen menu navigation
+│   ├── drop_handler.gd              # Drag-and-drop validation
+│   ├── play_handler.gd              # Play submission and scoring
+│   └── menu_controller.gd           # Title screen menu navigation
+├── domain/                          # Game domain model
+│   ├── run.gd                       # Run data container
+│   ├── run_state.gd                 # Run gameplay state tracking
+│   ├── run_quality.gd               # Quality modifier base class
+│   ├── run_builder.gd               # Run construction factory
+│   ├── round_config.gd              # Round-specific configuration
+│   ├── progression_rules.gd         # Progression formula and difficulty
+│   ├── modifiers/                   # Modifier system for qualities
+│   │   ├── modifier_instance.gd     # Individual modifier instance
+│   │   ├── modifier_registry.gd     # Modifier catalog and creation
+│   │   ├── modifier_scoring.gd      # Scoring modification logic
+│   │   ├── modifier_types.gd        # Modifier type definitions
+│   │   ├── modifier_visual_pipeline.gd  # Visual effects for modifiers
+│   │   └── behaviors/               # Specific modifier behaviors
+│   └── qualities/                   # Quality implementations
+│       ├── quality_registry.gd      # Quality catalog
+│       ├── time_attack_quality.gd
+│       ├── limited_time_with_increment_quality.gd
+│       ├── max_hand_size_quality.gd
+│       └── ... (other qualities)
+├── animation/                       # Tile animation system (Strategy pattern)
+│   ├── base/
+│   │   ├── tile_animation_strategy.gd  # Base strategy (Resource)
+│   │   ├── animation_context.gd        # Shared animation state
+│   │   └── animation_executor.gd       # Base executor class
+│   ├── draw/                        # Draw-from-bag animation
+│   ├── glide/                       # Smooth transitions
+│   ├── shake/                       # Illegal action feedback
+│   ├── stomp/                       # Play confirmation effect
+│   ├── spin/                        # Tile spin effect
+│   └── hand/                        # Hand layout & hover effects
 ├── interaction/
-│   └── tile_drag_helper.gd         # Drag state machine for tiles
-├── animation/
-│   ├── tile_animation_strategy.gd   # Base animation strategy (Resource)
-│   ├── draw_tile_animation.gd       # Draw animation implementation
-│   ├── glide_tile_animation.gd      # Smooth position transitions
-│   ├── shake_tile_animation.gd      # Shake effect animation
-│   ├── stomp_tile_animation.gd      # Stomp effect animation
-│   └── executors/                   # Animation execution logic
+│   └── tile_drag_helper.gd          # Drag state machine for tiles
 └── logic/
     └── word_validator.gd            # Word validation and scoring service
 ```
 
 ---
 
-## WordValidator
+## Domain Model (`scripts/domain/`)
+
+### Overview
+The domain model encapsulates the game's ruleset, progression, and modifier system. It's separate from UI to maintain clean architecture.
+
+### Core Classes
+
+| Class | Purpose |
+|-------|---------|
+| **Run** | Container for a complete run configuration (bag, hand size, qualities, progression) |
+| **RunState** | Runtime state tracking (current round, scores, plays remaining) |
+| **RunBuilder** | Factory for constructing runs with quality combinations |
+| **RunQuality** | Base class for quality modifiers (time limits, hand size changes, etc.) |
+| **RoundConfig** | Per-round configuration (board size, target score, plays available) |
+| **ProgressionRules** | Formula for difficulty scaling across rounds |
+| **ModifierInstance** | Individual modifier with active effects |
+| **ModifierRegistry** | Catalog of all available modifiers |
+
+### Run Builder Example
+```gdscript
+var builder = RunBuilder.new()
+builder.with_bag(default_distribution)
+builder.with_hand_size(10)
+builder.with_plays_per_round(2)
+builder.add_quality(TimeAttackQuality.new(60, 45))  # Start: 60s, decrement: 45s
+var run = builder.build()
+
+RunManager.initialize_run_from_builder(run)
+```
+
+### Quality System
+Custom game modifiers that apply rules to a run:
+
+| Quality | Effect |
+|---------|--------|
+| **TimeAttackQuality** | Add time limits and timer countdown |
+| **MaxHandSizeQuality** | Reduce maximum hand capacity |
+| **MaxScoreInNRoundsQuality** | Must reach target within N rounds |
+| **RandomModifiersQuality** | Apply random tile/board modifiers each round |
+| **LimitedTimeWithIncrementQuality** | Timer with per-play increment |
+
+---
+
+## Controllers (`scripts/controllers/`)
 
 ### Purpose
 Service class for word validation and score calculation. Can be instantiated anywhere needed.

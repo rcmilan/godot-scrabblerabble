@@ -26,74 +26,71 @@
 
 ```
 Wordatro/
-├── autoload/                   # Global singleton managers (6 active, 3 promoted to local)
-│   ├── event_bus.gd           # Signal hub for decoupled communication
-│   ├── game_manager.gd        # Game state & phase management (encapsulated)
-│   ├── tile_bag.gd            # Tile pool (deck) management
-│   ├── hand_manager.gd        # Hand operations & discard pile
-│   ├── tile_animator.gd       # Tile animation coordinator
-│   ├── run_manager.gd         # Run lifecycle orchestrator
-│   ├── selection_manager.gd   # [LOCAL NODE] Tile selection state
-│   ├── drag_manager.gd        # [LOCAL NODE] Multi-tile drag coordination
-│   └── (no debug_manager - now RefCounted owned by DebugConsole)
+├── autoload/                       # Global singleton managers (6 active + 2 demoted to local)
+│   ├── event_bus.gd               # Signal hub for decoupled communication
+│   ├── game_manager.gd            # Game state & phase management (encapsulated)
+│   ├── hand_manager.gd            # Hand operations (draw, discard, refill)
+│   ├── tile_bag.gd                # Tile pool (deck) management
+│   ├── tile_animator.gd           # Tile animation coordinator (Strategy pattern)
+│   ├── run_manager.gd             # Run lifecycle & progression orchestrator
+│   ├── selection_manager.gd       # [LOCAL NODE] Tile selection state (created by Main)
+│   └── drag_manager.gd            # [LOCAL NODE] Multi-tile drag coordination
 │
-├── scenes/                     # Game scenes and components
-│   ├── Main.tscn              # Gameplay scene (root)
-│   ├── main.gd                # Main gameplay orchestrator
-│   ├── title_screen/          # Title screen and main menu
-│   ├── board/                 # Grid component for word placement
-│   │   ├── Board.tscn
-│   │   ├── board.gd
-│   │   ├── BoardCell.tscn
-│   │   └── board_cell.gd
-│   ├── hand/                  # Player's tile collection
-│   │   ├── Hand.tscn
-│   │   └── hand.gd
-│   ├── tile/                  # Individual letter tiles
-│   │   ├── Tile.tscn
-│   │   ├── tile.gd
-│   │   └── invert.gdshader    # Visual shader for locked tiles
-│   ├── ui/                    # UI overlays, HUD, dialogs
-│   │   ├── main_hud/          # Score, plays, round info, action buttons
-│   │   ├── discard_pile/      # Drop zone for discarding
-│   │   ├── discard_confirmation_dialog/  # Discard confirmation modal
-│   │   ├── multi_select_indicator/       # Selection mode display
-│   │   ├── game_over_popup/              # Victory/defeat screen
-│   │   ├── pause_menu/                   # Pause overlay
-│   │   └── debug_overlay/                # Developer debug tools
-│   └── debug/                 # Debug console and manager
+├── scenes/                         # Game scenes & components
+│   ├── Main.tscn                  # Main gameplay scene (root)
+│   ├── main.gd                    # Scene orchestrator (lifecycle, controllers)
+│   ├── title_screen/              # Title screen and main menu
+│   ├── board/                     # Grid component for word placement
+│   ├── hand/                      # Player's tile collection UI
+│   ├── tile/                      # Individual letter tile component
+│   ├── shop/                      # Between-round shop and configuration
+│   ├── ui/                        # UI overlays, HUD, dialogs, modals
+│   └── debug/                     # Debug console and utilities
 │
-├── scripts/                    # Utility & logic scripts
-│   ├── controllers/           # Game behavior coordinators
-│   │   ├── gameplay_controller.gd     # Tile interaction coordinator
-│   │   ├── tile_placement_handler.gd  # Tile placement logic
-│   │   ├── drop_handler.gd            # Drag-and-drop validation
-│   │   ├── play_handler.gd            # Play submission & scoring
-│   │   └── menu_controller.gd         # Menu navigation
-│   ├── animation/             # Tile animation system (Strategy pattern)
-│   │   ├── base/              # Abstract animation infrastructure
-│   │   ├── draw/              # Draw-from-bag animations
-│   │   ├── glide/             # Position transition animations
-│   │   ├── shake/             # Illegal action feedback
-│   │   ├── stomp/             # Play confirmation effect
-│   │   └── hand/              # Hand tile layout & hover
-│   ├── interaction/           # Input event helpers
-│   └── logic/                 # Game rules & algorithms
+├── scripts/                        # Game logic and utilities
+│   ├── controllers/               # Game behavior coordinators
+│   │   ├── gameplay_controller.gd    # Tile interaction coordinator
+│   │   ├── tile_placement_handler.gd # Tile placement operations
+│   │   ├── drop_handler.gd           # Drag-and-drop validation
+│   │   ├── play_handler.gd           # Play submission & scoring
+│   │   └── menu_controller.gd        # Menu navigation
+│   ├── domain/                    # Game domain model (roguelike system)
+│   │   ├── run.gd                 # Run data container
+│   │   ├── run_builder.gd         # Run factory with quality system
+│   │   ├── run_state.gd           # Runtime state tracking
+│   │   ├── run_quality.gd         # Quality modifier base class
+│   │   ├── round_config.gd        # Per-round configuration
+│   │   ├── progression_rules.gd   # Difficulty progression formula
+│   │   ├── modifiers/             # Modifier system for qualities
+│   │   └── qualities/             # Quality implementations (time-attack, etc)
+│   ├── animation/                 # Tile animation system (Strategy pattern)
+│   │   ├── base/                  # Abstract animation infrastructure
+│   │   ├── draw/                  # Draw-from-bag animations
+│   │   ├── glide/                 # Smooth position transitions
+│   │   ├── shake/                 # Illegal action feedback
+│   │   ├── stomp/                 # Play confirmation effect with particles
+│   │   ├── spin/                  # Tile spin effect
+│   │   └── hand/                  # Hand layout & hover effects
+│   ├── interaction/               # Input event helpers
+│   │   └── tile_drag_helper.gd    # Drag state machine utilities
+│   └── logic/                     # Game logic & algorithms
+│       └── word_validator.gd      # Word validation and scoring
 │
-├── Data/                       # Game configuration resources
-│   ├── BagDistribution/       # Tile pool configurations
-│   │   ├── bag_distribution.gd           # Resource class
-│   │   └── bag_default.tres              # Default tile distribution
-│   └── TileData/              # Letter tile definitions
-│       ├── tile_data.gd                  # LetterTileData resource class
-│       └── tiles/             # Individual tile resources (A-Z)
+├── Data/                           # Game data resources
+│   ├── TileData/                  # Letter tile definitions
+│   │   ├── tile_data.gd           # LetterTileData resource class
+│   │   └── tiles/                 # Individual tile resources (A-Z)
+│   ├── BagDistribution/           # Tile pool configurations
+│   │   ├── bag_distribution.gd    # BagDistribution resource class
+│   │   └── bag_default.tres       # Default tile distribution
+│   └── Progression/               # Difficulty progression configs
+│       ├── progression_config.gd  # ProgressionConfig resource class
+│       └── progression_default.tres # Default progression rules
 │
-├── Assets/                     # Visual assets
-│   ├── Tiles/                 # Letter textures (letter_A.png through letter_Z.png)
-│   ├── letter.png             # Generic tile background
-│   └── blank_tile.png         # Blank/wild tile texture
-│
-└── [project.godot, icon.svg]  # Godot project files
+└── Assets/                         # Visual assets
+    ├── Tiles/                     # Letter textures (letter_A.png - letter_Z.png)
+    ├── letter.png                 # Generic tile background
+    └── blank_tile.png             # Blank/wild tile texture
 ```
 
 ---
@@ -104,41 +101,84 @@ Wordatro/
 
 ```
 1. Title Screen → Player selects "New Game"
-2. Initialize Game → TileBag created, Hand filled (10 tiles)
-3. Selection Mode → Q key toggles SINGLE/MULTI-select
-4. Tile Placement:
-   - Click tile to SELECT (or multi-select in MULTI mode)
-   - Click board cell to PLACE
-   - Multi-selected tiles place in sequence (left-to-right)
-5. Discard (Optional):
-   - Press Z or drag to discard pile
-   - Confirmation dialog shown
-   - Tiles removed, hand refilled from bag
-6. Score Phase:
-   - Form valid words on board
-   - System validates words & calculates score
-   - Score applied to run total
-   - Consumes 1 play from available plays
-7. Check Win Condition:
-   - Target score reached? → VICTORY
-   - Plays exhausted? → GAME OVER
-   - Continue? → Return to step 3
-```
+2. RunSetupPopup → Configure game (bag, hand size, plays, progression)
+3. RunBuilder → Create Run with quality modifiers
+4. Initialize Game → RunManager creates RunState, game starts
+5. Board Setup → Configure 8×8 board from RoundConfig
+6. Hand Filled → 10 tiles drawn from TileBag
+7. Selection Mode → Q key toggles SINGLE/MULTI-select
+8. Tile Selection:
+   - Single mode: One tile at a time
+   - Multi mode: Multiple tiles ordered by selection time
+9. Tile Placement:
+   - Click cell to place single tile
+   - Multi-select places tiles in sequence (left-to-right)
+10. Discard (Optional):
+    - Press Z key to discard selected tiles
+    - Confirmation dialog shown
+    - Tiles removed from hand, refilled from bag
+11. Word Submission:
+    - Form valid words on board
+    - Press "Play" to lock placed tiles
+    - WordValidator checks words and calculates scores
+    - Scoring considers letter values and multipliers
+    - Consumes 1 play from available plays
+12. Check Win Condition:
+    - Target score reached? → VICTORY
+    - Plays exhausted? → GAME OVER
+    - Continue to next round? → Shop transition
+13. Shop Phase:
+    - Round summary display (score, difficulty)
+    - "Continue" button for next round
+    - Debug option: Modify board size per round
+14. Loop Returns to Step 5 (Next round with modified difficulty)
 
 ### Game States
 
 | State | Description |
 |-------|-------------|
-| **SETUP** | Game initialization |
+| **SETUP** | Game initialization, loading resources |
 | **PLAYING** | Active gameplay (tile selection & placement) |
 | **PAUSED** | Game paused (accessible via ESC) |
-| **ROUND_END** | Round completed, waiting for input |
-| **GAME_OVER** | Loss condition (plays exhausted) |
-| **VICTORY** | Win condition (target score reached) |
+| **ROUND_END** | Round completed, waiting for player input |
+| **GAME_OVER** | Loss condition (plays exhausted, target not reached) |
+| **VICTORY** | Win condition (target score reached in rounds available) |
 
 ---
 
-## Key Components
+## Key Components Overview
+
+### Core Game Systems
+- **Main**: Orchestrates round lifecycle, transitions between gameplay and shop phases
+- **GameplayController**: Coordinates all tile interaction and input routing
+- **Board/Tile/Hand**: Scene components for grid, tiles, and hand UI
+- **GameManager**: Encapsulated game state and phase management
+- **RunManager**: Manages run lifecycle with progression and quality modifiers
+
+### Interaction & Features
+- **SelectionManager**: Manages SINGLE/MULTI-select modes with ordered selection
+- **TileBag**: Deck management with configurable distributions
+- **HandManager**: Draw, discard, and refill operations
+- **WordValidator**: Word validation and score calculation
+- **TileAnimator**: Animation coordination using Strategy pattern (draw, glide, shake, stomp, spin)
+
+### Roguelike System (Domain Model)
+- **RunBuilder**: Factory for constructing runs with quality modifiers
+- **RunQuality**: Base class for quality implementations (time-attack, max-hand-size, etc)
+- **RoundConfig**: Per-round difficulty configuration
+- **ProgressionRules**: Formula for automatic difficulty scaling
+- **ModifierSystem**: Framework for custom scoring and tile modifiers
+
+### UI & Menus
+- **TitleScreen**: Entry point with menu navigation
+- **RunSetupPopup**: Game configuration and modifier selection
+- **ShopOverlay**: Between-round summary and progression
+- **MainHUD**: Real-time game state display
+- **DiscardConfirmationDialog**: Confirm discard action
+
+---
+
+## Detailed Component Documentation
 
 ### 1. **Board** (`scenes/board/`)
 Grid-based board where tiles are placed to form words.
@@ -490,7 +530,75 @@ Edit `autoload/selection_manager.gd`:
 
 ---
 
-## Development Philosophy
+## Domain Model: Roguelike System
+
+The game includes a sophisticated domain model for roguelike-style gaming:
+
+### Run Builder Pattern
+```gdscript
+var run = RunBuilder.new()
+    .with_bag(bag_distribution)
+    .with_hand_size(10)
+    .with_plays_per_round(2)
+    .add_quality(TimeAttackQuality.new(60, -5))  # Time-attack modifier
+    .add_quality(MaxHandSizeQuality.new(8))      # Reduce hand capacity
+    .build()
+
+RunManager.initialize_run_from_builder(run)
+```
+
+### Quality System (Roguelike Modifiers)
+- **TimeAttackQuality**: Add countdown timer with difficulty scaling
+- **LimitedTimeWithIncrementQuality**: Timer with per-play time bonus
+- **MaxHandSizeQuality**: Reduce maximum hand capacity
+- **MaxScoreInNRoundsQuality**: Must reach target within N rounds
+- **RandomModifiersQuality**: Apply random tile/board modifiers
+- **Custom Modifiers**: Framework for adding new qualities
+
+### Progression System
+- Per-round configuration with automatic difficulty scaling
+- Customizable progression curves (board size, target score, plays available)
+- Debug tools for per-round testing and configuration
+
+---
+
+## Feature Highlights
+
+### Animation System (Strategy Pattern)
+Seven distinct tile animations coordinated by TileAnimator:
+1. **Draw** - Tiles rise from bag with fade-in
+2. **Glide** - Smooth arc transitions (placement, return, discard)
+3. **Shake** - Left-right oscillation for feedback
+4. **Stomp** - Rise-slam with particle effect for plays
+5. **Spin** - 360° rotation (support for custom effects)
+6. **Hand** - Fan-spread layout with hover effects
+7. **Tween** - Generic smooth transitions
+
+### Selection System
+- Toggle between SINGLE and MULTI-select modes (Q key)
+- Ordered selection tracking (multi-select place in order)
+- Visual feedback (scaling, highlighting)
+- Atomic state management
+
+### Word Validation & Scoring
+WordValidator service provides:
+- Dictionary-based word validation
+- Scrabble-style letter point values
+- Cell multiplier support (2x letter, 3x word)
+- Placement validation (linear word check)
+- Breakdown scoring information
+
+### Debug Console
+Press `D` in-game to access powerful development tools:
+- Spawn tiles: `spawn A 5` (add 5 A tiles to hand)
+- Draw tiles: `draw 10` (draw from bag)
+- Fill hand: `fill` (refill to max)
+- Clear board: `clear_board` (remove all placed tiles)
+- Game state inspection and manipulation
+
+---
+
+
 
 ### Core Principles
 1. **Godot-First Thinking**: Leverage built-in capabilities; scripts handle logic, not UI config
@@ -516,16 +624,28 @@ Edit `autoload/selection_manager.gd`:
 - Phase 4: Tile Pool Management (TileBag + BagDistribution)
 - Phase 5: Selection System (SelectionManager, multi-select)
 - Phase 6: Discard System (confirmation, drop zone, refill)
+- Phase 7: Word Detection & Validation (find_formed_words algorithm)
+- Phase 8: Scoring System with multipliers (WordValidator service)
+- Phase 9: Animation System (draw, glide, shake, stomp, spin)
+- Phase 10: Run & Progression System (RoundConfig, ProgressionRules)
+- Phase 11: Roguelike Quality Modifiers (RunQuality, RunBuilder, modifier system)
+- Phase 12: Title Screen & Game Configuration (RunSetupPopup, MenuController)
+- Phase 13: Shop Phase Between Rounds (ShopOverlay, round transitions)
+- Phase 14: Game State Management (multi-round runs, victory/defeat conditions)
 
 ### 🔄 In Progress
-- Phase 7: Word Detection & Validation
-- Phase 8: Scoring System with multipliers
+- Phase 15: UI Polish and Game Feel Refinement
+- Phase 16: Additional Quality Modifiers and Roguelike Features
 
 ### 📋 Future Phases
-- Phase 9: Turn Management
-- Phase 10: Multi-Turn & Round System
-- Phase 11: UI Polish & Game Feel
-- Phase 12: Roguelike Elements (upgrades, shops, relics)
+- Phase 17: Cell Multipliers on Board (visual + scoring)
+- Phase 18: Save/Load Game State
+- Phase 19: Multiple Starting Decks/Themes
+- Phase 20: Special Tile Types (wild cards with effects)
+- Phase 21: Achievement & Statistics System
+- Phase 22: Sound and Music
+- Phase 23: Mobile Touch Controls Refinement
+- Phase 24: Leaderboard System
 
 ---
 

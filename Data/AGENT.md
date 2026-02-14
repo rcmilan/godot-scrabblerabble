@@ -6,13 +6,20 @@ Contains game data resources: tile definitions and bag distributions. Resources 
 ## Structure
 ```
 Data/
-├── TileData/           # Letter tile definitions
-│   ├── tile_data.gd    # LetterTileData resource class
-│   └── tiles/          # Individual tile resources (A-Z)
+├── TileData/               # Letter tile definitions
+│   ├── tile_data.gd        # LetterTileData resource class
+│   ├── tiles/              # Individual tile resources (A-Z)
+│   └── AGENT.md
 │
-└── BagDistribution/    # Tile pool configurations
-    ├── bag_distribution.gd  # BagDistribution resource class
-    └── bag_default.tres     # Default distribution
+├── BagDistribution/        # Tile pool configurations
+│   ├── bag_distribution.gd # BagDistribution resource class
+│   ├── bag_default.tres    # Default tile distribution
+│   └── AGENT.md
+│
+└── Progression/            # Game progression configurations (NEW)
+    ├── progression_config.gd   # ProgressionConfig resource class
+    ├── progression_default.tres # Default progression rules
+    └── (potentially AGENT.md)
 ```
 
 ---
@@ -140,6 +147,59 @@ To add special tiles (e.g., wild cards):
    }
    ```
 5. TileBag will load `tile_wild.tres` from `TileData/tiles/`
+
+---
+
+## Progression Subsystem
+
+### Purpose
+Define how difficulty scales across rounds (board size, target score, plays available).
+
+### ProgressionConfig Resource
+**Class**: `ProgressionConfig extends Resource`
+
+Stores formulas for calculating difficulty at each round:
+```gdscript
+@export var board_size_curve: Curve        # How board scales per round
+@export var target_score_curve: Curve      # How target score scales
+@export var plays_available_curve: Curve   # How many plays allowed
+@export var base_board_size: Vector2i      # Starting grid size
+@export var base_target_score: int         # Starting target score
+```
+
+### ProgressionRules (Domain Model)
+**File**: `scripts/domain/progression_rules.gd`  
+**Extends**: `RefCounted`
+
+Takes a `ProgressionConfig` and calculates per-round configuration:
+```gdscript
+class_name ProgressionRules extends RefCounted
+
+func get_next_round_config(
+    round_number: int,
+    play_count: int
+) -> RoundConfig
+    """Generate next round with scaled difficulty from curves"""
+```
+
+### Usage
+```gdscript
+# Load default progression
+var progression_config = load("res://Data/Progression/progression_default.tres")
+
+# Create rules calculator
+var rules = ProgressionRules.new(progression_config)
+
+# Get next round config
+var next_round = rules.get_next_round_config(round_number, play_count)
+# → RoundConfig with scaled board size, target score, etc.
+```
+
+### Default Progression (progression_default.tres)
+- **Starting Board**: 8×8
+- **Starting Target Score**: 500-1000 (escalates)
+- **Plays Per Round**: 2-3
+- **Scaling**: Progressive increase in difficulty each round
 
 ---
 

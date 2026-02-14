@@ -7,11 +7,12 @@ Contains all game scenes and their associated scripts. Each subdirectory represe
 ```
 scenes/
 ├── title_screen/          # Title screen and main menu
-├── Main.tscn              # Gameplay scene
+├── Main.tscn              # Gameplay scene (root)
 ├── main.gd                # Main controller script
 ├── board/                 # Board and cell components
 ├── hand/                  # Hand component
 ├── tile/                  # Tile component
+├── shop/                  # Between-round shop and configuration
 ├── ui/                    # UI overlays, HUD, and dialogs
 └── debug/                 # Debug tools
 ```
@@ -28,7 +29,8 @@ See [title_screen/AGENT.md](title_screen/AGENT.md) for detailed documentation.
 ### Features
 - **Menu Navigation**: Keyboard (WASD/arrows) and mouse support
 - **Quick Navigation**: A/D to jump to first/last menu item
-- **Options Popup**: Modal dialog with mocked settings (fullscreen, vsync, volume)
+- **Run Setup Popup**: Game configuration (bag, hand size, plays per round, progression)
+- **Options Popup**: Modal dialog with game settings
 - **Scene Transition**: Loads Main.tscn when "New Game" is selected
 
 ### Architecture
@@ -54,12 +56,33 @@ Main (Control)
 ├── Hand                            # Player's tiles
 ├── DebugConsole                    # Debug commands (hidden)
 ├── MultiSelectIndicator            # Selection mode indicator
-├── MainHUD                         # Game state display
+├── MainHUD                         # Game state display (CanvasLayer)
 ├── DiscardPile                     # Discard drop zone
-├── DiscardConfirmationDialog       # Discard confirmation popup
-├── ShopOverlay                     # Shop between rounds
-├── PauseMenu                       # Pause menu overlay
-└── GameOverPopup                   # Victory/defeat screen
+├── DiscardConfirmationDialog       # Discard confirmation popup (CanvasLayer)
+├── ShopOverlay                     # Between-round shop/summary (CanvasLayer)
+├── PauseMenu                       # Pause menu overlay (CanvasLayer)
+└── GameOverPopup                   # Victory/defeat screen (CanvasLayer)
+
+# Local nodes (created dynamically)
+├── SelectionManager                # Selection state (created by Main)
+└── GameplayController
+    └── DragManager                 # Multi-tile drag (created by controller)
+```
+
+### Round Lifecycle
+```
+1. Main._start_run() → RunManager.start_run()
+2. RunManager._advance_to_next_round() → generates RoundConfig
+3. EventBus.run_round_ready emitted → Main._on_round_ready()
+4. Main configures board size, hand size from RoundConfig
+5. Gameplay loop: tile placement, discard, plays
+6. PlayHandler detects win/lose condition
+7. GameManager.end_game() → EventBus.game_ended
+8. Main._on_run_ended() → show GameOverPopup or transition to shop
+9. If shop: EventBus.run_shop_requested → Main._on_shop_requested()
+10. ShopOverlay shows round summary, "Continue" button
+11. ShopOverlay.continue_requested → Main._on_shop_continue()
+12. Go back to step 2 for next round
 ```
 
 ### Interaction State Machine
