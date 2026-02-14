@@ -39,10 +39,10 @@ func set_progression(config: ProgressionConfig) -> RunBuilder:
 
 
 func add_quality(quality: RunQuality) -> RunBuilder:
-	# Prevent duplicate qualities by ID
 	var id := quality.get_quality_id()
 	for existing in _qualities:
 		if existing.get_quality_id() == id:
+			push_warning("[RunBuilder] Quality '%s' already added; duplicate ignored." % id)
 			return self
 	_qualities.append(quality)
 	return self
@@ -65,17 +65,24 @@ func build() -> Run:
 	if _bag_config:
 		run.bag_config = _bag_config
 	else:
-		run.bag_config = load("res://Data/BagDistribution/bag_default.tres")
+		var default_bag := load("res://Data/BagDistribution/bag_default.tres") as BagDistribution
+		if default_bag == null:
+			push_error("[RunBuilder] Failed to load default bag distribution")
+		run.bag_config = default_bag
 
 	if _progression_config:
 		run.progression_config = _progression_config
 	else:
-		run.progression_config = load("res://Data/Progression/progression_default.tres")
+		var default_prog := load("res://Data/Progression/progression_default.tres") as ProgressionConfig
+		if default_prog == null:
+			push_error("[RunBuilder] Failed to load default progression config")
+		run.progression_config = default_prog
 
 	run.hand_size = _hand_size if _hand_size > 0 else run.progression_config.default_hand_size
 	run.plays_per_round = _plays_per_round if _plays_per_round > 0 else run.progression_config.default_plays_per_round
 
-	# Copy qualities
+	# Transfer qualities to the Run (builder should not be reused after build)
 	run.qualities = _qualities.duplicate()
+	_qualities.clear()
 
 	return run

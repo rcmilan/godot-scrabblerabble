@@ -22,6 +22,10 @@ func get_description() -> String:
 	return "%ds per round, +%ds per play." % [int(DEFAULT_TIME), int(INCREMENT_PER_PLAY)]
 
 
+func has_timer() -> bool:
+	return true
+
+
 func on_round_started(round_number: int) -> void:
 	_time_remaining = DEFAULT_TIME
 	_is_active = true

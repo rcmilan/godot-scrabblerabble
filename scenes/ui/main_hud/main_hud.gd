@@ -31,6 +31,10 @@ func _ready() -> void:
 	_initialize_display()
 
 
+func _exit_tree() -> void:
+	_disconnect_timer_qualities()
+
+
 func _connect_signals() -> void:
 	# EventBus signals
 	EventBus.score_updated.connect(_on_score_updated)
@@ -146,14 +150,11 @@ func _connect_timer_qualities() -> void:
 		quality.time_incremented.connect(incremented_cb)
 		_timer_connections.append({"signal": quality.time_incremented, "callable": incremented_cb})
 
-		# Check if this quality actually emits timer signals by checking for known timer IDs
-		var qid := quality.get_quality_id()
-		if qid == &"time_attack" or qid == &"limited_time_with_increment":
+		if quality.has_timer():
 			has_timer = true
 
 	timer_label.visible = has_timer
-	if not has_timer:
-		timer_increment_label.hide()
+	timer_increment_label.visible = false
 
 
 func _disconnect_timer_qualities() -> void:
@@ -177,8 +178,9 @@ func _on_timer_incremented(amount: float) -> void:
 	timer_increment_label.text = "+%ds" % int(amount)
 	timer_increment_label.modulate = Color(0.3, 1.0, 0.3, 1.0)
 	timer_increment_label.show()
-	if _increment_tween and _increment_tween.is_valid():
+	if _increment_tween:
 		_increment_tween.kill()
+		_increment_tween = null
 	_increment_tween = create_tween()
 	_increment_tween.tween_interval(0.8)
 	_increment_tween.tween_property(timer_increment_label, "modulate:a", 0.0, 0.4)

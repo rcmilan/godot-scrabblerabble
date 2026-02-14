@@ -22,6 +22,10 @@ func get_description() -> String:
 	return "Each round has a %d second time limit." % int(DEFAULT_TIME)
 
 
+func has_timer() -> bool:
+	return true
+
+
 func on_round_started(round_number: int) -> void:
 	_time_remaining = DEFAULT_TIME
 	_is_active = true
