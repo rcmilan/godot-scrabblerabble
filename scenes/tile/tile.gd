@@ -38,6 +38,9 @@ var point_modifier: int = 0        # Bonus/penalty to base points
 var is_wild: bool = false          # Wild card tile
 var is_locked: bool = false        # Cannot be moved once placed
 
+# === Composable Modifiers ===
+var modifiers: Dictionary = {}     # Keyed by ModifierTypes.Type → ModifierInstance
+
 # === Location State ===
 var location: TileLocation = TileLocation.IN_BAG
 var current_cell: BoardCell = null  # Only valid when ON_BOARD
@@ -226,6 +229,73 @@ func move_to_discard() -> void:
 
 
 # =============================================================================
+# MODIFIER MANAGEMENT
+# =============================================================================
+
+## Adds a modifier to this tile (one per type).
+func add_modifier(modifier: ModifierInstance) -> void:
+	modifiers[modifier.type] = modifier
+	_update_modifier_visual()
+	EventBus.modifier_applied.emit(self, modifier)
+
+
+## Removes a modifier by type.
+func remove_modifier(type: ModifierTypes.Type) -> void:
+	modifiers.erase(type)
+	_update_modifier_visual()
+
+
+## Clears all modifiers.
+func clear_modifiers() -> void:
+	modifiers.clear()
+	_update_modifier_visual()
+
+
+## Removes CONSUMABLE modifiers only (called after a play).
+func consume_modifiers() -> void:
+	var consumed: Array[int] = []
+	for type in modifiers.keys():
+		var mod: ModifierInstance = modifiers[type]
+		if mod.lifetime == ModifierTypes.Lifetime.CONSUMABLE:
+			consumed.append(type)
+	for type in consumed:
+		modifiers.erase(type)
+		EventBus.modifier_consumed.emit(self, type)
+	if not consumed.is_empty():
+		_update_modifier_visual()
+
+
+## Removes CONSUMABLE and PER_ROUND modifiers (called at round end).
+func clear_round_modifiers() -> void:
+	var to_remove: Array[int] = []
+	for type in modifiers.keys():
+		var mod: ModifierInstance = modifiers[type]
+		if mod.lifetime != ModifierTypes.Lifetime.PERMANENT:
+			to_remove.append(type)
+	for type in to_remove:
+		modifiers.erase(type)
+	if not to_remove.is_empty():
+		_update_modifier_visual()
+
+
+## Checks if the tile has a specific modifier type.
+func has_modifier(type: ModifierTypes.Type) -> bool:
+	return modifiers.has(type)
+
+
+## Returns the primary modifier type for animation selection.
+## Priority: MULTI > EXTRA > RESET > NONE.
+func get_primary_modifier_type() -> ModifierTypes.Type:
+	if modifiers.has(ModifierTypes.Type.MULTI):
+		return ModifierTypes.Type.MULTI
+	if modifiers.has(ModifierTypes.Type.EXTRA):
+		return ModifierTypes.Type.EXTRA
+	if modifiers.has(ModifierTypes.Type.RESET):
+		return ModifierTypes.Type.RESET
+	return ModifierTypes.Type.NONE
+
+
+# =============================================================================
 # RESET
 # =============================================================================
 
@@ -235,6 +305,7 @@ func reset() -> void:
 	is_selected = false
 	is_locked = false
 	point_modifier = 0
+	modifiers.clear()
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE
@@ -326,6 +397,11 @@ func _on_drag_ended() -> void:
 # === Private: Visual Updates ===
 
 const LOCKED_TINT: Color = Color(0.85, 0.85, 0.9, 1.0)  # Subtle blue-gray tint
+const MODIFIER_TINTS: Dictionary = {
+	ModifierTypes.Type.EXTRA: Color(0.85, 0.72, 0.53),   # Bronze
+	ModifierTypes.Type.MULTI: Color(0.6, 0.8, 1.0),      # Light blue
+	ModifierTypes.Type.RESET: Color(1.0, 0.5, 0.5),      # Reddish
+}
 
 func _update_visual() -> void:
 	if border:
@@ -335,7 +411,17 @@ func _update_visual() -> void:
 	if is_locked:
 		modulate = LOCKED_TINT
 	elif _drag == null or not _drag.is_dragging():
-		modulate = Color.WHITE
+		modulate = _get_modifier_tint()
+
+
+func _update_modifier_visual() -> void:
+	if _drag == null or not _drag.is_dragging():
+		modulate = _get_modifier_tint()
+
+
+func _get_modifier_tint() -> Color:
+	var primary: ModifierTypes.Type = get_primary_modifier_type()
+	return MODIFIER_TINTS.get(primary, Color.WHITE)
 
 
 ## Call this when the locked state changes to update visuals.
@@ -355,5 +441,8 @@ func _on_mouse_entered() -> void:
 
 func _on_mouse_exited() -> void:
 	if allow_hover_feedback:
-		# Restore appropriate color based on locked state
-		modulate = LOCKED_TINT if is_locked else Color.WHITE
+		# Restore appropriate color based on locked/modifier state
+		if is_locked:
+			modulate = LOCKED_TINT
+		else:
+			modulate = _get_modifier_tint()

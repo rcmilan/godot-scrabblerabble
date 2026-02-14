@@ -94,8 +94,9 @@ func calculate_placement_score(tiles: Array, cells: Array) -> Dictionary:
 		var cell: BoardCell = cells[i] if i < cells.size() else null
 
 		var base: int = tile.get_points()
+		var modifier_result: Dictionary = ModifierScoring.compute_tile_score(base, tile.modifiers)
 		var letter_mult: int = cell.get_letter_multiplier() if cell else 1
-		var tile_score: int = base * letter_mult
+		var tile_score: int = modifier_result.score * letter_mult
 
 		letter_score += tile_score
 
@@ -105,6 +106,8 @@ func calculate_placement_score(tiles: Array, cells: Array) -> Dictionary:
 		breakdown.append({
 			"letter": tile.letter,
 			"base": base,
+			"modifier_score": modifier_result.score,
+			"modifiers_applied": modifier_result.modifiers_applied,
 			"letter_mult": letter_mult,
 			"tile_score": tile_score
 		})

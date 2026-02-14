@@ -67,7 +67,23 @@ func on_play_requested() -> void:
 
 	_selection.deselect_all()
 
-	TileAnimator.animate_stomp_batch(unplayed_tiles)
+	# Split tiles by modifier type for distinct animations
+	var multi_tiles: Array[Tile] = []
+	var normal_tiles: Array[Tile] = []
+	for tile in unplayed_tiles:
+		if tile.has_modifier(ModifierTypes.Type.MULTI):
+			multi_tiles.append(tile)
+		else:
+			normal_tiles.append(tile)
+
+	# Consume CONSUMABLE modifiers after locking
+	for tile in unplayed_tiles:
+		tile.consume_modifiers()
+
+	if not normal_tiles.is_empty():
+		TileAnimator.animate_stomp_batch(normal_tiles)
+	if not multi_tiles.is_empty():
+		TileAnimator.animate_spin_batch(multi_tiles)
 
 	EventBus.tiles_played.emit(unplayed_tiles, words)
 	play_completed.emit(unplayed_tiles, words)
