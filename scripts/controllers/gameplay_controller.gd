@@ -15,6 +15,7 @@ class_name GameplayController
 signal tile_placement_completed(tile: Tile, cell: BoardCell)
 signal tile_returned_to_hand(tile: Tile)
 signal play_completed(tiles: Array[Tile], words: Array)
+signal pause_requested
 
 # =============================================================================
 # STATE
@@ -73,6 +74,11 @@ func get_word_validator() -> WordValidator:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _is_active:
+		return
+
+	if event.is_action_pressed("pause_game"):
+		pause_requested.emit()
+		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("toggle_multi_select"):

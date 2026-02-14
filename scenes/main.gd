@@ -28,6 +28,7 @@ var _selection_manager: SelectionManager = null
 @onready var main_hud: CanvasLayer = $MainHUD
 @onready var shop_overlay: ShopOverlay = $ShopOverlay
 @onready var game_over_popup: GameOverPopup = $GameOverPopup
+@onready var pause_menu: PauseMenu = $PauseMenu
 @onready var multi_select_indicator: Control = $MultiSelectIndicator
 
 
@@ -59,6 +60,7 @@ func _setup_controllers() -> void:
 	add_child(_gameplay_controller)
 	_gameplay_controller.setup(board, hand, discard_pile, discard_dialog, main_hud, _selection_manager)
 	_gameplay_controller.play_completed.connect(_on_play_completed)
+	_gameplay_controller.pause_requested.connect(_on_pause_requested)
 
 
 func _connect_run_signals() -> void:
@@ -67,6 +69,8 @@ func _connect_run_signals() -> void:
 	EventBus.run_ended.connect(_on_run_ended)
 	shop_overlay.continue_requested.connect(_on_shop_continue)
 	game_over_popup.return_to_title_requested.connect(_on_return_to_title)
+	pause_menu.resume_requested.connect(_resume_game)
+	pause_menu.return_to_title_requested.connect(_on_return_to_title)
 
 
 func _start_run() -> void:
@@ -184,6 +188,25 @@ func _on_run_ended(victory: bool, total_score: int) -> void:
 func _on_return_to_title() -> void:
 	RunManager.reset()
 	get_tree().change_scene_to_file("res://scenes/title_screen/TitleScreen.tscn")
+
+
+# =============================================================================
+# PAUSE HANDLING
+# =============================================================================
+
+func _on_pause_requested() -> void:
+	_pause_game()
+
+
+func _pause_game() -> void:
+	_gameplay_controller.deactivate()
+	GameManager.pause_game()
+	pause_menu.show_pause_menu()
+
+
+func _resume_game() -> void:
+	GameManager.resume_game()
+	_gameplay_controller.activate()
 
 
 # =============================================================================

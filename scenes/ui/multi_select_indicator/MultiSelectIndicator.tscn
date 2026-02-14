@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cscoel3dj5cps"]
 
-[ext_resource type="Script" path="res://scenes/ui/multi_select_indicator.gd" id="1_indicator"]
+[ext_resource type="Script" path="res://scenes/ui/multi_select_indicator/multi_select_indicator.gd" id="1_indicator"]
 
 [node name="MultiSelectIndicator" type="Control"]
 anchors_preset = 0

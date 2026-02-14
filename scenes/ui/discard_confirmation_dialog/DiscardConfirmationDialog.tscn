@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scenes/ui/discard_confirmation_dialog.gd" id="1_dialog"]
+[ext_resource type="Script" path="res://scenes/ui/discard_confirmation_dialog/discard_confirmation_dialog.gd" id="1_dialog"]
 
 [node name="DiscardConfirmationDialog" type="CanvasLayer"]
 layer = 10
