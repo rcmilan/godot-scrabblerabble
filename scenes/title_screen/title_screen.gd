@@ -95,6 +95,9 @@ func _on_run_confirmed(run: Run) -> void:
 	"""Start a new game with the configured run."""
 	print("[TitleScreen] Starting run with %d qualities..." % run.qualities.size())
 
+	# Apply options popup settings to the run
+	run.plays_per_round = _options_popup.get_plays_per_round()
+
 	RunManager.initialize_run_from_builder(run)
 	RunManager.set_debug_auto_win(_options_popup.get_auto_win())
 

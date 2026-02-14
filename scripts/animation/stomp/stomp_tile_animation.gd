@@ -82,3 +82,5 @@ func on_animation_complete(tile: Tile) -> void:
 	tile.z_index = 0
 	# Reset pivot offset
 	tile.pivot_offset = Vector2.ZERO
+	# Restore visual state (locked tint, modifier tint, etc.)
+	tile._update_visual()

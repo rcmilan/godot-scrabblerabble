@@ -10,3 +10,7 @@ func get_priority() -> int:
 
 func compute(_base_score: int, _tier: ModifierTypes.Tier) -> int:
 	return 0
+
+
+func get_visual() -> Dictionary:
+	return {"tint": Color.WHITE, "invert": true}

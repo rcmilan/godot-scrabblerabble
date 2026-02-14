@@ -244,7 +244,9 @@ func _setup_drag_container() -> void:
 		_drag_container.add_child(tile)
 		tile.global_position = global_pos
 		tile.z_index = DRAG_Z_INDEX
-		tile.modulate = Color(1.2, 1.2, 1.2)  # Highlight during drag
+		# Highlight during drag while preserving modifier tint
+		var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(tile.modifiers)
+		tile.modulate = visual.tint * Color(1.2, 1.2, 1.2)
 
 
 func _update_drag_positions() -> void:

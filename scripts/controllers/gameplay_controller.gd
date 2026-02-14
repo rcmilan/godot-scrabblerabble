@@ -485,7 +485,7 @@ func _complete_discard(tiles: Array[Tile]) -> void:
 	for tile in tiles:
 		# Reset visual state before discarding
 		tile.scale = Vector2.ONE
-		tile.modulate = Color.WHITE
+		tile.modulate = Color.WHITE  # Reset for discard (tile leaves play)
 		HandManager.discard_tile(tile)
 
 	var refilled: int = HandManager.refill_hand()

@@ -50,3 +50,5 @@ func on_animation_start(tile: Tile) -> void:
 func on_animation_complete(tile: Tile) -> void:
 	# Re-enable interaction after animation
 	tile.mouse_filter = Control.MOUSE_FILTER_STOP
+	# Restore modifier tint (draw animation tweens modulate to WHITE)
+	tile._update_visual()

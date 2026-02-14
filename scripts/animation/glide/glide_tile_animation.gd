@@ -56,3 +56,5 @@ func on_animation_complete(tile: Tile) -> void:
 	tile.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Reset z-index
 	tile.z_index = 0
+	# Restore modifier visual (glide animation tweens modulate to WHITE)
+	tile._update_visual()

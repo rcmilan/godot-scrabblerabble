@@ -80,10 +80,17 @@ func on_play_requested() -> void:
 	for tile in unplayed_tiles:
 		tile.consume_modifiers()
 
+	var animation_count: int = 0
 	if not normal_tiles.is_empty():
 		TileAnimator.animate_stomp_batch(normal_tiles)
+		animation_count += 1
 	if not multi_tiles.is_empty():
 		TileAnimator.animate_spin_batch(multi_tiles)
+		animation_count += 1
+
+	# Wait for all animations to complete before committing the play
+	for i in animation_count:
+		await TileAnimator.animation_completed
 
 	EventBus.tiles_played.emit(unplayed_tiles, words)
 	play_completed.emit(unplayed_tiles, words)

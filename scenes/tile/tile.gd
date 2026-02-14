@@ -283,15 +283,17 @@ func has_modifier(type: ModifierTypes.Type) -> bool:
 	return modifiers.has(type)
 
 
-## Returns the primary modifier type for animation selection.
-## Priority: MULTI > EXTRA > RESET > NONE.
+## Checks if the tile has a specific modifier type.
+## Uses the visual pipeline to determine the primary modifier.
 func get_primary_modifier_type() -> ModifierTypes.Type:
-	if modifiers.has(ModifierTypes.Type.MULTI):
-		return ModifierTypes.Type.MULTI
-	if modifiers.has(ModifierTypes.Type.EXTRA):
-		return ModifierTypes.Type.EXTRA
-	if modifiers.has(ModifierTypes.Type.RESET):
+	var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(modifiers)
+	# Derive type from visual — if invert, it's RESET; else match tint
+	if visual.invert:
 		return ModifierTypes.Type.RESET
+	for type in modifiers.keys():
+		var mod: ModifierInstance = modifiers[type]
+		if mod.behavior and mod.behavior.get_visual().tint == visual.tint:
+			return mod.type
 	return ModifierTypes.Type.NONE
 
 
@@ -309,9 +311,11 @@ func reset() -> void:
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE
+	rotation = 0.0
 	if _drag:
 		_drag.force_end()
 	_cell_binding_suspended = false
+	_apply_invert(false)
 	_update_visual()
 
 
@@ -332,7 +336,7 @@ func set_as_drag_follower() -> bool:
 func force_end_drag() -> void:
 	_drag.force_end()
 	allow_hover_feedback = true
-	modulate = Color.WHITE
+	_apply_modifier_visual()
 	z_index = 0
 
 
@@ -349,7 +353,7 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 					# Was a click, not a drag
 					tile_selected.emit(self)
 				allow_hover_feedback = true
-				modulate = Color.WHITE
+				_apply_modifier_visual()
 		MOUSE_BUTTON_RIGHT:
 			if event.is_pressed():
 				tile_right_clicked.emit(self)
@@ -373,7 +377,8 @@ func _on_drag_threshold_reached() -> void:
 	_original_z_index = z_index
 	z_index = DRAG_Z_INDEX
 
-	modulate = Color(1.2, 1.2, 1.2)
+	var visual: Dictionary = _get_modifier_visual()
+	modulate = visual.tint * Color(1.2, 1.2, 1.2)
 
 	var cell_info: String = String(current_cell.name) if current_cell else "none"
 	print("[Tile] Drag start: %s | Location: %s | Cell: %s | Locked: %s" % [
@@ -397,31 +402,54 @@ func _on_drag_ended() -> void:
 # === Private: Visual Updates ===
 
 const LOCKED_TINT: Color = Color(0.85, 0.85, 0.9, 1.0)  # Subtle blue-gray tint
-const MODIFIER_TINTS: Dictionary = {
-	ModifierTypes.Type.EXTRA: Color(0.85, 0.72, 0.53),   # Bronze
-	ModifierTypes.Type.MULTI: Color(0.6, 0.8, 1.0),      # Light blue
-	ModifierTypes.Type.RESET: Color(1.0, 0.5, 0.5),      # Reddish
-}
+
+## Invert shader material (lazy-loaded, shared across tiles)
+static var _invert_material: ShaderMaterial = null
+
+static func _get_invert_material() -> ShaderMaterial:
+	if _invert_material == null:
+		var shader: Shader = load("res://scenes/tile/invert.gdshader")
+		_invert_material = ShaderMaterial.new()
+		_invert_material.shader = shader
+	return _invert_material
+
+
+## Returns the modifier visual from the pipeline: {tint: Color, invert: bool}.
+func _get_modifier_visual() -> Dictionary:
+	return ModifierVisualPipeline.compute_tile_visual(modifiers)
+
+
+## Applies the full modifier visual (tint + invert shader) to this tile.
+## This is the single source of truth for modifier appearance.
+func _apply_modifier_visual() -> void:
+	var visual: Dictionary = _get_modifier_visual()
+	modulate = visual.tint
+	_apply_invert(visual.invert)
+
+
+## Applies or removes the invert shader on the TextureRect.
+func _apply_invert(invert: bool) -> void:
+	if not texture_rect:
+		return
+	if invert:
+		texture_rect.material = _get_invert_material()
+	else:
+		texture_rect.material = null
+
 
 func _update_visual() -> void:
 	if border:
 		border.visible = is_selected
 
-	# Apply locked visual state
-	if is_locked:
-		modulate = LOCKED_TINT
-	elif _drag == null or not _drag.is_dragging():
-		modulate = _get_modifier_tint()
+	if _drag == null or not _drag.is_dragging():
+		_apply_modifier_visual()
+		# Blend locked tint on top of modifier visual
+		if is_locked:
+			modulate *= LOCKED_TINT
 
 
 func _update_modifier_visual() -> void:
-	if _drag == null or not _drag.is_dragging():
-		modulate = _get_modifier_tint()
-
-
-func _get_modifier_tint() -> Color:
-	var primary: ModifierTypes.Type = get_primary_modifier_type()
-	return MODIFIER_TINTS.get(primary, Color.WHITE)
+	_apply_modifier_visual()
 
 
 ## Call this when the locked state changes to update visuals.
@@ -436,13 +464,10 @@ func set_locked(value: bool) -> void:
 
 func _on_mouse_entered() -> void:
 	if allow_hover_feedback and can_interact():
-		modulate = Color(1.1, 1.1, 1.1)
+		var visual: Dictionary = _get_modifier_visual()
+		modulate = visual.tint * Color(1.1, 1.1, 1.1)
 
 
 func _on_mouse_exited() -> void:
 	if allow_hover_feedback:
-		# Restore appropriate color based on locked/modifier state
-		if is_locked:
-			modulate = LOCKED_TINT
-		else:
-			modulate = _get_modifier_tint()
+		_update_visual()

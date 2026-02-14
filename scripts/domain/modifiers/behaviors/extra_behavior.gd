@@ -17,3 +17,7 @@ func get_priority() -> int:
 
 func compute(base_score: int, tier: ModifierTypes.Tier) -> int:
 	return base_score + BONUS.get(tier, 0)
+
+
+func get_visual() -> Dictionary:
+	return {"tint": Color(0.85, 0.72, 0.53), "invert": false}
