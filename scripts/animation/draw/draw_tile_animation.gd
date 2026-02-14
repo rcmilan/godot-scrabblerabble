@@ -31,24 +31,32 @@ func get_start_position_offset() -> Vector2:
 func get_start_properties() -> Dictionary:
 	return {
 		"scale": start_scale,
-		"modulate": Color(1.0, 1.0, 1.0, start_alpha)
 	}
 
 
 func get_end_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
 func on_animation_start(tile: Tile) -> void:
 	# Disable interaction during animation
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Apply modifier visual first (tint + invert), then set alpha to 0
+	tile._apply_modifier_visual()
+	tile.modulate.a = 0.0
+
+
+func build_custom_tweens(tile: Tile, tween: Tween, delay: float) -> void:
+	# Tween only the alpha channel so modifier tint is preserved
+	tween.tween_property(tile, "modulate:a", 1.0, duration) \
+		.set_ease(ease_type) \
+		.set_trans(trans_type) \
+		.set_delay(delay)
 
 
 func on_animation_complete(tile: Tile) -> void:
 	# Re-enable interaction after animation
 	tile.mouse_filter = Control.MOUSE_FILTER_STOP
-	# Restore modifier tint (draw animation tweens modulate to WHITE)
 	tile._update_visual()

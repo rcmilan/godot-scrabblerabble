@@ -40,6 +40,13 @@ var is_locked: bool = false        # Cannot be moved once placed
 
 # === Composable Modifiers ===
 var modifiers: Dictionary = {}     # Keyed by ModifierTypes.Type → ModifierInstance
+var _spark_effect: TileSparkEffect = null
+
+const EXPO_SPARK_COLORS: Dictionary = {
+	ModifierTypes.Tier.BRONZE: Color(1.0, 0.3, 0.2),
+	ModifierTypes.Tier.SILVER: Color(1.0, 0.6, 0.1),
+	ModifierTypes.Tier.GOLD: Color(0.3, 0.5, 1.0),
+}
 
 # === Location State ===
 var location: TileLocation = TileLocation.IN_BAG
@@ -62,6 +69,7 @@ var _pending_texture: Texture2D = null
 # === Node References ===
 @onready var border: Panel = $Border
 @onready var texture_rect: TextureRect = $TextureRect
+@onready var badge_container: HBoxContainer = $BadgeContainer
 
 
 func _ready() -> void:
@@ -235,6 +243,8 @@ func move_to_discard() -> void:
 ## Adds a modifier to this tile (one per type).
 func add_modifier(modifier: ModifierInstance) -> void:
 	modifiers[modifier.type] = modifier
+	if modifier.type == ModifierTypes.Type.EXPO:
+		_add_spark_effect(modifier.tier)
 	_update_modifier_visual()
 	EventBus.modifier_applied.emit(self, modifier)
 
@@ -242,12 +252,15 @@ func add_modifier(modifier: ModifierInstance) -> void:
 ## Removes a modifier by type.
 func remove_modifier(type: ModifierTypes.Type) -> void:
 	modifiers.erase(type)
+	if type == ModifierTypes.Type.EXPO:
+		_remove_spark_effect()
 	_update_modifier_visual()
 
 
 ## Clears all modifiers.
 func clear_modifiers() -> void:
 	modifiers.clear()
+	_remove_spark_effect()
 	_update_modifier_visual()
 
 
@@ -260,6 +273,8 @@ func consume_modifiers() -> void:
 			consumed.append(type)
 	for type in consumed:
 		modifiers.erase(type)
+		if type == ModifierTypes.Type.EXPO:
+			_remove_spark_effect()
 		EventBus.modifier_consumed.emit(self, type)
 	if not consumed.is_empty():
 		_update_modifier_visual()
@@ -274,6 +289,8 @@ func clear_round_modifiers() -> void:
 			to_remove.append(type)
 	for type in to_remove:
 		modifiers.erase(type)
+		if type == ModifierTypes.Type.EXPO:
+			_remove_spark_effect()
 	if not to_remove.is_empty():
 		_update_modifier_visual()
 
@@ -292,7 +309,7 @@ func get_primary_modifier_type() -> ModifierTypes.Type:
 		return ModifierTypes.Type.RESET
 	for type in modifiers.keys():
 		var mod: ModifierInstance = modifiers[type]
-		if mod.behavior and mod.behavior.get_visual().tint == visual.tint:
+		if mod.behavior and mod.behavior.get_visual(mod.tier).tint == visual.tint:
 			return mod.type
 	return ModifierTypes.Type.NONE
 
@@ -308,6 +325,7 @@ func reset() -> void:
 	is_locked = false
 	point_modifier = 0
 	modifiers.clear()
+	_remove_spark_effect()
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE
@@ -419,12 +437,14 @@ func _get_modifier_visual() -> Dictionary:
 	return ModifierVisualPipeline.compute_tile_visual(modifiers)
 
 
-## Applies the full modifier visual (tint + invert shader) to this tile.
+## Applies the full modifier visual (tint + invert shader + badges) to this tile.
 ## This is the single source of truth for modifier appearance.
 func _apply_modifier_visual() -> void:
 	var visual: Dictionary = _get_modifier_visual()
 	modulate = visual.tint
 	_apply_invert(visual.invert)
+	if visual.has("badges"):
+		_update_badges(visual.badges)
 
 
 ## Applies or removes the invert shader on the TextureRect.
@@ -437,6 +457,22 @@ func _apply_invert(invert: bool) -> void:
 		texture_rect.material = null
 
 
+func _update_badges(badges: Array) -> void:
+	if not badge_container:
+		return
+	for child in badge_container.get_children():
+		child.queue_free()
+	for badge_info in badges:
+		var label := Label.new()
+		label.text = badge_info.symbol
+		label.add_theme_font_size_override("font_size", 10)
+		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_color_override("font_outline_color", Color.BLACK)
+		label.add_theme_constant_override("outline_size", 2)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge_container.add_child(label)
+
+
 func _update_visual() -> void:
 	if border:
 		border.visible = is_selected
@@ -446,6 +482,19 @@ func _update_visual() -> void:
 		# Blend locked tint on top of modifier visual
 		if is_locked:
 			modulate *= LOCKED_TINT
+
+
+func _add_spark_effect(tier: ModifierTypes.Tier) -> void:
+	_remove_spark_effect()
+	_spark_effect = TileSparkEffect.new()
+	_spark_effect.spark_color = EXPO_SPARK_COLORS.get(tier, Color.RED)
+	add_child(_spark_effect)
+
+
+func _remove_spark_effect() -> void:
+	if _spark_effect and is_instance_valid(_spark_effect):
+		_spark_effect.queue_free()
+	_spark_effect = null
 
 
 func _update_modifier_visual() -> void:

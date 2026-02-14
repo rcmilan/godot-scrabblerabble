@@ -2,31 +2,40 @@ class_name ModifierVisualPipeline
 extends RefCounted
 
 ## ModifierVisualPipeline: Determines visual representation for tile modifiers.
-## Uses the same priority-sorted pipeline as ModifierScoring.
-## The highest-priority modifier present determines the visual output.
-## Reset (0) → Extra (10) → Multi (20).
-
-## Default visual when no modifiers are present.
-const DEFAULT_VISUAL: Dictionary = {"tint": Color.WHITE, "invert": false}
-
+## Uses ModifierPipeline.execution_order for consistent badge ordering.
+## Reset dominates everything (invert, no badges).
 
 static func compute_tile_visual(modifiers: Dictionary) -> Dictionary:
 	if modifiers.is_empty():
-		return DEFAULT_VISUAL
+		return {"tint": Color.WHITE, "invert": false, "badges": []}
 
-	# Collect modifier instances and sort by behavior priority (same as scoring)
-	var sorted: Array[ModifierInstance] = []
-	for mod in modifiers.values():
-		if mod is ModifierInstance and mod.behavior != null:
-			sorted.append(mod)
+	# Reset dominates everything
+	if modifiers.has(ModifierTypes.Type.RESET):
+		return {"tint": Color.WHITE, "invert": true, "badges": []}
 
-	if sorted.is_empty():
-		return DEFAULT_VISUAL
+	# Tint: first non-white tint in pipeline order
+	var tint: Color = Color.WHITE
+	for type in ModifierPipeline.execution_order:
+		if type == ModifierTypes.Type.RESET:
+			continue
+		if not modifiers.has(type):
+			continue
+		var mod: ModifierInstance = modifiers[type]
+		var mod_tint: Color = mod.behavior.get_visual(mod.tier).tint
+		if mod_tint != Color.WHITE:
+			tint = mod_tint
+			break
 
-	sorted.sort_custom(func(a: ModifierInstance, b: ModifierInstance) -> bool:
-		return a.behavior.get_priority() < b.behavior.get_priority()
-	)
+	# Badges in pipeline order (skip Reset, skip empty symbols)
+	var badges: Array[Dictionary] = []
+	for type in ModifierPipeline.execution_order:
+		if type == ModifierTypes.Type.RESET:
+			continue
+		if not modifiers.has(type):
+			continue
+		var mod: ModifierInstance = modifiers[type]
+		var symbol: String = mod.behavior.get_badge_symbol()
+		if not symbol.is_empty():
+			badges.append({"symbol": symbol, "tier": mod.tier, "type": type})
 
-	# The highest-priority modifier determines the visual
-	var primary: ModifierInstance = sorted[sorted.size() - 1]
-	return primary.behavior.get_visual()
+	return {"tint": tint, "invert": false, "badges": badges}

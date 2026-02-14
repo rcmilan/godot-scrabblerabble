@@ -11,13 +11,20 @@ const BONUS: Dictionary = {
 }
 
 
-func get_priority() -> int:
-	return 10
-
-
 func compute(base_score: int, tier: ModifierTypes.Tier) -> int:
 	return base_score + BONUS.get(tier, 0)
 
 
-func get_visual() -> Dictionary:
-	return {"tint": Color(0.85, 0.72, 0.53), "invert": false}
+const TINTS: Dictionary = {
+	ModifierTypes.Tier.BRONZE: Color(0.85, 0.72, 0.53),
+	ModifierTypes.Tier.SILVER: Color(0.75, 0.75, 0.85),
+	ModifierTypes.Tier.GOLD: Color(1.0, 0.84, 0.0),
+}
+
+
+func get_visual(tier: ModifierTypes.Tier) -> Dictionary:
+	return {"tint": TINTS.get(tier, Color.WHITE), "invert": false}
+
+
+func get_badge_symbol() -> String:
+	return "+"

@@ -51,6 +51,9 @@ func execute(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void:
 				.set_trans(strategy.trans_type) \
 				.set_delay(delay)
 
+		# Custom tweens (e.g. alpha fade that preserves modifier tint)
+		strategy.build_custom_tweens(tile, tween, delay)
+
 		_register_tween(tile, tween)
 
 		# Track completion

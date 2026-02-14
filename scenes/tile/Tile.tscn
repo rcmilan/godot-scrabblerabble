@@ -29,6 +29,14 @@ texture = ExtResource("1_5kclj")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="BadgeContainer" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 62.0
+offset_bottom = 16.0
+mouse_filter = 2
+
 [node name="Border" type="Panel" parent="."]
 visible = false
 z_index = 1

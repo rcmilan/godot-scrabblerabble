@@ -2,6 +2,6 @@ class_name ModifierTypes
 
 ## ModifierTypes: Enums for the tile modifier system.
 
-enum Type { NONE, EXTRA, MULTI, RESET }
+enum Type { NONE, EXTRA, MULTI, RESET, EXPO }
 enum Lifetime { CONSUMABLE, PER_ROUND, PERMANENT }
 enum Tier { BRONZE, SILVER, GOLD }

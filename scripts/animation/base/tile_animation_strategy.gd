@@ -47,6 +47,12 @@ func on_animation_start(_tile: Tile) -> void:
 	pass
 
 
+## Adds custom tween tracks beyond the standard property tweens.
+## Override to add animation-specific tweens (e.g. alpha fade).
+func build_custom_tweens(_tile: Tile, _tween: Tween, _delay: float) -> void:
+	pass
+
+
 ## Called when the animation completes for a tile.
 ## Override for cleanup logic.
 func on_animation_complete(_tile: Tile) -> void:

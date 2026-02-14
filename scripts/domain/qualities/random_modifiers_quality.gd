@@ -11,9 +11,10 @@ extends RunQuality
 const MODIFIER_CHANCE: float = 0.5
 
 const TYPE_WEIGHTS: Dictionary = {
-	ModifierTypes.Type.EXTRA: 50,
-	ModifierTypes.Type.MULTI: 35,
-	ModifierTypes.Type.RESET: 15,
+	ModifierTypes.Type.EXTRA: 45,
+	ModifierTypes.Type.MULTI: 30,
+	ModifierTypes.Type.RESET: 10,
+	ModifierTypes.Type.EXPO: 15,
 }
 
 const TIER_WEIGHTS: Dictionary = {

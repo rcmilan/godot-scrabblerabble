@@ -31,3 +31,4 @@ static func _ensure_initialized() -> void:
 	_behaviors[ModifierTypes.Type.EXTRA] = ExtraBehavior.new()
 	_behaviors[ModifierTypes.Type.MULTI] = MultiBehavior.new()
 	_behaviors[ModifierTypes.Type.RESET] = ResetBehavior.new()
+	_behaviors[ModifierTypes.Type.EXPO] = ExpoBehavior.new()
