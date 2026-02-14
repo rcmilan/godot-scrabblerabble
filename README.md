@@ -99,7 +99,6 @@ Wordatro/
 
 ### Gameplay Loop
 
-```
 1. Title Screen → Player selects "New Game"
 2. RunSetupPopup → Configure game (bag, hand size, plays, progression)
 3. RunBuilder → Create Run with quality modifiers
