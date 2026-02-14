@@ -30,6 +30,7 @@ func on_round_started(round_number: int) -> void:
 func on_play_completed(plays_remaining: int) -> void:
 	if _is_active:
 		_time_remaining += INCREMENT_PER_PLAY
+		time_incremented.emit(INCREMENT_PER_PLAY)
 		time_updated.emit(_time_remaining)
 
 

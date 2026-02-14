@@ -17,6 +17,12 @@ signal draw_requested
 @onready var discard_label: Label = $DiscardLabel
 @onready var draw_button: Button = $DrawButton
 @onready var play_button: Button = $PlayButton
+@onready var timer_label: Label = $TimerLabel
+@onready var timer_increment_label: Label = $TimerIncrementLabel
+
+# === Timer State ===
+var _timer_connections: Array[Dictionary] = []
+var _increment_tween: Tween = null
 
 
 func _ready() -> void:
@@ -87,6 +93,7 @@ func _on_run_round_ready(config: RoundConfig) -> void:
 	_update_round(config.round_number)
 	_update_plays(config.plays_per_round)
 	_update_target(config.target_score)
+	_connect_timer_qualities()
 
 
 # === UI Updates ===
@@ -117,6 +124,73 @@ func _update_hand(count: int) -> void:
 
 func _update_discard(count: int) -> void:
 	discard_label.text = "Discard: %d" % count
+
+
+# === Timer Display ===
+
+func _connect_timer_qualities() -> void:
+	_disconnect_timer_qualities()
+
+	var run := RunManager.get_active_run()
+	if run == null:
+		timer_label.hide()
+		return
+
+	var has_timer := false
+	for quality in run.qualities:
+		var updated_cb := _on_timer_updated.bind()
+		quality.time_updated.connect(updated_cb)
+		_timer_connections.append({"signal": quality.time_updated, "callable": updated_cb})
+
+		var incremented_cb := _on_timer_incremented.bind()
+		quality.time_incremented.connect(incremented_cb)
+		_timer_connections.append({"signal": quality.time_incremented, "callable": incremented_cb})
+
+		# Check if this quality actually emits timer signals by checking for known timer IDs
+		var qid := quality.get_quality_id()
+		if qid == &"time_attack" or qid == &"limited_time_with_increment":
+			has_timer = true
+
+	timer_label.visible = has_timer
+	if not has_timer:
+		timer_increment_label.hide()
+
+
+func _disconnect_timer_qualities() -> void:
+	for conn in _timer_connections:
+		var sig: Signal = conn["signal"]
+		var cb: Callable = conn["callable"]
+		if sig.is_connected(cb):
+			sig.disconnect(cb)
+	_timer_connections.clear()
+
+
+func _on_timer_updated(time_remaining: float) -> void:
+	timer_label.text = _format_time(time_remaining)
+	if time_remaining < 10.0:
+		timer_label.add_theme_color_override("font_color", Color.RED)
+	else:
+		timer_label.remove_theme_color_override("font_color")
+
+
+func _on_timer_incremented(amount: float) -> void:
+	timer_increment_label.text = "+%ds" % int(amount)
+	timer_increment_label.modulate = Color(0.3, 1.0, 0.3, 1.0)
+	timer_increment_label.show()
+	if _increment_tween and _increment_tween.is_valid():
+		_increment_tween.kill()
+	_increment_tween = create_tween()
+	_increment_tween.tween_interval(0.8)
+	_increment_tween.tween_property(timer_increment_label, "modulate:a", 0.0, 0.4)
+	_increment_tween.tween_callback(timer_increment_label.hide)
+
+
+func _format_time(seconds: float) -> String:
+	if seconds <= 0.0:
+		return "0:00"
+	var mins := int(seconds) / 60
+	var secs := int(seconds) % 60
+	return "%d:%02d" % [mins, secs]
 
 
 # === Button Handlers ===

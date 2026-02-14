@@ -15,6 +15,9 @@ signal time_updated(time_remaining: float)
 ## Emitted by timer qualities when time runs out.
 signal time_expired()
 
+## Emitted by timer qualities when time is added (e.g. increment on play).
+signal time_incremented(amount: float)
+
 # =============================================================================
 # IDENTITY (override in subclasses)
 # =============================================================================

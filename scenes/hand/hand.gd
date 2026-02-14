@@ -10,8 +10,8 @@ signal tile_added(tile: Tile)
 signal tile_removed(tile: Tile)
 signal hand_empty()
 
-# === Configuration ===
-@export var max_hand_size: int = 10
+# === Configuration (set by HandManager.set_hand_size) ===
+var max_hand_size: int = 10
 
 # === Dependencies ===
 var _selection: SelectionManager = null

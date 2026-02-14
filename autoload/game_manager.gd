@@ -59,7 +59,6 @@ func get_difficulty() -> int:
 # CONFIGURATION
 # =============================================================================
 
-const DEFAULT_HAND_SIZE: int = 10
 const DEFAULT_PLAYS_PER_ROUND: int = 2
 const DEFAULT_TARGET_SCORE: int = 1000000
 
