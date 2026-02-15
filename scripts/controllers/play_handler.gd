@@ -61,34 +61,45 @@ func on_play_requested() -> void:
 			word_info.word, word_info.direction, word_info.word.length()
 		])
 
-	# Always lock tiles and commit the play
+	# Lock unplayed tiles via modifier system
 	for tile in unplayed_tiles:
 		tile.set_locked(true)
 
 	_selection.deselect_all()
 
-	# Split tiles by modifier type for distinct animations
-	var multi_tiles: Array[Tile] = []
-	var normal_tiles: Array[Tile] = []
-	for tile in unplayed_tiles:
-		if tile.has_modifier(ModifierTypes.Type.MULTI):
-			multi_tiles.append(tile)
-		else:
-			normal_tiles.append(tile)
+	# Animate ALL board tiles (locked and newly locked)
+	var all_tiles: Array[Tile] = _get_all_board_tiles()
 
-	# Consume CONSUMABLE modifiers after locking
-	for tile in unplayed_tiles:
-		tile.consume_modifiers()
+	# Split by animation type BEFORE consuming (modifiers still present):
+	# RESET dominates → stomp (denies special animations)
+	# EXTRA / MULTI / EXPO (no RESET) → spin
+	# Everything else → stomp
+	var spin_tiles: Array[Tile] = []
+	var stomp_tiles: Array[Tile] = []
+	for tile in all_tiles:
+		if tile.has_modifier(ModifierTypes.Type.RESET):
+			stomp_tiles.append(tile)
+		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
+			or tile.has_modifier(ModifierTypes.Type.MULTI) \
+			or tile.has_modifier(ModifierTypes.Type.EXPO):
+			spin_tiles.append(tile)
+		else:
+			stomp_tiles.append(tile)
+
+	# Hide locked border during animations (on_animation_complete restores it)
+	for tile in all_tiles:
+		if tile.locked_border:
+			tile.locked_border.visible = false
 
 	# Block draw button during play animations
 	main_hud.set_draw_button_blocked(true)
 
 	var animation_count: int = 0
-	if not normal_tiles.is_empty():
-		TileAnimator.animate_stomp_batch(normal_tiles)
+	if not stomp_tiles.is_empty():
+		TileAnimator.animate_stomp_batch(stomp_tiles)
 		animation_count += 1
-	if not multi_tiles.is_empty():
-		TileAnimator.animate_spin_batch(multi_tiles)
+	if not spin_tiles.is_empty():
+		TileAnimator.animate_spin_batch(spin_tiles)
 		animation_count += 1
 
 	# Wait for all animations to complete before committing the play
@@ -96,6 +107,10 @@ func on_play_requested() -> void:
 		await TileAnimator.animation_completed
 
 	main_hud.set_draw_button_blocked(false)
+
+	# Consume CONSUMABLE modifiers on newly played tiles after animation
+	for tile in unplayed_tiles:
+		tile.consume_modifiers()
 
 	EventBus.tiles_played.emit(unplayed_tiles, words)
 	play_completed.emit(unplayed_tiles, words)
@@ -144,10 +159,34 @@ func _auto_end_round() -> void:
 
 	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
 
-	# Loop: stomp -> await -> commit for each remaining play
+	# Split ALL tiles by animation type (once, modifiers don't change between loops)
+	var spin_tiles: Array[Tile] = []
+	var stomp_tiles: Array[Tile] = []
+	for tile in all_tiles:
+		if tile.has_modifier(ModifierTypes.Type.RESET):
+			stomp_tiles.append(tile)
+		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
+			or tile.has_modifier(ModifierTypes.Type.MULTI) \
+			or tile.has_modifier(ModifierTypes.Type.EXPO):
+			spin_tiles.append(tile)
+		else:
+			stomp_tiles.append(tile)
+
+	# Loop: hide borders -> animate -> await -> commit for each remaining play
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
-		TileAnimator.animate_stomp_batch(all_tiles)
-		await TileAnimator.animation_completed
+		# Hide locked border during animations (on_animation_complete restores it)
+		for tile in all_tiles:
+			if tile.locked_border:
+				tile.locked_border.visible = false
+		var animation_count: int = 0
+		if not stomp_tiles.is_empty():
+			TileAnimator.animate_stomp_batch(stomp_tiles)
+			animation_count += 1
+		if not spin_tiles.is_empty():
+			TileAnimator.animate_spin_batch(spin_tiles)
+			animation_count += 1
+		for i in animation_count:
+			await TileAnimator.animation_completed
 		GameManager.commit_play(total_score)
 
 	update_play_button_state()

@@ -246,6 +246,8 @@ func add_modifier(modifier: ModifierInstance) -> void:
 	modifiers[modifier.type] = modifier
 	if modifier.type == ModifierTypes.Type.EXPO:
 		_add_spark_effect(modifier.tier)
+	if modifier.type == ModifierTypes.Type.LOCKED:
+		is_locked = true
 	_update_modifier_visual()
 	EventBus.modifier_applied.emit(self, modifier)
 
@@ -255,6 +257,8 @@ func remove_modifier(type: ModifierTypes.Type) -> void:
 	modifiers.erase(type)
 	if type == ModifierTypes.Type.EXPO:
 		_remove_spark_effect()
+	if type == ModifierTypes.Type.LOCKED:
+		is_locked = false
 	_update_modifier_visual()
 
 
@@ -262,6 +266,7 @@ func remove_modifier(type: ModifierTypes.Type) -> void:
 func clear_modifiers() -> void:
 	modifiers.clear()
 	_remove_spark_effect()
+	is_locked = false
 	_update_modifier_visual()
 
 
@@ -276,6 +281,8 @@ func consume_modifiers() -> void:
 		modifiers.erase(type)
 		if type == ModifierTypes.Type.EXPO:
 			_remove_spark_effect()
+		if type == ModifierTypes.Type.LOCKED:
+			is_locked = false
 		EventBus.modifier_consumed.emit(self, type)
 	if not consumed.is_empty():
 		_update_modifier_visual()
@@ -292,6 +299,8 @@ func clear_round_modifiers() -> void:
 		modifiers.erase(type)
 		if type == ModifierTypes.Type.EXPO:
 			_remove_spark_effect()
+		if type == ModifierTypes.Type.LOCKED:
+			is_locked = false
 	if not to_remove.is_empty():
 		_update_modifier_visual()
 
@@ -496,15 +505,23 @@ func _remove_spark_effect() -> void:
 
 
 func _update_modifier_visual() -> void:
+	if locked_border:
+		locked_border.visible = is_locked
 	_apply_modifier_visual()
 
 
-## Call this when the locked state changes to update visuals.
+## Sets locked state through the modifier system.
+## Backward-compatible: any code calling set_locked(true) now adds a LOCKED modifier.
 func set_locked(value: bool) -> void:
-	is_locked = value
-	_update_visual()
-	if is_locked:
-		print("[Tile] %s is now locked" % name)
+	if value and not has_modifier(ModifierTypes.Type.LOCKED):
+		var locked_mod: ModifierInstance = ModifierRegistry.create_modifier(
+			ModifierTypes.Type.LOCKED,
+			ModifierTypes.Tier.BRONZE,
+			ModifierTypes.Lifetime.PER_ROUND
+		)
+		add_modifier(locked_mod)
+	elif not value and has_modifier(ModifierTypes.Type.LOCKED):
+		remove_modifier(ModifierTypes.Type.LOCKED)
 
 
 # === Signal Handlers (connected in scene) ===

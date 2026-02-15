@@ -13,10 +13,10 @@ border_color = Color(0.11350792, 0.60272574, 0.19527751, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_locked"]
 bg_color = Color(0, 0, 0, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
 border_color = Color(0, 0, 0, 1)
 
 [node name="Tile" type="Control"]
