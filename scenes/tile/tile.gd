@@ -472,10 +472,10 @@ func _update_badges(badges: Array) -> void:
 	for badge_info in badges:
 		var label := Label.new()
 		label.text = badge_info.symbol
-		label.add_theme_font_size_override("font_size", 10)
+		label.add_theme_font_size_override("font_size", 18)
 		label.add_theme_color_override("font_color", Color.WHITE)
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
-		label.add_theme_constant_override("outline_size", 2)
+		label.add_theme_constant_override("outline_size", 3)
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge_container.add_child(label)
 
