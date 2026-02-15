@@ -1,18 +1,23 @@
-# Game Logic
+# Scripts/Logic Directory
+
+Game logic and validation services.
+
+---
 
 ## Overview
-Game rules, word validation, and scoring logic. Services in this directory are stateless or RefCounted, designed to be instantiated where needed.
+
+The Logic subsystem contains reusable game logic services:
+- Word validation and dictionary checking
+- Score calculation with multipliers and modifiers  
+- Word finding and direction detection
 
 ---
 
 ## WordValidator
 
-### Purpose
-Service for validating words, calculating scores, and detecting formed words on the board. Handles Scrabble-style word validation and placement logic.
+**Type:** RefCounted service (instantiate where needed, typically in PlayHandler)
 
-### Class: `WordValidator extends RefCounted`
-
-WordValidator is a **RefCounted class**, meaning it can be instantiated and will be automatically garbage-collected when no longer referenced. This is the correct pattern for stateless game logic services.
+**Purpose:** Word validation, scoring calculation, and word detection on board.
 
 ---
 
@@ -34,6 +39,16 @@ const LETTER_POINTS: Dictionary = {
 }
 ```
 
+| Points | Letters |
+|--------|---------|
+| 1 | A, E, I, O, U, L, N, S, T, R |
+| 2 | D, G |
+| 3 | B, C, M, P |
+| 4 | F, H, V, W, Y |
+| 5 | K |
+| 8 | J, X |
+| 10 | Q, Z |
+
 ---
 
 ## Public API
@@ -52,8 +67,8 @@ Checks if a word is valid.
 
 **Behavior:**
 ```
-If dictionary is loaded:
-    Return whether word is in dictionary
+If dictionary is loaded (_is_loaded == true):
+    Return whether word is in _valid_words dictionary
 Otherwise:
     Return true if length >= MIN_WORD_LENGTH (fallback mode)
 ```
@@ -71,9 +86,9 @@ Loads a dictionary from a file (one word per line).
 **Behavior:**
 1. Opens file and reads all lines
 2. Converts each word to uppercase and strips whitespace
-3. Adds words ≥ MIN_WORD_LENGTH to internal dictionary
+3. Adds words ≥ MIN_WORD_LENGTH to internal _valid_words dictionary
 4. Closes file and sets `_is_loaded = true`
-5. Prints "Loaded N words" message
+5. Prints "[WordValidator] Loaded N words" message
 
 **Example:**
 ```gdscript
@@ -98,6 +113,210 @@ Calculates the base point value for a word without any multipliers.
 **Example:**
 ```gdscript
 validator.calculate_base_score("CAT")  # Returns: 3 + 1 + 1 = 5
+validator.calculate_base_score("QUIZ")  # Returns: 10 + 1 + 1 + 10 = 22
+```
+
+#### `calculate_total_score(words: Array, board: Board) -> int`
+Calculate score for all words formed.
+
+**Parameters:**
+- `words`: Array of word_info dictionaries:
+  ```gdscript
+  [{
+      word: "CAT",
+      direction: "horizontal",  # or "vertical"
+      cells: [cell1, cell2, cell3]
+  }]
+  ```
+- `board`: Board reference for cell multipliers
+
+**Returns:**
+- Sum of all word scores (with multipliers applied)
+
+**Algorithm:**
+```
+1. For each word_info in words:
+   a. Calculate base score using calculate_base_score()
+   b. For each cell in word_info.cells:
+      - Apply letter multiplier from cell
+   c. Apply word multiplier to total
+   d. Add to running total
+2. Return total
+```
+
+#### `apply_multipliers(word_info: Dictionary, board: Board) -> int`
+Apply letter and word multipliers from board cells.
+
+**Parameters:**
+- `word_info`: Dictionary with word, direction, cells
+- `board`: Board reference for cell properties
+
+**Returns:**
+- Score with multipliers applied
+
+---
+
+### Word Detection
+
+#### `find_formed_words(board: Board, positions: Array[Vector2i]) -> Array`
+Find all words formed by tiles at given positions.
+
+**Parameters:**
+- `board`: Board reference
+- `positions`: Array of grid positions where tiles were placed
+
+**Returns:**
+Array of word_info dictionaries:
+```gdscript
+[{
+    word: "CAT",
+    direction: "horizontal",
+    cells: [cell1, cell2, cell3]
+}, ...]
+```
+
+**Algorithm:**
+```
+For each position in positions:
+  1. Look left/right to find horizontal word
+     - Include the newly placed tile(s)
+     - Collect all connected tiles horizontally
+     - If word length >= MIN_WORD_LENGTH, add to results
+  
+  2. Look up/down to find vertical word
+     - Include the newly placed tile(s)
+     - Collect all connected tiles vertically
+     - If word length >= MIN_WORD_LENGTH, add to results
+  
+  3. Skip single-letter "words"
+  
+  4. Validate each word via is_valid_word()
+  
+Return all valid words found
+```
+
+**Example:**
+```
+Board visualization (X = placed this turn):
+  0 1 2 3 4
+0 . X A T .
+1 . A . . .
+2 . T . . .
+
+positions = [(0,1), (0,2), (0,3)]
+Horizontal scan from (0,1): XAT → "CAT" ✓
+Vertical scan from (0,1): XAA → "CAA" (invalid)
+Vertical scan from (0,2): AT → "AT" (only 2 letters, valid)
+Vertical scan from (0,3): T → single letter, skip
+
+Results: [
+  { word: "CAT", direction: "horizontal", cells: [...] },
+  { word: "AT", direction: "vertical", cells: [...] }
+]
+```
+
+---
+
+## Usage in PlayHandler
+
+```gdscript
+class_name PlayHandler extends RefCounted
+
+var _word_validator: WordValidator = null
+
+func setup(p_board: Board, p_hud: CanvasLayer, p_selection: SelectionManager) -> void:
+    board = p_board
+    main_hud = p_hud
+    _selection = p_selection
+    _word_validator = WordValidator.new()  # Create instance
+
+
+func on_play_requested() -> void:
+    # Get newly placed tiles
+    var unplayed_tiles = _get_unplayed_board_tiles()
+    
+    # Get their positions
+    var positions: Array[Vector2i] = []
+    for tile in unplayed_tiles:
+        positions.append(tile.current_cell.grid_position)
+    
+    # Find formed words
+    var words = _word_validator.find_formed_words(board, positions)
+    
+    # Validate all words
+    var valid_words = []
+    for word_info in words:
+        if _word_validator.is_valid_word(word_info.word):
+            valid_words.append(word_info)
+        else:
+            print("Invalid word rejected: %s" % word_info.word)
+            return  # Reject play if any word is invalid
+    
+    # Calculate score
+    var score = _word_validator.calculate_total_score(valid_words, board)
+    
+    # Commit play
+    GameManager.commit_play(score)
+```
+
+---
+
+## Modifier Integration
+
+Tile modifiers can affect scoring:
+
+```gdscript
+# In calculate_total_score or similar
+if tile.has_modifier(ModifierTypes.Type.EXTRA):
+    score += 5  # Bonus points
+
+if tile.has_modifier(ModifierTypes.Type.MULTI):
+    score *= 2  # Double points
+
+if tile.has_modifier(ModifierTypes.Type.EXPO):
+    score = pow(score, 1.5)  # Exponential scaling
+```
+
+---
+
+## Testing & Validation
+
+### Debug Mode (Without Dictionary)
+
+For development, word validation operates in fallback mode:
+- Accept any word >= MIN_WORD_LENGTH
+- Useful for testing with arbitrary words
+- No external word list required
+
+```gdscript
+var validator = WordValidator.new()
+# Without calling load_word_list(), operates in fallback mode
+validator.is_valid_word("XYZ")  # Returns: true (≥ 2 letters)
+validator.is_valid_word("Q")    # Returns: false (< 2 letters)
+```
+
+### Production Mode (With Dictionary)
+
+```gdscript
+var validator = WordValidator.new()
+if validator.load_word_list("res://data/english_words.txt"):
+    # Strict validation now enabled
+    validator.is_valid_word("CAT")   # Returns: true (in dictionary)
+    validator.is_valid_word("XYZQ")  # Returns: false (not in dictionary)
+```
+
+---
+
+## Future Enhancements
+
+- **Multiple languages** - Support different language dictionaries
+- **Common word bonuses** - Extra points for frequently used words
+- **Word length bonuses** - Bonus for longer words (7+ letters)
+- **First play rules** - Special rules for opening move (must include center)
+- **Bingo bonuses** - Bonus for using all tiles in hand
+- **Prefix/suffix detection** - Recognize word formations
+- **Cross-word validation** - Validate all cross-words formed
+
 ```
 
 #### `calculate_word_score(word: String) -> int`

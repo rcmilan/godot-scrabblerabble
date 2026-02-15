@@ -1,103 +1,480 @@
 # Scripts Directory
 
-## Overview
-Contains utility scripts and game logic services that aren't tied to specific scenes.
+Game logic, domain models, controllers, and animation systems. Organized by responsibility into focused subdirectories.
 
-## Structure
+---
+
+## Directory Structure
+
 ```
 scripts/
-├── controllers/
-│   ├── gameplay_controller.gd       # Coordinator for gameplay interaction
-│   ├── tile_placement_handler.gd    # Tile placement/return operations
-│   ├── drop_handler.gd              # Drag-and-drop validation
-│   ├── play_handler.gd              # Play submission and scoring
-│   └── menu_controller.gd           # Title screen menu navigation
-├── domain/                          # Game domain model
-│   ├── run.gd                       # Run data container
-│   ├── run_state.gd                 # Run gameplay state tracking
-│   ├── run_quality.gd               # Quality modifier base class
-│   ├── run_builder.gd               # Run construction factory
-│   ├── round_config.gd              # Round-specific configuration
-│   ├── progression_rules.gd         # Progression formula and difficulty
-│   ├── modifiers/                   # Modifier system for qualities
-│   │   ├── modifier_instance.gd     # Individual modifier instance
-│   │   ├── modifier_registry.gd     # Modifier catalog and creation
-│   │   ├── modifier_scoring.gd      # Scoring modification logic
-│   │   ├── modifier_types.gd        # Modifier type definitions
-│   │   ├── modifier_visual_pipeline.gd  # Visual effects for modifiers
-│   │   └── behaviors/               # Specific modifier behaviors
-│   └── qualities/                   # Quality implementations
-│       ├── quality_registry.gd      # Quality catalog
-│       ├── time_attack_quality.gd
-│       ├── limited_time_with_increment_quality.gd
-│       ├── max_hand_size_quality.gd
-│       └── ... (other qualities)
-├── animation/                       # Tile animation system (Strategy pattern)
-│   ├── base/
-│   │   ├── tile_animation_strategy.gd  # Base strategy (Resource)
-│   │   ├── animation_context.gd        # Shared animation state
-│   │   └── animation_executor.gd       # Base executor class
-│   ├── draw/                        # Draw-from-bag animation
-│   ├── glide/                       # Smooth transitions
-│   ├── shake/                       # Illegal action feedback
-│   ├── stomp/                       # Play confirmation effect
-│   ├── spin/                        # Tile spin effect
-│   └── hand/                        # Hand layout & hover effects
-├── interaction/
-│   └── tile_drag_helper.gd          # Drag state machine for tiles
-└── logic/
-    └── word_validator.gd            # Word validation and scoring service
+├── AGENT.md (THIS FILE - Overview)
+├── animation/        - Tile animation strategy/executor pattern
+│   ├── AGENT.md
+│   ├── base/        - Base classes for animation
+│   ├── draw/        - Draw animation (tiles enter from screen edge)
+│   ├── glide/       - Glide animation (smooth bezier paths)
+│   ├── hand/        - Hand-related animations
+│   ├── shake/       - Shake animation (illegal action feedback)
+│   ├── spin/        - Spin animation (modifier indicator)
+│   └── stomp/       - Stomp animation (placement confirmation)
+├── controllers/      - Game flow coordination
+│   ├── AGENT.md
+│   ├── gameplay_controller.gd   - Tile interaction & gameplay coordination
+│   ├── play_handler.gd           - Play submission & scoring
+│   ├── tile_placement_handler.gd - Tile placement logic
+│   ├── drop_handler.gd           - Drag-and-drop validation
+│   └── menu_controller.gd        - Menu screen coordination
+├── domain/          - Core game domain models
+│   ├── AGENT.md
+│   ├── run.gd               - Run aggregate (config + qualities)
+│   ├── run_builder.gd       - Fluent builder for Run
+│   ├── run_state.gd         - Tracks run progression
+│   ├── run_quality.gd       - Base class for run qualities
+│   ├── round_config.gd      - Immutable round configuration
+│   ├── progression_rules.gd - Difficulty progression logic
+│   ├── modifiers/           - Tile modifier system
+│   │   ├── AGENT.md
+│   │   ├── behaviors/       - Modifier behavior implementations
+│   │   ├── modifier_instance.gd
+│   │   ├── modifier_pipeline.gd
+│   │   ├── modifier_registry.gd
+│   │   ├── modifier_scoring.gd
+│   │   ├── modifier_types.gd
+│   │   └── modifier_visual_pipeline.gd
+│   ├── qualities/           - Run quality implementations
+│   │   ├── quality_registry.gd
+│   │   ├── time_attack_quality.gd
+│   │   ├── limited_time_with_increment_quality.gd
+│   │   ├── max_hand_size_quality.gd
+│   │   ├── max_score_in_n_rounds_quality.gd
+│   │   └── random_modifiers_quality.gd
+│   └── modifiers/behaviors/ - Modifier behaviors
+├── interaction/     - User input helpers
+│   └── tile_drag_helper.gd  - Drag operation utilities
+└── logic/          - Game logic & validation
+    ├── AGENT.md
+    └── word_validator.gd    - Word validation & scoring
+
 ```
 
 ---
 
-## Domain Model (`scripts/domain/`)
+## Core Architectural Patterns
 
-### Overview
-The domain model encapsulates the game's ruleset, progression, and modifier system. It's separate from UI to maintain clean architecture.
+### 1. Domain-Driven Design (Domain Models)
 
-### Core Classes
+**Location:** `scripts/domain/`
 
-| Class | Purpose |
-|-------|---------|
-| **Run** | Container for a complete run configuration (bag, hand size, qualities, progression) |
-| **RunState** | Runtime state tracking (current round, scores, plays remaining) |
-| **RunBuilder** | Factory for constructing runs with quality combinations |
-| **RunQuality** | Base class for quality modifiers (time limits, hand size changes, etc.) |
-| **RoundConfig** | Per-round configuration (board size, target score, plays available) |
-| **ProgressionRules** | Formula for difficulty scaling across rounds |
-| **ModifierInstance** | Individual modifier with active effects |
-| **ModifierRegistry** | Catalog of all available modifiers |
+Core game entities as immutable value objects:
+- `Run` - Game run configuration (bag, plays, hand size, qualities)
+- `RoundConfig` - Single round parameters (board size, target, plays)
+- `RunState` - Current round/score tracking
+- `RunQuality` - Modifier that affects run (timers, restricted tiles, etc.)
 
-### Run Builder Example
+**Builder Pattern:**
+```
+RunBuilder (fluent)
+  .set_bag(distribution)
+  .set_hand_size(10)
+  .add_quality(quality1)
+  .build() → Run
+```
+
+### 2. Handler/Controller Decomposition
+
+**Location:** `scripts/controllers/`
+
+`GameplayController` delegates to specialized handlers:
+
+```
+GameplayController (Orchestrator)
+  ├─ TilePlacementHandler  - Tile placement/return logic
+  ├─ DropHandler          - Drag validation
+  ├─ PlayHandler          - Play submission & scoring
+  └─ MenuController       - Menu coordination
+```
+
+Benefits:
+- Single Responsibility: Each handler owns one concern
+- Testable: Handlers can be tested in isolation
+- Maintainable: Changes localized to relevant handler
+
+### 3. Strategy Pattern (Animations)
+
+**Location:** `scripts/animation/`
+
+```
+TileAnimationStrategy (Abstract)
+  ├─ DrawTileAnimation
+  ├─ GlideTileAnimation        
+  ├─ ShakeTileAnimation
+  ├─ StompTileAnimation
+  └─ SpinTileAnimation
+
+AnimationExecutor (Abstract)
+  ├─ BatchAnimationExecutor
+  ├─ ReturnAnimationExecutor
+  ├─ ShakeAnimationExecutor
+  ├─ StompAnimationExecutor
+  └─ SpinAnimationExecutor
+```
+
+- **Strategy** defines WHAT to animate (properties, timings, curves)
+- **Executor** defines HOW (tween sequencing, batching)
+- **TileAnimator** (autoload) facade delegates to strategy/executor pairs
+
+### 4. Quality/Modifier System
+
+**Location:** `scripts/domain/qualities/` and `scripts/domain/modifiers/`
+
+Qualities modify run behavior (applied to entire run):
+- `TimeAttackQuality` - Timer-based failure
+- `MaxHandSizeQuality` - Restricted hand size
+- `MaxScoreInNRoundsQuality` - Win condition (max score in N rounds)
+- `RandomModifiersQuality` - Adds random tile modifiers
+
+Modifiers affect individual tiles (applied to tiles during play):
+- **Extra** - Bonus points
+- **Multi** - Multiply points
+- **Expo** - Exponential scaling
+- **Locked** - Tile locked to cell
+- **Reset** - Score reset
+
+---
+
+## Key Files by Responsibility
+
+### Domain Models (`scripts/domain/`)
+- `run.gd` - Game run (RefCounted value object, aggregate root)
+- `run_builder.gd` - Fluent builder for Run with defaults
+- `run_state.gd` - Run progression tracking (rounds, scores, plays)
+- `run_quality.gd` - Base class for qualities (pure virtual)
+- `round_config.gd` - Immutable round parameters (value object)
+- `progression_rules.gd` - Difficulty scaling formulas
+
+### Controllers & Handlers (`scripts/controllers/`)
+- `gameplay_controller.gd` - Main gameplay coordinator (delegates to handlers)
+- `play_handler.gd` - Play submission & word validation
+- `tile_placement_handler.gd` - Tile placement/removal logic
+- `drop_handler.gd` - Drag-and-drop validation (can tiles be placed?)
+- `menu_controller.gd` - Menu/title screen controller
+
+### Animation System (`scripts/animation/`)
+- Base:
+  - `base/tile_animation_strategy.gd` - Base strategy (Resource-based)
+  - `base/animation_executor.gd` - Base executor class
+  - `base/animation_context.gd` - Shared animation infrastructure (context)
+- Implementations:
+  - `draw/draw_tile_animation.gd` + `batch_animation_executor.gd` - Entry animation
+  - `glide/glide_tile_animation.gd` + `return_animation_executor.gd` - Smooth transitions
+  - `shake/shake_tile_animation.gd` + `shake_animation_executor.gd` - Negative feedback
+  - `stomp/stomp_tile_animation.gd` + `stomp_animation_executor.gd` - Placement confirmation
+  - `spin/spin_tile_animation.gd` + `spin_animation_executor.gd` - Modifier indicator
+  - `hand/hand_fan_layout.gd` - Hand layout calculations
+
+### Game Logic (`scripts/logic/`)
+- `word_validator.gd` - Word validation database, scoring calculation, multiplier application
+
+### Interaction Helpers (`scripts/interaction/`)
+- `tile_drag_helper.gd` - Drag state machine for individual tiles
+
+### Modifiers & Qualities
+- `modifiers/modifier_instance.gd` - Runtime modifier data + state
+- `modifiers/modifier_pipeline.gd` - Apply modifiers to tile
+- `modifiers/modifier_registry.gd` - Registry of all modifier types
+- `modifiers/modifier_scoring.gd` - Score calculation with modifiers
+- `modifiers/modifier_types.gd` - ModifierType enum
+- `modifiers/modifier_visual_pipeline.gd` - Visual effects pipeline
+- `modifiers/behaviors/*_behavior.gd` - Individual behavior implementations
+- `qualities/quality_registry.gd` - Registry of all quality types
+- `qualities/*_quality.gd` - Individual quality implementations
+
+---
+
+## Data Flow: Play Submission
+
+```
+Player clicks "Play" button
+  ↓
+Main._on_play_button_pressed()
+  ↓
+GameplayController.on_play_button_pressed()
+  ↓
+PlayHandler.on_play_requested()
+       ├─ Gets unplayed board tiles via _get_unplayed_board_tiles()
+       ├─ Finds formed words: WordValidator.find_formed_words()
+       │   └─ Returns: [{ word:"CAT", direction:"horizontal", cells:[...] }]
+       ├─ Locks tiles: tile.set_locked(true)
+       ├─ Deselects all: _selection.deselect_all()
+       ├─ Animates tiles:
+       │   ├─ If has RESET modifier: stomp (denies special animation)
+       │   ├─ If has EXTRA/MULTI/EXPO: spin
+       │   └─ Otherwise: stomp
+       ├─ Hides locked borders for animation
+       ├─ Awaits animation completion
+       ├─ Consumes consumable modifiers: tile.consume_modifiers()
+       ├─ Emits EventBus.tiles_played(tiles, words)
+       └─ Emits play_completed signal
+
+Main._on_tiles_played(tiles, words)
+  ├─ Validate words via WordValidator
+  ├─ Calculate score:
+  │   └─ WordValidator.calculate_total_score(words, board)
+  │       ├─ For each word:
+  │       │   ├─ Sum base letter values (LETTER_POINTS)
+  │       │   ├─ Apply letter multipliers (cell.multiplier)
+  │       │   ├─ Apply word multipliers (cell.multiplier_type)
+  │       │   └─ Apply modifier scoring (tile.modifiers)
+  │       └─ Return total
+  ├─ Lock down tiles via modifier pipeline
+  ├─ Commit play:
+  │   └─ GameManager.commit_play(score)
+  │       ├─ Updates _current_score += score
+  │       ├─ Decrements _plays_remaining -= 1
+  │       ├─ Emits EventBus.score_updated(total, delta)
+  │       ├─ Emits EventBus.play_completed(plays_remaining)
+  │       └─ Checks win condition:
+  │           ├─ If score >= target: _complete_round(true)
+  │           ├─ If plays_remaining <= 0: _complete_round(false)
+  │           └─ Emits EventBus.round_ended(round, success)
+  └─ Refill hand & prepare for next play
+```
+
+---
+
+## Data Flow: Drawing Tiles
+
+```
+Game initialized
+  ↓
+Main._ready()
+  ├─ HandManager.set_references($Hand)
+  ├─ HandManager.set_hand_size(10)
+  └─ HandManager.refill_hand()
+       ↓
+       Loop: for i in 10
+         ├─ TileBag.draw_tile()
+         │   ├─ Pops from available_tiles
+         │   ├─ Appends to drawn_tiles
+         │   ├─ Emits EventBus.tile_drawn(tile)
+         │   └─ Returns Tile instance
+         ├─ Hand.add_tile(tile)  ← Reparents to hand UI
+         ├─ HandManager emits tile_ready(tile)
+         │   └─ Caught by Main.register_tile()
+         │       └─ Wires tile signals to GameplayController
+         └─ Queued for animation
+       ├─ TileAnimator.animate_draw_batch([tiles])
+       │   └─ BatchAnimationExecutor.execute(tiles, DrawTileAnimation)
+       └─ Tiles animate from below screen to final hand positions
+```
+
+---
+
+## Animation Architecture Deep Dive
+
+### Pattern: Strategy + Executor Composition
+
+Each animation type uses two classes working together:
+
+**1. Strategy Class (Defines WHAT to animate)**
+
+Extends `TileAnimationStrategy` (Resource):
 ```gdscript
-var builder = RunBuilder.new()
-builder.with_bag(default_distribution)
-builder.with_hand_size(10)
-builder.with_plays_per_round(2)
-builder.add_quality(TimeAttackQuality.new(60, 45))  # Start: 60s, decrement: 45s
-var run = builder.build()
+class_name DrawTileAnimation extends TileAnimationStrategy
 
-RunManager.initialize_run_from_builder(run)
+@export var duration: float = 0.3
+@export var ease_type: Tween.EaseType = Tween.EASE_OUT
+@export var stagger_delay: float = 0.05
+
+func get_start_position_offset() -> Vector2:
+    return Vector2(0, get_tree().get_root().content_scale.y + 100)
+
+func get_start_properties() -> Dictionary:
+    return { "modulate:a": 0 }  # Start transparent
+
+func get_end_properties() -> Dictionary:
+    return { "modulate:a": 1 }  # End opaque
+
+func build_custom_tweens(tile: Tile, tween: Tween, delay: float) -> void:
+    # Additional tweens beyond standard properties
+    pass
 ```
 
-### Quality System
-Custom game modifiers that apply rules to a run:
+**2. Executor Class (Defines HOW to animate)**
 
-| Quality | Effect |
-|---------|--------|
-| **TimeAttackQuality** | Add time limits and timer countdown |
-| **MaxHandSizeQuality** | Reduce maximum hand capacity |
-| **MaxScoreInNRoundsQuality** | Must reach target within N rounds |
-| **RandomModifiersQuality** | Apply random tile/board modifiers each round |
-| **LimitedTimeWithIncrementQuality** | Timer with per-play increment |
+Extends `AnimationExecutor`:
+```gdscript
+class_name BatchAnimationExecutor extends AnimationExecutor
+
+func execute(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void:
+    # Batch animate multiple tiles
+    var tween = context.create_tween()
+    
+    for i in tiles.size():
+        var tile = tiles[i]
+        var delay = i * strategy.stagger_delay
+        # Create tween at relative start position
+        # Apply start properties
+        # Tween to final position and end properties
+```
+
+### Animation Context (Shared Infrastructure)
+
+```gdscript
+class_name AnimationContext
+
+var _context: AnimationContext = null
+
+_context.setup(
+    on_started: func(tiles): animation_started.emit(tiles),
+    on_completed: func(tiles): animation_completed.emit(tiles),
+    on_single: func(tile): single_tile_animated.emit(tile),
+    create_tween: create_tween,     # Tween factory
+    get_tree_func: get_tree         # Tree access
+)
+```
+
+### Animation Lifecycle
+
+```
+1. TileAnimator.animate_draw_batch([tiles])
+2. Lazily load strategy + executor if needed
+3. Executor.execute(tiles, strategy):
+   a. For each tile:
+      - Call strategy.on_animation_start(tile)
+      - Get start position offset & properties
+      - Create tween from start → final position/properties
+      - Call strategy.build_custom_tweens()
+   b. Emit animation_started(tiles)
+4. Tween completion:
+   a. For each tile: Call strategy.on_animation_complete(tile)
+   b. Emit animation_completed(tiles), single_tile_animated(tile)
+```
 
 ---
 
-## Controllers (`scripts/controllers/`)
+## Quality System
 
-### Purpose
-Service class for word validation and score calculation. Can be instantiated anywhere needed.
+### How Qualities Work
+
+1. **Run Builder applies qualities:**
+   ```gdscript
+   var run = RunBuilder.new() \
+       .set_bag(bag_distribution)
+       .add_quality(TimeAttackQuality.new(30))  # 30 second timer
+       .add_quality(MaxHandSizeQuality.new(5))  # Max 5 tiles
+       .build()
+   ```
+
+2. **RunManager initializes with quality modifications:**
+   ```gdscript
+   RunManager.initialize_run_from_builder(run)
+   # For each quality:
+   #   1. Call quality.apply_to_run_state(run_state)  # Config modifications
+   #   2. Connect quality signals (if any)
+   ```
+
+3. **During gameplay:**
+   ```
+   _process(delta):
+       for quality in _active_run.qualities:
+           quality.on_process(delta)  # All frame updates
+   
+   EventBus.round_started.connect(quality.on_round_started)
+   EventBus.tiles_played.connect(quality.on_tiles_played)
+   # etc.
+   ```
+
+4. **Qualities can:**
+   - Modify RunState (hand size, plays per round, target score)
+   - Override win conditions via `has_custom_win_condition()`
+   - Process each frame (timers, counters, animations)
+   - Listen to game events (round_ended, tiles_played, etc.)
+   - Force round end via `GameManager.force_round_end()`
+
+---
+
+## Extension Points
+
+### Adding a New Animation Type
+
+1. **Create strategy:**
+   `scripts/animation/myanimation/my_tile_animation.gd`
+   - Extend `TileAnimationStrategy`
+   - Override lifecycle methods
+
+2. **Create executor:**
+   `scripts/animation/myanimation/my_animation_executor.gd`
+   - Extend `AnimationExecutor`
+   - Implement `execute()` method
+
+3. **Register in TileAnimator:**
+   ```gdscript
+   var _my_animation: MyTileAnimation = null
+   var _my_executor: MyAnimationExecutor = null
+   
+   func animate_myanimation(tile: Tile) -> void:
+       _ensure_myanimation_resources()
+       _my_executor.execute_single(tile, _my_animation)
+   ```
+
+### Adding a New Quality
+
+1. **Create class:**
+   `scripts/domain/qualities/my_quality.gd`
+   - Extend `RunQuality`
+   - Implement required abstract methods
+
+2. **Register in QualityRegistry:**
+   ```gdscript
+   func create_from_dict(data: Dictionary) -> RunQuality:
+       if data.get("_type") == "my_quality":
+           return MyQuality.new()
+   ```
+
+3. **Use in RunBuilder:**
+   ```gdscript
+   builder.add_quality(MyQuality.new(param1, param2))
+   ```
+
+---
+
+## Common Tasks
+
+### Adjusting Animation Timings
+
+Edit strategy's @export properties:
+```gdscript
+# In scripts/animation/draw/draw_tile_animation.gd
+@export var duration: float = 0.5  # Increase for slower draw
+@export var stagger_delay: float = 0.1  # Increase for more spacing
+```
+
+### Changing Scoring Rules
+
+Edit `WordValidator`:
+```gdscript
+# Modify LETTER_POINTS dictionary
+const LETTER_POINTS: Dictionary = {
+    "A": 2,  # Changed from 1
+    ...
+}
+
+func calculate_base_score(word: String) -> int:
+    # Override calculation logic
+```
+
+### Adding Play Restrictions
+
+Create new `RunQuality`:
+```gdscript
+class_name SinglePlayQuality extends RunQuality
+    func apply_to_run_state(state: RunState) -> void:
+        state.plays_per_round = 1  # Only 1 play per round
+```
+
+---
 
 ### Class: `WordValidator extends RefCounted`
 
