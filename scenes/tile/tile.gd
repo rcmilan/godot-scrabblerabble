@@ -310,8 +310,7 @@ func has_modifier(type: ModifierTypes.Type) -> bool:
 	return modifiers.has(type)
 
 
-## Checks if the tile has a specific modifier type.
-## Uses the visual pipeline to determine the primary modifier.
+## Derives the tile's primary modifier type from the visual pipeline (invert/tint).
 func get_primary_modifier_type() -> ModifierTypes.Type:
 	var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(modifiers)
 	# Derive type from visual — if invert, it's RESET; else match tint

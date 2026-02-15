@@ -1,8 +1,8 @@
 extends TileAnimationStrategy
 class_name SpinTileAnimation
 
-## Animation strategy for tiles with MULTI modifiers.
-## Tiles perform a scale pulse + 360 rotation + glow effect.
+## Animation strategy for tiles with EXTRA, MULTI, or EXPO modifiers.
+## Tiles perform a scale pulse + 360 rotation.
 
 # =============================================================================
 # CONFIGURATION
@@ -16,9 +16,6 @@ class_name SpinTileAnimation
 
 ## Duration of the spin-down phase (return to normal)
 @export var spin_down_duration: float = 0.20
-
-## Glow color during spin
-@export var glow_color: Color = Color(0.7, 0.9, 1.0, 1.0)
 
 
 func _init() -> void:
@@ -39,14 +36,12 @@ func get_start_position_offset() -> Vector2:
 func get_start_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
 func get_end_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 

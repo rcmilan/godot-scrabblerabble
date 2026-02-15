@@ -21,6 +21,8 @@ static func compute_tile_visual(modifiers: Dictionary) -> Dictionary:
 		if not modifiers.has(type):
 			continue
 		var mod: ModifierInstance = modifiers[type]
+		if mod.behavior == null:
+			continue
 		var mod_tint: Color = mod.behavior.get_visual(mod.tier).tint
 		if mod_tint != Color.WHITE:
 			tint = mod_tint
@@ -34,6 +36,8 @@ static func compute_tile_visual(modifiers: Dictionary) -> Dictionary:
 		if not modifiers.has(type):
 			continue
 		var mod: ModifierInstance = modifiers[type]
+		if mod.behavior == null:
+			continue
 		var symbol: String = mod.behavior.get_badge_symbol()
 		if not symbol.is_empty():
 			badges.append({"symbol": symbol, "tier": mod.tier, "type": type})

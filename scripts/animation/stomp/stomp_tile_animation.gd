@@ -54,14 +54,12 @@ func get_start_position_offset() -> Vector2:
 func get_start_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
 func get_end_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
