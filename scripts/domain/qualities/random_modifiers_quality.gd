@@ -57,7 +57,7 @@ func _assign_modifiers_to_bag() -> void:
 			var type: ModifierTypes.Type = _pick_weighted_type()
 			var tier: ModifierTypes.Tier = _pick_weighted_tier()
 			var modifier: ModifierInstance = ModifierRegistry.create_modifier(
-				type, tier, ModifierTypes.Lifetime.CONSUMABLE
+				type, tier, ModifierTypes.Lifetime.PER_ROUND
 			)
 			tile.add_modifier(modifier)
 			count += 1
