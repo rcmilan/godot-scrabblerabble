@@ -51,9 +51,9 @@ Three virtual methods to override:
 - **Animation**: Spin
 - **Special**: Tile gets a `TileSparkEffect` (particle sparks) — managed by `Tile._add_spark_effect()`
 
-### ResetBehavior — Score nullifier
+### ResetBehavior — Modifier denier
 
-- **Scoring**: Always returns `0`, regardless of base_score or tier
+- **Scoring**: Returns `base_score` unchanged — the tile scores its base letter points only. When RESET is present, the scoring pipeline skips ALL other modifiers (EXTRA, EXPO, MULTI are denied)
 - **Tint**: `Color.WHITE` with `invert: true` (applies invert shader to texture)
 - **Badge**: `""` (empty — no badge symbol, the invert shader IS the visual)
 - **Animation**: Stomp (Reset denies spin animation — always stomps)
@@ -74,16 +74,14 @@ Modifiers execute in `ModifierPipeline.execution_order`: **RESET -> EXTRA -> EXP
 Example with RESET + EXTRA(Bronze) + MULTI(Bronze) on a 3-point tile:
 ```
 base = 3
-RESET:  3 -> 0
-EXTRA:  0 -> 0 + 2 = 2
-EXPO:   (not present, skip)
-MULTI:  2 -> 2 * 2 = 4
+RESET present → deny all other modifiers
+Result: 3 (base points only — EXTRA and MULTI are skipped)
 ```
 
 Example with EXTRA(Silver) + EXPO(Bronze) on a 3-point tile:
 ```
 base = 3
-RESET:  (not present, skip)
+RESET:  (not present, no denial)
 EXTRA:  3 -> 3 + 5 = 8
 EXPO:   8 -> 8^2 = 64
 MULTI:  (not present, skip)

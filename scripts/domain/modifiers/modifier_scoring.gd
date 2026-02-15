@@ -11,6 +11,14 @@ static func compute_tile_score(base_score: int, modifiers: Dictionary) -> Dictio
 	var score: int = base_score
 	var applied: Array[Dictionary] = []
 
+	# RESET denies all other modifiers — tile scores its base points only
+	if modifiers.has(ModifierTypes.Type.RESET):
+		var mod: ModifierInstance = modifiers[ModifierTypes.Type.RESET]
+		if mod.behavior != null:
+			score = mod.behavior.compute(score, mod.tier)
+			applied.append({"type": mod.type, "tier": mod.tier, "before": base_score, "after": score})
+		return {"score": score, "modifiers_applied": applied}
+
 	for type in ModifierPipeline.execution_order:
 		if not modifiers.has(type):
 			continue

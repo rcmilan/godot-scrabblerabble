@@ -67,11 +67,10 @@ When adding a new modifier type: register its behavior in `_ensure_initialized()
 
 Pure static function. Takes a base score and a tile's modifier dictionary, returns `{score: int, modifiers_applied: Array[Dictionary]}`.
 
-Iterates `ModifierPipeline.execution_order`, calling `behavior.compute(score, tier)` on each present modifier. The order matters:
-1. RESET sets score to 0
-2. EXTRA adds to 0 (so +2/5/10 from zero)
-3. EXPO exponentiates
-4. MULTI multiplies the result
+If RESET is present, it short-circuits: returns `base_score` immediately and skips all other modifiers (RESET denies EXTRA, EXPO, MULTI). Otherwise iterates `ModifierPipeline.execution_order`, calling `behavior.compute(score, tier)` on each present modifier:
+1. EXTRA adds (+2/5/10)
+2. EXPO exponentiates
+3. MULTI multiplies the result
 
 Modifiers not in `execution_order` (like LOCKED) are skipped entirely.
 
@@ -113,5 +112,5 @@ The tile calls `ModifierVisualPipeline.compute_tile_visual(modifiers)` to determ
 - **Never tween `modulate` in animations.** `modulate` carries the modifier tint. Animations use scale, position, rotation only. Draw animation may tween `modulate:a` (alpha only) to preserve RGB.
 - **One modifier per Type per tile.** Adding a modifier of an existing type overwrites it.
 - **Pipeline order is the single source of truth** for both scoring computation and badge display order.
-- **RESET dominates visuals** — when present, it forces invert=true with no badges, regardless of other modifiers. In scoring, it sets score to 0 first, but subsequent modifiers (EXTRA, EXPO, MULTI) still apply on top of that 0.
+- **RESET dominates everything** — when present, it forces invert=true with no badges visually, and in scoring it denies all other modifiers entirely (tile scores its base letter points only).
 - **LOCKED is special** — it's in the registry but NOT in the pipeline. It has no scoring effect, no tint, no badge. Its visual is the black LockedBorder panel.
