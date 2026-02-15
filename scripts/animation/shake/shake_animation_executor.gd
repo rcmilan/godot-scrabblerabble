@@ -2,7 +2,7 @@ extends AnimationExecutor
 class_name ShakeAnimationExecutor
 
 ## Executes shake animations for illegal action feedback.
-## Tiles shake left-right and return to original position.
+## Tiles shake along a random direction and return to original position.
 
 
 ## Animates a shake effect on a single tile.

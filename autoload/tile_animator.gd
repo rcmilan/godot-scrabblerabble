@@ -96,7 +96,7 @@ func animate_stomp_batch(tiles: Array[Tile]) -> void:
 	_stomp_executor.execute(tiles, _stomp_animation)
 
 
-## Animates a batch of tiles with a spin effect for MULTI modifier tiles.
+## Animates a batch of tiles with a spin effect for modifier tiles (EXTRA, MULTI, EXPO).
 func animate_spin_batch(tiles: Array[Tile]) -> void:
 	if tiles.is_empty():
 		return

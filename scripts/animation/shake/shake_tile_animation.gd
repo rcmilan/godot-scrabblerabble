@@ -2,7 +2,7 @@ extends TileAnimationStrategy
 class_name ShakeTileAnimation
 
 ## Animation strategy for indicating an illegal action.
-## Tile shakes left-right quickly to show the action cannot be performed.
+## Tile shakes along a random direction to show the action cannot be performed.
 
 # =============================================================================
 # CONFIGURATION

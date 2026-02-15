@@ -78,7 +78,6 @@ func draw_tiles(count: int) -> int:
 			drawn, get_hand_size(), TileBag.tiles_remaining()
 		])
 
-		# Animate the drawn tiles
 		TileAnimator.animate_draw_batch(drawn_tiles)
 
 	return drawn

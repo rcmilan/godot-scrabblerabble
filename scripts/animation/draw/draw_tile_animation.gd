@@ -10,7 +10,7 @@ class_name DrawTileAnimation
 
 @export var vertical_offset: float = 200.0
 @export var start_scale: Vector2 = Vector2(0.8, 0.8)
-@export var start_alpha: float = 0.0
+@export var start_alpha: float = 0.0  # Currently unused; alpha set directly in on_animation_start
 
 
 func _init() -> void:
