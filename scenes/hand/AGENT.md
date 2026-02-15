@@ -21,7 +21,7 @@ The Hand component manages the player's collection of available tiles. Selection
 | `tile_removed` | `tile: Tile` | Tile removed from hand |
 | `hand_empty` | none | Hand became empty |
 
-**Note**: Selection signals are now handled by EventBus via SelectionManager.
+**Note**: Selection is delegated to SelectionManager (see SelectionArchitecture section below). Selection signals (`mode_changed`, `selection_changed`) are on the SelectionManager instance, not on Hand or EventBus.
 
 ## Key Properties
 ```gdscript

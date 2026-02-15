@@ -194,7 +194,7 @@ User Input
     ├─► Q key ────────────────────► SelectionManager.toggle_mode()
     │                                      │
     │                                      ▼
-    │                              EventBus.selection_mode_changed
+    │                              SelectionManager.mode_changed signal
     │                                      │
     │                                      ▼
     │                              MultiSelectIndicator updates
@@ -205,7 +205,7 @@ User Input
     │                              SelectionManager.select_tile()
     │                                      │
     │                                      ▼
-    │                              EventBus.selection_changed
+    │                              SelectionManager.selection_changed signal
     │
     ├─► Cell click ───────────────► Main._on_cell_clicked()
     │                                      │

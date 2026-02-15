@@ -33,8 +33,9 @@ Wordatro/
 │   ├── tile_bag.gd                # Tile pool (deck) management
 │   ├── tile_animator.gd           # Tile animation coordinator (Strategy pattern)
 │   ├── run_manager.gd             # Run lifecycle & progression orchestrator
-│   ├── selection_manager.gd       # [LOCAL NODE] Tile selection state (created by Main)
-│   └── drag_manager.gd            # [LOCAL NODE] Multi-tile drag coordination
+│   ├── managers/
+│   │   ├── selection_manager.gd   # [LOCAL NODE] Tile selection state (created by Main)
+│   │   └── drag_manager.gd        # [LOCAL NODE] Multi-tile drag coordination
 │
 ├── scenes/                         # Game scenes & components
 │   ├── Main.tscn                  # Main gameplay scene (root)
@@ -519,7 +520,7 @@ Refill:         HandManager.refill_hand()
 3. Wire into TileAnimator with a public method: `animate_my_effect(tiles: Array[Tile]) -> void`
 
 ### Modifying Selection Behavior
-Edit `autoload/selection_manager.gd`:
+Edit `scripts/managers/selection_manager.gd`:
 - `_select_single()`: Single-select logic
 - `_toggle_multi()`: Multi-select logic
 - `_update_selection_orders()`: Selection ordering
@@ -691,7 +692,7 @@ Press `D` in-game to access powerful development tools:
 | `scenes/hand/hand.gd` | Hand container management |
 | `scripts/controllers/gameplay_controller.gd` | Gameplay coordinator |
 | `autoload/event_bus.gd` | Global signal hub |
-| `autoload/selection_manager.gd` | Selection state (local node) |
+| `scripts/managers/selection_manager.gd` | Selection state (local node) |
 | `autoload/tile_animator.gd` | Animation coordinator |
 | `Data/BagDistribution/bag_default.tres` | Tile distribution config |
 

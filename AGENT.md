@@ -16,8 +16,9 @@ Wordatro/
 │   ├── tile_bag.gd         # Tile pool (deck) management
 │   ├── tile_animator.gd    # Tile animation coordinator (Strategy pattern)
 │   ├── run_manager.gd      # Run lifecycle & progression orchestrator
-│   ├── selection_manager.gd # [LOCAL NODE] Tile selection state (created by Main)
-│   └── drag_manager.gd     # [LOCAL NODE] Multi-tile drag coordination (created by GameplayController)
+│   ├── managers/
+│   │   ├── selection_manager.gd   # [LOCAL NODE] Tile selection state (created by Main)
+│   │   └── drag_manager.gd        # [LOCAL NODE] Multi-tile drag coordination
 │
 ├── scenes/                 # Game scenes & components
 │   ├── Main.tscn           # Main gameplay scene (root)

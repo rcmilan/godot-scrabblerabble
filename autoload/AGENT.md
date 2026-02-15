@@ -5,20 +5,22 @@ Global singleton managers that coordinate game-wide systems. These are automatic
 
 **Active Autoloads (6):** EventBus, GameManager, TileBag, HandManager, TileAnimator, RunManager
 
-**Demoted (3):**
-- **SelectionManager** → Local node created by Main, injected via `set_selection_manager()`
-- **DragManager** → Local node created by GameplayController, injected via `setup()`
+**Related (3):**
+- **SelectionManager** → Local node, defined in `scripts/managers/selection_manager.gd`, created by Main, injected via `set_selection_manager()`
+- **DragManager** → Local node, defined in `scripts/managers/drag_manager.gd`, created by GameplayController, injected via `setup()`
 - **DebugManager** → RefCounted helper owned by DebugConsole
 
-## Files
+## Autoload Files (6)
 - `event_bus.gd` - Global signal hub
 - `game_manager.gd` - Game state and phase management (encapsulated behind getters)
 - `hand_manager.gd` - Hand operations and discard pile
 - `tile_bag.gd` - Tile pool (deck) management
-- `selection_manager.gd` - Tile selection state (NOT an autoload — local node)
 - `tile_animator.gd` - Tile animation coordinator
-- `drag_manager.gd` - Multi-tile drag coordination (NOT an autoload — local node)
 - `run_manager.gd` - Run lifecycle orchestrator
+
+## Manager Files (in scripts/managers/)
+- `selection_manager.gd` - Tile selection state (local node, NOT an autoload)
+- `drag_manager.gd` - Multi-tile drag coordination (local node, NOT an autoload)
 
 ---
 
