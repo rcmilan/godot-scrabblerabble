@@ -178,14 +178,26 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [x] Visual discard pile drop zone
 - [x] Hand management (draw, refill, max capacity)
 - [x] Selection visual feedback (scale animation)
-- [x] Locked tiles (cannot move placed tiles)
+- [x] Locked tiles via LOCKED modifier (cannot move placed tiles, black border)
+
+### Tile Modifiers System (Implemented)
+- [x] Composable modifier system (multiple modifiers per tile)
+- [x] Modifier types: EXTRA (+), MULTI (x), EXPO (^), RESET (→0), LOCKED (border)
+- [x] Modifier tiers: BRONZE, SILVER, GOLD with scaling effects
+- [x] Modifier lifetimes: CONSUMABLE, PER_ROUND, PERMANENT
+- [x] Visual pipeline: tier-based tints, badges, invert shader, spark effects
+- [x] Modifier-aware play animation dispatch (spin for EXTRA/MULTI/EXPO, stomp for RESET/plain)
+- [x] RandomModifiersQuality: 50% chance per bag tile, weighted type/tier selection
+- [x] LOCKED modifier integration: `set_locked()` works through modifier system
+- [x] All board tiles re-animate on every play
 
 ### Animation System (Implemented)
-- [x] Draw tile animations (rise + fade-in from bag)
+- [x] Draw tile animations (rise + fade-in from bag, preserves modifier tints)
 - [x] Glide animations (smooth transitions for placement, return, discard)
-- [x] Shake animations (illegal action feedback)
-- [x] Stomp animations (play confirmation with particles)
-- [x] Spin animations (NEW - tile spin effect) - [x] Hand fan layout and hover effects
+- [x] Shake animations (random 2D direction for locked tile feedback)
+- [x] Stomp animations (play confirmation with particles for plain/RESET tiles)
+- [x] Spin animations (scale pulse + 360° rotation + glow for modifier tiles)
+- [x] Hand fan layout and hover effects
 - [x] Tween-based animation coordination (TileAnimator)
 
 ### Word & Scoring System (Implemented)
@@ -204,7 +216,7 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [x] RunManager orchestration of run lifecycle
 - [x] RunBuilder with quality modifier system
 - [x] RunQuality system for modifiers (time-attack, max-hand-size, etc.)
-- [x] ModifierRegistry and ModifierScoringfor custom scoring rules
+- [x] ModifierRegistry and ModifierScoring for custom scoring rules
 - [x] Game over and victory detection
 - [x] Auto-end-round when no valid moves
 
@@ -229,7 +241,8 @@ Edit `Data/BagDistribution/bag_default.tres` to change letter frequencies.
 - [ ] Discard pile peek (view previously discarded tiles)
 - [ ] Save/load game state
 - [ ] Multiple starting decks/themes
-- [ ] Special tile types (wild cards, locked, etc.)
+- [ ] Wild card tiles (blank tiles that can be any letter)
+- [ ] Additional modifier types and behaviors
 - [ ] Achievement/statistics system
 - [ ] Sound and music
 - [ ] Mobile touch controls refinement

@@ -130,7 +130,7 @@ var last_placement_success: bool  # Read by coordinator after drop
 ## PlayHandler
 
 ### Purpose
-Manages play submission, word validation, scoring, and auto-end-round logic. Controls Play/End Round button state.
+Manages play submission, word validation, scoring, and auto-end-round logic. Controls Play/End Round button state. Animates ALL board tiles on each play with modifier-aware animation dispatch.
 
 ### Class: `PlayHandler extends RefCounted`
 
@@ -151,6 +151,26 @@ update_play_button_state() -> void
 get_word_validator() -> WordValidator
 has_valid_moves() -> bool
 ```
+
+### Play Flow (`on_play_requested`)
+1. Lock unplayed tiles via `set_locked(true)` (adds LOCKED modifier)
+2. Deselect all tiles
+3. Get ALL board tiles (locked + newly locked)
+4. Split by animation type BEFORE consuming (modifiers still present):
+   - Tiles with RESET → Stomp (denies special animations)
+   - Tiles with EXTRA/MULTI/EXPO (no RESET) → Spin
+   - Plain tiles → Stomp
+5. Hide locked borders during animation
+6. Run stomp + spin animations in parallel, await both
+7. Consume CONSUMABLE modifiers AFTER animation completes
+8. Emit `tiles_played` and `play_completed` signals
+
+### Auto-End-Round Flow (`_auto_end_round`)
+When no valid moves remain, auto-plays all remaining plays:
+1. Lock all unlocked tiles
+2. Calculate score once (board state constant)
+3. Split tiles by animation type (once, outside loop)
+4. Loop: hide borders → animate → await → commit score per play
 
 ---
 

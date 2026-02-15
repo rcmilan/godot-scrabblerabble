@@ -43,12 +43,19 @@ scripts/animation/
 
 | Animation | Type | Trigger | Effect |
 |-----------|------|---------|--------|
-| **Draw** | Batch | Tiles drawn from bag | Rise + fade-in from bottom |
+| **Draw** | Batch | Tiles drawn from bag | Rise + fade-in from bottom (preserves modifier tints) |
 | **Glide** | Tween | Tile moved/returned/discarded | Smooth arc transition to target |
-| **Shake** | Single | Illegal action | Left-right shake for feedback |
-| **Stomp** | Multi-phase | Play confirmed | Rise-slam with particle effect |
-| **Spin** | Tween | (customizable) | 360° rotation animation |
+| **Shake** | Single | Right-click locked tile | Random 2D direction shake for feedback |
+| **Stomp** | Multi-phase | Play confirmed (plain/RESET tiles) | Rise-slam with particle effect |
+| **Spin** | Tween | Play confirmed (EXTRA/MULTI/EXPO tiles) | Scale pulse + 360° rotation + glow |
 | **Hand Layout** | Independent | Hand UI | Fan-spread tiles with hover effects |
+
+### Modifier-Aware Animation Dispatch
+On Play, tiles are split by their modifier's `get_play_animation()` strategy:
+- **EXTRA, MULTI, EXPO** → `PlayAnimation.SPIN` → Spin animation
+- **RESET** → `denies_play_animation()` → Forces Stomp (DEFAULT) even if other spin modifiers present
+- **LOCKED, NONE** → `PlayAnimation.DEFAULT` → Stomp animation
+- ALL board tiles animate on every play (locked tiles re-animate)
 
 ## Architecture
 
@@ -60,7 +67,8 @@ TileAnimator (autoload facade)
     ├── draw/  BatchAnimationExecutor  + DrawTileAnimation
     ├── glide/ ReturnAnimationExecutor + GlideTileAnimation
     ├── shake/ ShakeAnimationExecutor  + ShakeTileAnimation
-    └── stomp/ StompAnimationExecutor  + StompTileAnimation
+    ├── stomp/ StompAnimationExecutor  + StompTileAnimation
+    └── spin/  SpinAnimationExecutor   + SpinTileAnimation
 
 Hand (scene)
     └── hand/  HandFanLayout (independent, not managed by TileAnimator)

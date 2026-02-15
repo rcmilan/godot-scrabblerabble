@@ -166,7 +166,7 @@ Wordatro/
 - **RunQuality**: Base class for quality implementations (time-attack, max-hand-size, etc)
 - **RoundConfig**: Per-round difficulty configuration
 - **ProgressionRules**: Formula for automatic difficulty scaling
-- **ModifierSystem**: Framework for custom scoring and tile modifiers
+- **Tile Modifiers**: Composable modifier system (EXTRA, MULTI, EXPO, RESET, LOCKED) with scoring behaviors, visual pipeline, badges, spark effects, and play animation strategies
 
 ### UI & Menus
 - **TitleScreen**: Entry point with menu navigation
@@ -198,13 +198,16 @@ clear_board() -> void
 ```
 
 ### 2. **Tile** (`scenes/tile/`)
-Individual letter tiles with drag-and-drop support.
+Individual letter tiles with drag-and-drop support and composable modifiers.
 
 **Features:**
 - Click-to-select or drag-and-drop interaction
 - Atomic cell binding (tile ↔ cell always synchronized)
 - Selection state tracking & visual feedback
 - Location tracking: IN_BAG, IN_HAND, ON_BOARD, IN_DISCARD
+- Composable modifiers: EXTRA (+), MULTI (x), EXPO (^), RESET (invert), LOCKED (border)
+- Visual pipeline: tier-based tints, badges, spark effects, invert shader
+- `set_locked(true)` works through the modifier system (adds LOCKED modifier)
 
 **Drag Detection:**
 - Threshold: 8 pixels
@@ -218,6 +221,8 @@ set_selected(value: bool) -> void
 attach_to_cell(cell: BoardCell) -> void  # Atomic binding
 detach_from_cell() -> void
 get_points() -> int
+add_modifier(modifier: ModifierInstance) -> void
+resolve_play_animation() -> ModifierTypes.PlayAnimation
 ```
 
 ### 3. **Hand** (`scenes/hand/`)
@@ -301,23 +306,25 @@ Global signal hub for decoupled component communication.
 | **Interaction** | `interaction_mode_changed` |
 | **Game State** | `game_phase_changed`, `score_changed`, `play_count_changed` |
 | **Animation** | `animation_started`, `animation_completed` |
+| **Modifiers** | `modifier_applied`, `modifier_consumed` |
 
 ### 7. **TileAnimator** (Autoload)
 Coordinates all tile animations using Strategy pattern.
 
 **Animation Types:**
-- **DrawTileAnimation**: Rise + fade-in when drawn from bag
+- **DrawTileAnimation**: Rise + fade-in when drawn from bag (preserves modifier tints)
 - **GlideTileAnimation**: Smooth position transitions (return, cancel, discard)
-- **ShakeTileAnimation**: Left-right shake for illegal actions
-- **StompTileAnimation**: Rise-slam effect + particles for play confirmation
+- **ShakeTileAnimation**: Random 2D direction shake for locked tile feedback
+- **StompTileAnimation**: Rise-slam effect + particles for plain/RESET tiles on play
+- **SpinTileAnimation**: Scale pulse + 360° rotation + glow for modifier tiles on play
 - **HandFanLayout**: Fan-spread + hover effects in hand
 
 **Key Methods:**
 ```gdscript
-animate_draw(tiles: Array[Tile], speed: float) -> void
-animate_glide(tile: Tile, target_pos: Vector2, duration: float) -> void
+animate_draw_batch(tiles: Array[Tile]) -> void
 animate_shake(tile: Tile) -> void
-animate_stomp(tiles: Array[Tile]) -> void
+animate_stomp_batch(tiles: Array[Tile]) -> void
+animate_spin_batch(tiles: Array[Tile]) -> void
 ```
 
 ### 8. **TileBag** (Autoload)
@@ -551,8 +558,8 @@ RunManager.initialize_run_from_builder(run)
 - **LimitedTimeWithIncrementQuality**: Timer with per-play time bonus
 - **MaxHandSizeQuality**: Reduce maximum hand capacity
 - **MaxScoreInNRoundsQuality**: Must reach target within N rounds
-- **RandomModifiersQuality**: Apply random tile/board modifiers
-- **Custom Modifiers**: Framework for adding new qualities
+- **RandomModifiersQuality**: Assign random composable modifiers (EXTRA/MULTI/EXPO/RESET) to bag tiles each round
+- **Custom Modifiers**: Framework for adding new qualities and modifier behaviors
 
 ### Progression System
 - Per-round configuration with automatic difficulty scaling
@@ -565,13 +572,15 @@ RunManager.initialize_run_from_builder(run)
 
 ### Animation System (Strategy Pattern)
 Seven distinct tile animations coordinated by TileAnimator:
-1. **Draw** - Tiles rise from bag with fade-in
+1. **Draw** - Tiles rise from bag with fade-in (preserves modifier tints)
 2. **Glide** - Smooth arc transitions (placement, return, discard)
-3. **Shake** - Left-right oscillation for feedback
-4. **Stomp** - Rise-slam with particle effect for plays
-5. **Spin** - 360° rotation (support for custom effects)
+3. **Shake** - Random 2D direction shake for locked tile feedback
+4. **Stomp** - Rise-slam with particle effect for plain/RESET tiles on play
+5. **Spin** - Scale pulse + 360° rotation + glow for EXTRA/MULTI/EXPO tiles on play
 6. **Hand** - Fan-spread layout with hover effects
 7. **Tween** - Generic smooth transitions
+
+All board tiles re-animate on every play (locked tiles replay their animation). Modifier-aware dispatch: RESET denies spin, EXTRA/MULTI/EXPO spin, everything else stomps.
 
 ### Selection System
 - Toggle between SINGLE and MULTI-select modes (Q key)
@@ -586,6 +595,16 @@ WordValidator service provides:
 - Cell multiplier support (2x letter, 3x word)
 - Placement validation (linear word check)
 - Breakdown scoring information
+
+### Tile Modifiers
+Composable modifier system applied by RandomModifiersQuality:
+- **EXTRA** (+2/5/10): Additive bonus, tier-based tint, `+` badge, spin animation
+- **MULTI** (x2/5/10): Multiplicative bonus, tier-based tint, `x` badge, spin animation
+- **EXPO** (^2/3/5): Exponential bonus, tier-based tint + spark effect, `^` badge, spin animation
+- **RESET** (→0): Short-circuits score, invert shader, denies spin animation
+- **LOCKED**: Locks tile to cell, black border, no scoring effect
+- Modifiers compose freely (e.g. EXTRA + LOCKED shows tint + badge + border)
+- PER_ROUND lifetime: visuals and scoring persist for the entire round
 
 ### Debug Console
 Press `D` in-game to access powerful development tools:
@@ -634,17 +653,18 @@ Press `D` in-game to access powerful development tools:
 
 ### 🔄 In Progress
 - Phase 15: UI Polish and Game Feel Refinement
-- Phase 16: Additional Quality Modifiers and Roguelike Features
+- Phase 16: Tile Modifiers System (EXTRA, MULTI, EXPO, RESET, LOCKED with composable behaviors, visual pipeline, play animations)
 
 ### 📋 Future Phases
 - Phase 17: Cell Multipliers on Board (visual + scoring)
 - Phase 18: Save/Load Game State
 - Phase 19: Multiple Starting Decks/Themes
-- Phase 20: Special Tile Types (wild cards with effects)
-- Phase 21: Achievement & Statistics System
-- Phase 22: Sound and Music
-- Phase 23: Mobile Touch Controls Refinement
-- Phase 24: Leaderboard System
+- Phase 20: Wild Card Tiles (blank tiles with custom letter assignment)
+- Phase 21: Additional Modifier Types and Behaviors
+- Phase 22: Achievement & Statistics System
+- Phase 23: Sound and Music
+- Phase 24: Mobile Touch Controls Refinement
+- Phase 25: Leaderboard System
 
 ---
 

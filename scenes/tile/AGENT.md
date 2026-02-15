@@ -56,10 +56,13 @@ var letter: String              # The letter (A-Z)
 var base_points: int            # Base point value
 var tile_data: LetterTileData   # Source resource
 
-# Modifiers (for future features)
+# State Flags
 var point_modifier: int         # Bonus/penalty
 var is_wild: bool               # Wild card tile
-var is_locked: bool             # Cannot be moved
+var is_locked: bool             # Cannot be moved (synced from LOCKED modifier)
+
+# Composable Modifiers
+var modifiers: Dictionary = {}  # Keyed by ModifierTypes.Type → ModifierInstance
 
 # Location State
 var location: TileLocation
@@ -76,11 +79,25 @@ var allow_hover_feedback: bool
 initialize(data: LetterTileData) -> void  # Set up tile from data
 set_selected(value: bool) -> void         # Toggle selection with animation
 set_selection_order(order: int) -> void   # Set position in multi-select
-set_locked(value: bool) -> void           # Lock/unlock tile (updates visuals)
+set_locked(value: bool) -> void           # Add/remove LOCKED modifier (syncs is_locked)
 get_points() -> int                       # Get total points with modifiers
 can_interact() -> bool                    # Check if interactable (not locked)
 reset() -> void                           # Reset to initial state
 ```
+
+## Modifier Management
+```gdscript
+add_modifier(modifier: ModifierInstance) -> void   # Add modifier (one per type), syncs is_locked for LOCKED
+remove_modifier(type: ModifierTypes.Type) -> void  # Remove by type
+has_modifier(type: ModifierTypes.Type) -> bool     # Check presence
+consume_modifiers() -> void                        # Remove CONSUMABLE modifiers only
+clear_round_modifiers() -> void                    # Remove CONSUMABLE + PER_ROUND
+clear_modifiers() -> void                          # Remove all modifiers
+resolve_play_animation() -> ModifierTypes.PlayAnimation  # Query behaviors for animation type
+```
+
+### LOCKED Modifier Integration
+`set_locked(true)` creates a LOCKED modifier (PER_ROUND lifetime) via the modifier system. `is_locked` is automatically synced in `add_modifier()`, `remove_modifier()`, `consume_modifiers()`, `clear_round_modifiers()`, and `clear_modifiers()`. This preserves backward compatibility — any code checking `is_locked` or calling `can_interact()` works unchanged.
 
 ## Placement State Management (DDD)
 
@@ -126,11 +143,16 @@ tile.restore_cell_binding()  # restores cell.tile from current_cell
 
 ## Visual Feedback
 
-### Colors
+### Colors & Modifiers
 - **Normal**: White modulate
-- **Hover**: Slightly brighter (Color 1.1, 1.1, 1.1)
-- **Dragging**: Bright overlay (Color 1.2, 1.2, 1.2)
+- **Hover**: Slightly brighter (Color 1.1, 1.1, 1.1), uses modifier tint as base
+- **Dragging**: Bright overlay (Color 1.2, 1.2, 1.2), uses modifier tint as base
 - **Selected**: Green border visible
+- **Locked**: Black 2px border (LockedBorder panel), hidden during play animations
+- **Modifier Tint**: Determined by `ModifierVisualPipeline` (EXTRA/MULTI/EXPO have tier-based tints)
+- **Invert Shader**: Applied to RESET tiles (via lazy-loaded ShaderMaterial)
+- **Badges**: Displayed in BadgeContainer (HBoxContainer) — `+` for EXTRA, `x` for MULTI, `^` for EXPO
+- **Spark Effect**: Particle sparks on EXPO tiles (TileSparkEffect child node)
 
 ### Scale Animation
 ```gdscript
@@ -191,10 +213,16 @@ var points = tile.get_points()
 var order = tile.selection_order  # -1 if not selected
 ```
 
+### Scene Structure (Tile.tscn)
+```
+Tile (Control, 64x64)
+├── TextureRect         # Letter texture
+├── BadgeContainer      # HBoxContainer for modifier badges (+, x, ^)
+├── Border              # Green selection border (visible when selected)
+└── LockedBorder        # Black 2px border (visible when is_locked)
+```
+
 ## Future Considerations
 - Wild card tiles (blank tiles that can be any letter)
-- Locked tiles (permanent placements)
-- Tile modifiers (special effects)
-- Visual effects for special tiles
-- Tile animations (placement, scoring)
 - Selection order number display
+- Additional modifier types and visual effects

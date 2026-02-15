@@ -91,6 +91,12 @@ Centralized signal hub for decoupled communication between systems.
 |--------|------------|-------------|
 | `tiles_played` | `tiles, words` | Tiles locked, words formed |
 
+#### Modifier Events
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `modifier_applied` | `tile, modifier` | Modifier added to a tile |
+| `modifier_consumed` | `tile, modifier_type` | Consumable modifier removed from tile |
+
 #### Run Events
 | Signal | Parameters | Description |
 |--------|------------|-------------|
@@ -280,11 +286,15 @@ animate_return_to_hand(tile, hand, cell) -> void
 animate_cancel_to_hand(tiles, hand, restore_fn: Callable) -> void
 animate_shake(tile: Tile) -> void
 animate_stomp_batch(tiles: Array[Tile]) -> void
+animate_spin_batch(tiles: Array[Tile]) -> void
 animate_discard_batch(tiles, target, callback) -> void
 cancel_all() -> void
 ```
 
-**Note:** `animate_cancel_to_hand` now accepts a `restore_fn` callable parameter instead of calling DragManager directly.
+**Notes:**
+- `animate_cancel_to_hand` accepts a `restore_fn` callable parameter instead of calling DragManager directly
+- `animate_stomp_batch` and `animate_spin_batch` are used by PlayHandler for modifier-aware play animations
+- DrawTileAnimation uses `build_custom_tweens()` to tween only `modulate:a` (preserves modifier tints)
 
 ---
 

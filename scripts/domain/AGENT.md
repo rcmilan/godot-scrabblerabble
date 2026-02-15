@@ -269,41 +269,106 @@ func _init(max_rounds: int, target: int) -> void:
 ---
 
 ### RandomModifiersQuality
-**Effect:** Apply random modifiers to tiles/board each round.
+**Effect:** Randomly assigns composable modifiers to bag tiles at round start.
 
-```gdscript
-class_name RandomModifiersQuality extends RunQuality
+Each tile has a 50% chance to receive a weighted random modifier:
+- **Type weights**: EXTRA (45%), MULTI (30%), EXPO (15%), RESET (10%)
+- **Tier weights**: BRONZE (60%), SILVER (30%), GOLD (10%)
+- **Lifetime**: PER_ROUND (persists for the entire round, visuals and scoring preserved)
 
-func _init(modifier_count: int) -> void:
-    """modifier_count: How many random modifiers per round"""
-```
+Modifiers are composable — a tile can have multiple types (e.g. EXTRA + LOCKED). Visual pipeline resolves tints, badges, and the invert shader. RESET dominates visually (invert, no badges). LOCKED adds a black border without affecting other visuals.
 
 ---
 
 ## Modifiers System (`modifiers/`)
 
 ### Overview
-The modifiers system allows qualities to apply custom scoring rules and visual effects to tiles without hardcoding run-specific logic into the core game.
+Composable tile modifier system — each tile can carry multiple modifiers that affect scoring, visuals, and behavior. Modifiers are assigned by qualities (e.g. RandomModifiersQuality) and persist for the round (PER_ROUND lifetime).
 
 ### Architecture
 ```
-Quality (roguelike feature)
-    ├─ applies → TileModifier + RuleModifier
-            ├─ ModifierInstance (runtime state)
-            │   ├─ apply_to_scoring() → Scoring changes
-            │   └─ apply_to_visuals() → Visual effects
-            └─ ModifierRegistry (catalog)
+Quality (e.g. RandomModifiersQuality)
+    └─ assigns ModifierInstance to tiles at round start
+        ├─ ModifierInstance (type, tier, lifetime, behavior)
+        │   ├─ behavior.compute()         → Scoring changes
+        │   ├─ behavior.get_visual()      → Tint and invert effects
+        │   ├─ behavior.get_badge_symbol()→ Badge display
+        │   └─ behavior.get_play_animation() → Play animation type
+        ├─ ModifierVisualPipeline         → Resolves composited visual
+        ├─ ModifierPipeline.execution_order → Scoring & badge order
+        └─ ModifierRegistry               → Static factory
 ```
+
+### Modifier Types
+
+| Type | Scoring | Visual | Badge | Play Animation | Notes |
+|------|---------|--------|-------|----------------|-------|
+| **EXTRA** | +2/5/10 (by tier) | Tier-based tint | `+` | Spin | Additive bonus |
+| **MULTI** | x2/5/10 (by tier) | Tier-based tint | `x` | Spin | Multiplicative |
+| **EXPO** | ^2/3/5 (by tier) | Tier-based tint + spark effect | `^` | Spin | Exponential |
+| **RESET** | → 0 | Invert shader (no badges) | — | Stomp (denies spin) | Short-circuits score |
+| **LOCKED** | No effect | Black border (via `is_locked`) | — | Default | Locks tile to cell |
+
+### Modifier Tiers
+- **BRONZE**: Base effect (e.g. +2, x2, ^2)
+- **SILVER**: Medium effect (e.g. +5, x5, ^3)
+- **GOLD**: Strong effect (e.g. +10, x10, ^5)
+
+### Modifier Lifetimes
+- **CONSUMABLE**: Removed after one play (currently unused)
+- **PER_ROUND**: Persists for the entire round, removed at round end
+- **PERMANENT**: Never removed automatically
+
+### Execution Order (Scoring & Badges)
+Defined in `ModifierPipeline.execution_order`:
+1. RESET — short-circuits to 0
+2. EXTRA — additive bonus
+3. EXPO — exponential
+4. MULTI — multiplicative
+
+LOCKED is excluded from the pipeline (no scoring/visual effect).
+
+### Visual Pipeline
+`ModifierVisualPipeline.compute_tile_visual(modifiers)` resolves composited visuals:
+- **RESET dominates**: Returns invert shader, no badges, white tint
+- **Tint**: First non-white tint in execution order wins
+- **Badges**: All non-RESET modifier symbols in execution order
+- **LOCKED**: Not in pipeline — border handled by `Tile._update_visual()` via `is_locked`
+
+### Play Animation Strategy
+Each behavior defines its play animation via `get_play_animation()` and `denies_play_animation()`:
+- `Tile.resolve_play_animation()` checks all modifiers: denying modifiers force DEFAULT, otherwise first special animation wins
+- EXTRA, MULTI, EXPO → Spin animation
+- RESET → `denies_play_animation()` forces Stomp (DEFAULT) regardless of other modifiers
+- LOCKED → No opinion (inherits DEFAULT)
 
 ### Key Files
 
-**modifier_instance.gd**: Individual modifier with state (e.g., "+2 points to vowels")
+| File | Purpose |
+|------|---------|
+| **modifier_types.gd** | Enums: Type, Tier, Lifetime, PlayAnimation |
+| **modifier_instance.gd** | Value object: type + tier + lifetime + behavior reference |
+| **modifier_behavior.gd** | Strategy base class with `compute()`, `get_visual()`, `get_badge_symbol()`, `get_play_animation()`, `denies_play_animation()` |
+| **modifier_registry.gd** | Static factory: `create_modifier(type, tier, lifetime)` → ModifierInstance |
+| **modifier_scoring.gd** | Iterates `execution_order`, applies `behavior.compute()` in sequence |
+| **modifier_visual_pipeline.gd** | Resolves composited tint, invert, and badges from all modifiers |
+| **modifier_pipeline.gd** | Defines `execution_order` array (scoring AND badge display order) |
+| **behaviors/*.gd** | Concrete behaviors: ExtraBehavior, MultiBehavior, ExpoBehavior, ResetBehavior, LockedBehavior |
 
-**modifier_registry.gd**: Catalog of all modifiers, factory for creating them
+### Tile Integration
+Tiles manage modifiers via `Tile.modifiers` dictionary (keyed by `ModifierTypes.Type`):
+```gdscript
+tile.add_modifier(modifier)        # Add/replace modifier by type
+tile.remove_modifier(type)         # Remove specific type
+tile.has_modifier(type)            # Check presence
+tile.consume_modifiers()           # Remove CONSUMABLE only
+tile.clear_round_modifiers()       # Remove CONSUMABLE + PER_ROUND
+tile.clear_modifiers()             # Remove all
+tile.resolve_play_animation()      # Query behaviors for play animation
+tile.set_locked(true)              # Adds LOCKED modifier (PER_ROUND)
+```
 
-**modifier_scoring.gd**: Rules for how modifiers change scores
-
-**modifier_visual_pipeline.gd**: Visual effects pipeline for modified tiles
+The `is_locked` bool is synced automatically when LOCKED modifier is added/removed. `set_locked()` creates/removes the modifier through the modifier system for backward compatibility.
 
 ---
 
