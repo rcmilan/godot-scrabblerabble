@@ -68,6 +68,7 @@ var _pending_texture: Texture2D = null
 
 # === Node References ===
 @onready var border: Panel = $Border
+@onready var locked_border: Panel = $LockedBorder
 @onready var texture_rect: TextureRect = $TextureRect
 @onready var badge_container: HBoxContainer = $BadgeContainer
 
@@ -419,8 +420,6 @@ func _on_drag_ended() -> void:
 
 # === Private: Visual Updates ===
 
-const LOCKED_TINT: Color = Color(0.85, 0.85, 0.9, 1.0)  # Subtle blue-gray tint
-
 ## Invert shader material (lazy-loaded, shared across tiles)
 static var _invert_material: ShaderMaterial = null
 
@@ -476,12 +475,11 @@ func _update_badges(badges: Array) -> void:
 func _update_visual() -> void:
 	if border:
 		border.visible = is_selected
+	if locked_border:
+		locked_border.visible = is_locked
 
 	if _drag == null or not _drag.is_dragging():
 		_apply_modifier_visual()
-		# Blend locked tint on top of modifier visual
-		if is_locked:
-			modulate *= LOCKED_TINT
 
 
 func _add_spark_effect(tier: ModifierTypes.Tier) -> void:
