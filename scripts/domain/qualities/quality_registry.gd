@@ -59,3 +59,5 @@ static func _ensure_initialized() -> void:
 	_factories[&"time_attack"] = func() -> RunQuality: return TimeAttackQuality.new()
 	_factories[&"limited_time_with_increment"] = func() -> RunQuality: return LimitedTimeWithIncrementQuality.new()
 	_factories[&"max_score_in_n_rounds"] = func() -> RunQuality: return MaxScoreInNRoundsQuality.new()
+	_factories[&"random_modifiers"] = func() -> RunQuality: return RandomModifiersQuality.new()
+	_factories[&"auto_win"] = func() -> RunQuality: return AutoWinQuality.new()

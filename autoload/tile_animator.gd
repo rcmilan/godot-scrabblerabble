@@ -26,6 +26,7 @@ var _draw_animation: DrawTileAnimation = null
 var _glide_animation: GlideTileAnimation = null
 var _shake_animation: ShakeTileAnimation = null
 var _stomp_animation: StompTileAnimation = null
+var _spin_animation: SpinTileAnimation = null
 
 # =============================================================================
 # EXECUTORS (lazy-loaded)
@@ -35,6 +36,7 @@ var _batch_executor: BatchAnimationExecutor = null
 var _return_executor: ReturnAnimationExecutor = null
 var _shake_executor: ShakeAnimationExecutor = null
 var _stomp_executor: StompAnimationExecutor = null
+var _spin_executor: SpinAnimationExecutor = null
 
 
 func _ready() -> void:
@@ -92,6 +94,15 @@ func animate_stomp_batch(tiles: Array[Tile]) -> void:
 
 	_ensure_stomp_resources()
 	_stomp_executor.execute(tiles, _stomp_animation)
+
+
+## Animates a batch of tiles with a spin effect for modifier tiles (EXTRA, MULTI, EXPO).
+func animate_spin_batch(tiles: Array[Tile]) -> void:
+	if tiles.is_empty():
+		return
+
+	_ensure_spin_resources()
+	_spin_executor.execute(tiles, _spin_animation)
 
 
 ## Animates tiles returning to hand from a cancelled drag.
@@ -165,3 +176,10 @@ func _ensure_stomp_resources() -> void:
 		_stomp_animation = StompTileAnimation.new()
 	if _stomp_executor == null:
 		_stomp_executor = StompAnimationExecutor.new(_context)
+
+
+func _ensure_spin_resources() -> void:
+	if _spin_animation == null:
+		_spin_animation = SpinTileAnimation.new()
+	if _spin_executor == null:
+		_spin_executor = SpinAnimationExecutor.new(_context)

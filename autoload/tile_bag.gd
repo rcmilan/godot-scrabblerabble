@@ -38,12 +38,9 @@ func populate_bag(distribution: BagDistribution) -> bool:
 		push_error("[TileBag] Invalid distribution provided!")
 		return false
 
-	# Clear existing tiles
 	_clear_all_tiles()
-
 	current_distribution = distribution
 
-	# Create tiles for each letter
 	for letter in distribution.distribution.keys():
 		var count: int = distribution.distribution[letter]
 		var tile_data: LetterTileData = _load_tile_data(letter)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://ljhh63qjf5cg"]
+[gd_scene load_steps=5 format=3 uid="uid://ljhh63qjf5cg"]
 
 [ext_resource type="Texture2D" uid="uid://cbdqjfwfeyp16" path="res://Assets/letter.png" id="1_5kclj"]
 [ext_resource type="Script" uid="uid://qspae3s7qlw6" path="res://scenes/tile/tile.gd" id="1_vb0gs"]
@@ -10,6 +10,14 @@ border_width_top = 4
 border_width_right = 4
 border_width_bottom = 4
 border_color = Color(0.11350792, 0.60272574, 0.19527751, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_locked"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 1)
 
 [node name="Tile" type="Control"]
 custom_minimum_size = Vector2(64, 64)
@@ -29,6 +37,14 @@ texture = ExtResource("1_5kclj")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="BadgeContainer" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 2.0
+offset_top = -2.0
+offset_right = 62.0
+offset_bottom = 24.0
+mouse_filter = 2
+
 [node name="Border" type="Panel" parent="."]
 visible = false
 z_index = 1
@@ -40,6 +56,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_vb0gs")
+
+[node name="LockedBorder" type="Panel" parent="."]
+visible = false
+z_index = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_locked")
 
 [connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
 [connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]

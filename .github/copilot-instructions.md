@@ -341,7 +341,7 @@ Each animation strategy defines WHAT to animate; each executor defines HOW to an
 4. Connect UI to EventBus signal
 
 ### Modifying Selection Behavior
-Edit `selection_manager.gd`:
+Edit `scripts/managers/selection_manager.gd`:
 - Mode behavior in `_select_single()` and `_toggle_multi()`
 - Selection order in `_update_selection_orders()`
 

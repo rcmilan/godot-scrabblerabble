@@ -62,11 +62,46 @@ Core game parameters and constants used throughout the project.
 - **Particle Lifetime**: 0.8s
 - **Stagger Delay**: 0.06s between tiles
 
-### Shake Animation (Illegal Action)
-- **Distance**: 8px left-right
+### Spin Animation (Modifier Tiles on Play)
+- **Trigger**: Play confirmed on tiles with EXTRA, MULTI, or EXPO modifiers
+- **Peak Scale**: 1.25x
+- **Spin-Up Duration**: 0.15s (scale + rotation start)
+- **Spin-Down Duration**: 0.20s (return to normal)
+- **Rotation**: Full 360°
+- **Glow Color**: Color(0.7, 0.9, 1.0, 1.0)
+- **Stagger Delay**: 0.06s between tiles
+
+### Shake Animation (Locked Tile Feedback)
+- **Trigger**: Right-click on locked tile
+- **Distance**: 8px in random 2D direction (different each time)
 - **Count**: 3 shake cycles
 - **Duration**: 0.08s per direction
 - **Easing**: EASE_IN_OUT
+
+## Tile Modifiers Configuration
+
+### RandomModifiersQuality
+- **Modifier Chance**: 50% per bag tile
+- **Type Weights**: EXTRA (45%), MULTI (30%), EXPO (15%), RESET (10%)
+- **Tier Weights**: BRONZE (60%), SILVER (30%), GOLD (10%)
+- **Lifetime**: PER_ROUND (persists for entire round)
+
+### Modifier Scoring Values
+| Type | Bronze | Silver | Gold |
+|------|--------|--------|------|
+| EXTRA | +2 | +5 | +10 |
+| MULTI | x2 | x5 | x10 |
+| EXPO | ^2 | ^3 | ^5 |
+| RESET | → 0 | → 0 | → 0 |
+| LOCKED | No effect | — | — |
+
+### Modifier Visuals
+- **EXTRA tints**: Bronze(0.85,0.72,0.53), Silver(0.75,0.75,0.85), Gold(1.0,0.84,0.0)
+- **MULTI tints**: Bronze(0.6,0.8,1.0), Silver(0.5,0.65,1.0), Gold(0.35,0.5,1.0)
+- **EXPO tints**: Bronze(1.0,0.55,0.55), Silver(1.0,0.7,0.4), Gold(0.6,0.4,1.0)
+- **EXPO sparks**: Bronze=red, Silver=orange, Gold=blue (every ~3s)
+- **RESET**: Invert shader, no badges
+- **LOCKED**: Black 2px border (hidden during play animations)
 
 ## Dictionary
 

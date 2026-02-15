@@ -2,7 +2,7 @@ extends AnimationExecutor
 class_name ShakeAnimationExecutor
 
 ## Executes shake animations for illegal action feedback.
-## Tiles shake left-right and return to original position.
+## Tiles shake along a random direction and return to original position.
 
 
 ## Animates a shake effect on a single tile.
@@ -20,22 +20,24 @@ func execute(tile: Tile, strategy: ShakeTileAnimation) -> void:
 	# Notify strategy
 	strategy.on_animation_start(tile)
 
+	# Random shake direction each time
+	var angle: float = randf() * TAU
+	var shake_offset: Vector2 = Vector2(cos(angle), sin(angle)) * strategy.shake_distance
+
 	# Create sequential shake animation
 	var tween: Tween = _context.create_tween()
 
-	# Shake left-right multiple times
+	# Shake along random direction multiple times
 	for i in strategy.shake_count:
-		# Move right
-		tween.tween_property(tile, "position:x", original_position.x + strategy.shake_distance, strategy.duration) \
+		tween.tween_property(tile, "position", original_position + shake_offset, strategy.duration) \
 			.set_ease(strategy.ease_type) \
 			.set_trans(strategy.trans_type)
-		# Move left
-		tween.tween_property(tile, "position:x", original_position.x - strategy.shake_distance, strategy.duration) \
+		tween.tween_property(tile, "position", original_position - shake_offset, strategy.duration) \
 			.set_ease(strategy.ease_type) \
 			.set_trans(strategy.trans_type)
 
 	# Return to original position
-	tween.tween_property(tile, "position:x", original_position.x, strategy.duration) \
+	tween.tween_property(tile, "position", original_position, strategy.duration) \
 		.set_ease(strategy.ease_type) \
 		.set_trans(strategy.trans_type)
 

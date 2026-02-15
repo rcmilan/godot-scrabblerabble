@@ -107,10 +107,7 @@ func commit_play(score: int) -> void:
 	if _current_phase != GamePhase.PLAYING:
 		return
 
-	# Update score
 	_current_score += score
-
-	# Update plays
 	_plays_remaining -= 1
 
 	EventBus.score_updated.emit(_current_score, score)

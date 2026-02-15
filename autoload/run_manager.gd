@@ -199,7 +199,7 @@ func _on_quality_time_expired() -> void:
 # =============================================================================
 
 func _advance_to_next_round() -> void:
-	# Get config BEFORE advancing (get_next_round_number uses current_round + 1)
+	# Get config BEFORE advancing — config reads current_round from run_state
 	current_round_config = progression_rules.get_round_config(run_state)
 
 	# Now advance the round counter to match

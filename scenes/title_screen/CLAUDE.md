@@ -6,78 +6,54 @@ Title screen / main menu scene for the game. Entry point that allows players to 
 ## Files
 - `TitleScreen.tscn` - Main title screen scene
 - `title_screen.gd` - Title screen controller
-- `OptionsPopup.tscn` - Options popup dialog
-- `options_popup.gd` - Options popup controller
+- `RunSetupPopup.tscn` - Game configuration dialog (NEW)
+- `run_setup_popup.gd` - Game configuration controller (NEW)
+- `OptionsPopup.tscn` - Game options dialog
+- `options_popup.gd` - Game options controller
 
 ---
 
 ## TitleScreen
 
 ### Purpose
-Main entry point for the game. Displays the game title "Scrabblerabble" and provides menu navigation with keyboard and mouse support.
+Main entry point for the game. Displays the game title and provides menu navigation with keyboard and mouse support. Allows players to configure a new game before starting.
+
+### Menu Options
+
+1. **New Game** - Opens RunSetupPopup for game configuration, then loads Main.tscn
+2. **Options** - Opens OptionsPopup for settings
+3. **Exit** - Quits the application
 
 ### Controls
 
 #### Keyboard
 | Key | Action |
 |-----|--------|
-| W / Up Arrow | Navigate up |
-| S / Down Arrow | Navigate down |
+| W / Up Arrow | Navigate menu up |
+| S / Down Arrow | Navigate menu down |
 | A | Jump to first menu item |
 | D | Jump to last menu item |
 | Enter / Space | Activate selected item |
 
 #### Mouse
-- Click any menu button to activate it
-- Hover over buttons to focus them
-
-### Menu Options
-
-1. **New Game** - Starts the gameplay loop (loads Main.tscn)
-2. **Options** - Opens the options popup
-3. **Exit** - Quits the application
+- Click menu buttons to activate
+- Hover to focus buttons
 
 ### Architecture
 
-Follows the controller pattern used in the rest of the codebase:
+Uses `MenuController` following the same pattern as `GameplayController`:
+- Composition over inheritance
+- DependencyInjection
+- Activate/deactivate lifecycle
+- Signal-based communication
 
-```gdscript
-# Controller setup
-_menu_controller = MenuController.new()
-add_child(_menu_controller)
-_menu_controller.setup(new_game_btn, options_btn, exit_btn)
-_menu_controller.activate()
+### Signals
 
-# Signals
-_menu_controller.new_game_requested.connect(_on_new_game_requested)
-_menu_controller.options_requested.connect(_on_options_requested)
-_menu_controller.exit_requested.connect(_on_exit_requested)
-```
-
-### Future Extensions
-
-The New Game option is designed to support passing configuration parameters to the gameplay scene:
-
-```gdscript
-# Future implementation
-var config = GameConfiguration.new()
-config.board_size = Vector2i(8, 8)
-config.hand_size = 10
-config.max_rounds = 10
-config.target_score = 100
-
-# Pass config to gameplay scene
-GameManager.start_game_with_config(config)
-```
-
----
-
-## MenuController
-
-### Purpose
-Handles menu navigation and input processing. Separates input logic from UI presentation following the controller pattern.
-
-### Lifecycle
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `new_game_configured` | `config: Run` | Game configured and ready |
+| `options_requested` | none | Options popup opened |
+| `exit_requested` | none | Exit button pressed |
 ```gdscript
 # Setup
 var controller = MenuController.new()
@@ -102,6 +78,53 @@ controller.deactivate() # Disable input processing (e.g., when options popup is 
 - Mouse hover support (hovering focuses item)
 - A/D shortcuts for quick navigation to first/last items
 - Focus tracking for visual feedback
+
+---
+
+## RunSetupPopup
+
+### Purpose
+Game configuration dialog for customizing a new run before starting. Allows players to adjust tile distribution, hand size, plays per round, and difficulty settings.
+
+### Class: `RunSetupPopup extends CanvasLayer`
+
+### Features
+- **Bag Selection**: Choose tile distribution (default, experimental, etc.)
+- **Hand Size**: Configure maximum tiles in hand (typically 8-12)
+- **Plays Per Round**: Set how many word formations allowed per round (1-5)
+- **Progression**: Select difficulty scaling curve
+- **Preview**: Show next round configuration preview
+- **Defaults Button**: Reset to default configuration
+- **Start Button**: Build run and start game
+
+### Signals
+| Signal | Parameters | Description |
+|--------|------------|-------------|
+| `game_started` | `run: Run` | Game configured, player clicked Start |
+| `cancelled` | none | Player closed popup without starting |
+| `config_changed` | `config: Run` | Configuration was modified |
+
+### Flow
+```gdscript
+1. TitleScreen._on_new_game() → show_popup()
+2. Player adjusts settings
+3. Player clicks "Start" → game_started signal emitted
+4. TitleScreen receives signal → RunManager.initialize_run_from_builder(run)
+5. TitleScreen loads Main.tscn → gameplay starts
+```
+
+### Integration with RunBuilder
+```gdscript
+# RunSetupPopup builds a Run object
+var run = RunBuilder.new() \
+    .with_bag(selected_bag) \
+    .with_hand_size(hand_size_value) \
+    .with_plays_per_round(plays_value) \
+    .with_progression(chosen_progression) \
+    .build()
+
+game_started.emit(run)
+```
 
 ---
 

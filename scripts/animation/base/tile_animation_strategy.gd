@@ -28,7 +28,6 @@ func get_start_position_offset() -> Vector2:
 func get_start_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
@@ -37,13 +36,18 @@ func get_start_properties() -> Dictionary:
 func get_end_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
 ## Called when the animation starts for a tile.
 ## Override for setup logic.
 func on_animation_start(_tile: Tile) -> void:
+	pass
+
+
+## Adds custom tween tracks beyond the standard property tweens.
+## Override to add animation-specific tweens (e.g. alpha fade).
+func build_custom_tweens(_tile: Tile, _tween: Tween, _delay: float) -> void:
 	pass
 
 

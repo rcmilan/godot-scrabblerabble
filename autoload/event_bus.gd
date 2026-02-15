@@ -112,6 +112,16 @@ signal game_paused()
 signal game_resumed()
 
 # =============================================================================
+# MODIFIER EVENTS
+# =============================================================================
+
+## Emitted when a modifier is applied to a tile.
+signal modifier_applied(tile: Tile, modifier: ModifierInstance)
+
+## Emitted when a consumable modifier is consumed after a play.
+signal modifier_consumed(tile: Tile, modifier_type: int)
+
+# =============================================================================
 # DRAG EVENTS
 # =============================================================================
 

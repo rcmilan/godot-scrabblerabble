@@ -38,6 +38,16 @@ var point_modifier: int = 0        # Bonus/penalty to base points
 var is_wild: bool = false          # Wild card tile
 var is_locked: bool = false        # Cannot be moved once placed
 
+# === Composable Modifiers ===
+var modifiers: Dictionary = {}     # Keyed by ModifierTypes.Type → ModifierInstance
+var _spark_effect: TileSparkEffect = null
+
+const EXPO_SPARK_COLORS: Dictionary = {
+	ModifierTypes.Tier.BRONZE: Color(1.0, 0.3, 0.2),
+	ModifierTypes.Tier.SILVER: Color(1.0, 0.6, 0.1),
+	ModifierTypes.Tier.GOLD: Color(0.3, 0.5, 1.0),
+}
+
 # === Location State ===
 var location: TileLocation = TileLocation.IN_BAG
 var current_cell: BoardCell = null  # Only valid when ON_BOARD
@@ -58,7 +68,9 @@ var _pending_texture: Texture2D = null
 
 # === Node References ===
 @onready var border: Panel = $Border
+@onready var locked_border: Panel = $LockedBorder
 @onready var texture_rect: TextureRect = $TextureRect
+@onready var badge_container: HBoxContainer = $BadgeContainer
 
 
 func _ready() -> void:
@@ -226,6 +238,92 @@ func move_to_discard() -> void:
 
 
 # =============================================================================
+# MODIFIER MANAGEMENT
+# =============================================================================
+
+## Adds a modifier to this tile (one per type).
+func add_modifier(modifier: ModifierInstance) -> void:
+	modifiers[modifier.type] = modifier
+	if modifier.type == ModifierTypes.Type.EXPO:
+		_add_spark_effect(modifier.tier)
+	if modifier.type == ModifierTypes.Type.LOCKED:
+		is_locked = true
+	_update_modifier_visual()
+	EventBus.modifier_applied.emit(self, modifier)
+
+
+## Removes a modifier by type.
+func remove_modifier(type: ModifierTypes.Type) -> void:
+	modifiers.erase(type)
+	if type == ModifierTypes.Type.EXPO:
+		_remove_spark_effect()
+	if type == ModifierTypes.Type.LOCKED:
+		is_locked = false
+	_update_modifier_visual()
+
+
+## Clears all modifiers.
+func clear_modifiers() -> void:
+	modifiers.clear()
+	_remove_spark_effect()
+	is_locked = false
+	_update_modifier_visual()
+
+
+## Removes CONSUMABLE modifiers only (called after a play).
+func consume_modifiers() -> void:
+	var consumed: Array[int] = []
+	for type in modifiers.keys():
+		var mod: ModifierInstance = modifiers[type]
+		if mod.lifetime == ModifierTypes.Lifetime.CONSUMABLE:
+			consumed.append(type)
+	for type in consumed:
+		modifiers.erase(type)
+		if type == ModifierTypes.Type.EXPO:
+			_remove_spark_effect()
+		if type == ModifierTypes.Type.LOCKED:
+			is_locked = false
+		EventBus.modifier_consumed.emit(self, type)
+	if not consumed.is_empty():
+		_update_modifier_visual()
+
+
+## Removes CONSUMABLE and PER_ROUND modifiers (called at round end).
+func clear_round_modifiers() -> void:
+	var to_remove: Array[int] = []
+	for type in modifiers.keys():
+		var mod: ModifierInstance = modifiers[type]
+		if mod.lifetime != ModifierTypes.Lifetime.PERMANENT:
+			to_remove.append(type)
+	for type in to_remove:
+		modifiers.erase(type)
+		if type == ModifierTypes.Type.EXPO:
+			_remove_spark_effect()
+		if type == ModifierTypes.Type.LOCKED:
+			is_locked = false
+	if not to_remove.is_empty():
+		_update_modifier_visual()
+
+
+## Checks if the tile has a specific modifier type.
+func has_modifier(type: ModifierTypes.Type) -> bool:
+	return modifiers.has(type)
+
+
+## Derives the tile's primary modifier type from the visual pipeline (invert/tint).
+func get_primary_modifier_type() -> ModifierTypes.Type:
+	var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(modifiers)
+	# Derive type from visual — if invert, it's RESET; else match tint
+	if visual.invert:
+		return ModifierTypes.Type.RESET
+	for type in modifiers.keys():
+		var mod: ModifierInstance = modifiers[type]
+		if mod.behavior and mod.behavior.get_visual(mod.tier).tint == visual.tint:
+			return mod.type
+	return ModifierTypes.Type.NONE
+
+
+# =============================================================================
 # RESET
 # =============================================================================
 
@@ -235,12 +333,16 @@ func reset() -> void:
 	is_selected = false
 	is_locked = false
 	point_modifier = 0
+	modifiers.clear()
+	_remove_spark_effect()
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE
+	rotation = 0.0
 	if _drag:
 		_drag.force_end()
 	_cell_binding_suspended = false
+	_apply_invert(false)
 	_update_visual()
 
 
@@ -261,7 +363,7 @@ func set_as_drag_follower() -> bool:
 func force_end_drag() -> void:
 	_drag.force_end()
 	allow_hover_feedback = true
-	modulate = Color.WHITE
+	_apply_modifier_visual()
 	z_index = 0
 
 
@@ -278,7 +380,7 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 					# Was a click, not a drag
 					tile_selected.emit(self)
 				allow_hover_feedback = true
-				modulate = Color.WHITE
+				_apply_modifier_visual()
 		MOUSE_BUTTON_RIGHT:
 			if event.is_pressed():
 				tile_right_clicked.emit(self)
@@ -302,7 +404,8 @@ func _on_drag_threshold_reached() -> void:
 	_original_z_index = z_index
 	z_index = DRAG_Z_INDEX
 
-	modulate = Color(1.2, 1.2, 1.2)
+	var visual: Dictionary = _get_modifier_visual()
+	modulate = visual.tint * Color(1.2, 1.2, 1.2)
 
 	var cell_info: String = String(current_cell.name) if current_cell else "none"
 	print("[Tile] Drag start: %s | Location: %s | Cell: %s | Locked: %s" % [
@@ -325,35 +428,109 @@ func _on_drag_ended() -> void:
 
 # === Private: Visual Updates ===
 
-const LOCKED_TINT: Color = Color(0.85, 0.85, 0.9, 1.0)  # Subtle blue-gray tint
+## Invert shader material (lazy-loaded, shared across tiles)
+static var _invert_material: ShaderMaterial = null
+
+static func _get_invert_material() -> ShaderMaterial:
+	if _invert_material == null:
+		var shader: Shader = load("res://scenes/tile/invert.gdshader")
+		_invert_material = ShaderMaterial.new()
+		_invert_material.shader = shader
+	return _invert_material
+
+
+## Returns the modifier visual from the pipeline: {tint: Color, invert: bool}.
+func _get_modifier_visual() -> Dictionary:
+	return ModifierVisualPipeline.compute_tile_visual(modifiers)
+
+
+## Applies the full modifier visual (tint + invert shader + badges) to this tile.
+## This is the single source of truth for modifier appearance.
+func _apply_modifier_visual() -> void:
+	var visual: Dictionary = _get_modifier_visual()
+	modulate = visual.tint
+	_apply_invert(visual.invert)
+	if visual.has("badges"):
+		_update_badges(visual.badges)
+
+
+## Applies or removes the invert shader on the TextureRect.
+func _apply_invert(invert: bool) -> void:
+	if not texture_rect:
+		return
+	if invert:
+		texture_rect.material = _get_invert_material()
+	else:
+		texture_rect.material = null
+
+
+func _update_badges(badges: Array) -> void:
+	if not badge_container:
+		return
+	for child in badge_container.get_children():
+		child.queue_free()
+	for badge_info in badges:
+		var label := Label.new()
+		label.text = badge_info.symbol
+		label.add_theme_font_size_override("font_size", 18)
+		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_color_override("font_outline_color", Color.BLACK)
+		label.add_theme_constant_override("outline_size", 3)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge_container.add_child(label)
+
 
 func _update_visual() -> void:
 	if border:
 		border.visible = is_selected
+	if locked_border:
+		locked_border.visible = is_locked
 
-	# Apply locked visual state
-	if is_locked:
-		modulate = LOCKED_TINT
-	elif _drag == null or not _drag.is_dragging():
-		modulate = Color.WHITE
+	if _drag == null or not _drag.is_dragging():
+		_apply_modifier_visual()
 
 
-## Call this when the locked state changes to update visuals.
+func _add_spark_effect(tier: ModifierTypes.Tier) -> void:
+	_remove_spark_effect()
+	_spark_effect = TileSparkEffect.new()
+	_spark_effect.spark_color = EXPO_SPARK_COLORS.get(tier, Color.RED)
+	add_child(_spark_effect)
+
+
+func _remove_spark_effect() -> void:
+	if _spark_effect and is_instance_valid(_spark_effect):
+		_spark_effect.queue_free()
+	_spark_effect = null
+
+
+func _update_modifier_visual() -> void:
+	if locked_border:
+		locked_border.visible = is_locked
+	_apply_modifier_visual()
+
+
+## Sets locked state through the modifier system.
+## Backward-compatible: any code calling set_locked(true) now adds a LOCKED modifier.
 func set_locked(value: bool) -> void:
-	is_locked = value
-	_update_visual()
-	if is_locked:
-		print("[Tile] %s is now locked" % name)
+	if value and not has_modifier(ModifierTypes.Type.LOCKED):
+		var locked_mod: ModifierInstance = ModifierRegistry.create_modifier(
+			ModifierTypes.Type.LOCKED,
+			ModifierTypes.Tier.BRONZE,
+			ModifierTypes.Lifetime.PER_ROUND
+		)
+		add_modifier(locked_mod)
+	elif not value and has_modifier(ModifierTypes.Type.LOCKED):
+		remove_modifier(ModifierTypes.Type.LOCKED)
 
 
 # === Signal Handlers (connected in scene) ===
 
 func _on_mouse_entered() -> void:
 	if allow_hover_feedback and can_interact():
-		modulate = Color(1.1, 1.1, 1.1)
+		var visual: Dictionary = _get_modifier_visual()
+		modulate = visual.tint * Color(1.1, 1.1, 1.1)
 
 
 func _on_mouse_exited() -> void:
 	if allow_hover_feedback:
-		# Restore appropriate color based on locked state
-		modulate = LOCKED_TINT if is_locked else Color.WHITE
+		_update_visual()

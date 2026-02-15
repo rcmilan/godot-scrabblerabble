@@ -36,19 +36,14 @@ func handle_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> bool:
 		last_placement_success = false
 		return false
 
-	# Determine if any tiles are from the board (vs hand)
 	var has_board_tiles: bool = _any_tiles_on_board(tiles)
-
-	# Get target cells for placement
 	var target_cells: Array[BoardCell] = _get_target_cells_for_drop(drop_cell, tiles)
 
-	# Check if placement is valid
 	if target_cells.is_empty():
 		_handle_invalid_drop(tiles, has_board_tiles, drop_cell)
 		last_placement_success = false
 		return false
 
-	# Valid drop - restore tiles and place them
 	_execute_valid_drop(tiles, target_cells)
 	last_placement_success = true
 	return true

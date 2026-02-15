@@ -54,31 +54,25 @@ func get_start_position_offset() -> Vector2:
 func get_start_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
 func get_end_properties() -> Dictionary:
 	return {
 		"scale": Vector2.ONE,
-		"modulate": Color.WHITE
 	}
 
 
 func on_animation_start(tile: Tile) -> void:
-	# Disable interaction during animation
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Raise z-index so tile appears above others during animation
 	tile.z_index = 50
-	# Set pivot to center so scaling happens from center
+	# Pivot at center so scale and rotation are symmetric
 	var tile_size: Vector2 = tile.size if tile.size != Vector2.ZERO else Vector2(64, 64)
 	tile.pivot_offset = tile_size / 2.0
 
 
 func on_animation_complete(tile: Tile) -> void:
-	# Re-enable interaction after animation (though tile will be locked)
 	tile.mouse_filter = Control.MOUSE_FILTER_STOP
-	# Reset z-index
 	tile.z_index = 0
-	# Reset pivot offset
 	tile.pivot_offset = Vector2.ZERO
+	tile._update_visual()

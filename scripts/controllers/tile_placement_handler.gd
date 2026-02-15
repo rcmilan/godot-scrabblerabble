@@ -70,7 +70,7 @@ func return_tile_to_hand(tile: Tile, preserve_selection: bool = false) -> void:
 			tile.get_parent().remove_child(tile)
 		hand.add_tile(tile)
 		tile.move_to_hand()  # Atomic state update
-		tile.modulate = Color.WHITE
+		tile._update_visual()
 		EventBus.hand_count_changed.emit(hand.get_tile_count())
 		if not preserve_selection:
 			_selection.deselect_tile(tile)
@@ -141,7 +141,7 @@ func return_to_original_cell(tile: Tile) -> void:
 		tile.restore_cell_binding()
 
 	tile.position = Vector2.ZERO
-	tile.modulate = Color.WHITE
+	tile._update_visual()
 	print("[Gameplay] Tile %s returned to cell: %s" % [tile.name, tile.current_cell.name])
 
 

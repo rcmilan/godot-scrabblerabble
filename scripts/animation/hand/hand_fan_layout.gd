@@ -36,7 +36,7 @@ const HOVER_LIFT: float = 12.0
 
 ## How many pixels immediate neighbors are pushed away on hover.
 ## Falls off with distance: push = HOVER_PUSH / abs(distance).
-const HOVER_PUSH: float = 24.0
+const HOVER_PUSH: float = 12.0
 
 # =============================================================================
 # STATE

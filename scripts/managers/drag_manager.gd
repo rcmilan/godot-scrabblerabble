@@ -80,16 +80,11 @@ func start_drag(lead: Tile, tiles: Array[Tile]) -> void:
 	lead_tile = lead
 	dragged_tiles = tiles.duplicate()
 
-	# Store original state and clear board cell references
 	_store_original_state()
 
-	# Calculate relative offsets from lead tile
 	_calculate_relative_offsets()
-
-	# Reparent tiles to drag container for unified movement
 	_setup_drag_container()
 
-	# Notify listeners
 	drag_started.emit(dragged_tiles)
 	EventBus.multi_drag_started.emit(dragged_tiles)
 
@@ -103,14 +98,13 @@ func end_drag(success: bool) -> void:
 	if not is_dragging:
 		return
 
-	# Emit signals before cleanup
+	# Emit before cleanup so listeners can still access dragged_tiles
 	drag_ended.emit(dragged_tiles, success)
 	EventBus.multi_drag_ended.emit(dragged_tiles, success)
 
 	print("[DragManager] Ended drag (success: %s)" % success)
 
-	# Cleanup is handled by the caller (Main.gd) which will either
-	# place tiles or restore them
+	# Caller (DropHandler/GameplayController) handles placement or restoration
 	_cleanup_drag_state()
 
 
@@ -129,17 +123,14 @@ func cancel_drag() -> void:
 	_cleanup_drag_state()
 
 
-## Returns tiles to their original parents (for placement handling by Main).
-## Call this before placing tiles or when restoring after failed drop.
+## Returns tiles to their original parents before placement or after a failed drop.
 func restore_tiles_to_parents() -> void:
-	# Sort tiles by original index (descending) to maintain order when re-adding
 	var tiles_with_indices: Array = []
 	for tile in dragged_tiles:
 		if is_instance_valid(tile):
 			var idx: int = _original_indices.get(tile, -1)
 			tiles_with_indices.append({"tile": tile, "index": idx})
 
-	# Sort by index ascending so we add them in order
 	tiles_with_indices.sort_custom(func(a, b): return a.index < b.index)
 
 	for entry in tiles_with_indices:
@@ -155,15 +146,12 @@ func restore_tiles_to_parents() -> void:
 			original_parent.add_child(tile)
 			tile.position = _original_positions.get(tile, Vector2.ZERO)
 
-			# Restore original child order if index was stored
 			if original_index >= 0 and original_index < original_parent.get_child_count():
 				original_parent.move_child(tile, original_index)
 
-		# Restore cell binding if tile was on board (atomic state management)
 		if tile.location == Tile.TileLocation.ON_BOARD:
 			tile.restore_cell_binding()
 
-		# Reset tile's internal drag state
 		tile.force_end_drag()
 
 
@@ -244,7 +232,9 @@ func _setup_drag_container() -> void:
 		_drag_container.add_child(tile)
 		tile.global_position = global_pos
 		tile.z_index = DRAG_Z_INDEX
-		tile.modulate = Color(1.2, 1.2, 1.2)  # Highlight during drag
+		# Highlight during drag while preserving modifier tint
+		var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(tile.modifiers)
+		tile.modulate = visual.tint * Color(1.2, 1.2, 1.2)
 
 
 func _update_drag_positions() -> void:

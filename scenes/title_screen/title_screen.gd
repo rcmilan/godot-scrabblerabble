@@ -96,7 +96,6 @@ func _on_run_confirmed(run: Run) -> void:
 	print("[TitleScreen] Starting run with %d qualities..." % run.qualities.size())
 
 	RunManager.initialize_run_from_builder(run)
-	RunManager.set_debug_auto_win(_options_popup.get_auto_win())
 
 	get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
 
