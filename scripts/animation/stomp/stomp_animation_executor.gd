@@ -50,7 +50,7 @@ func execute(tiles: Array[Tile], strategy: StompTileAnimation) -> void:
 		# Phase 3: Recover (bounce back to normal)
 		tween.tween_property(tile, "scale", Vector2.ONE, strategy.recover_duration) \
 			.set_ease(Tween.EASE_OUT) \
-			.set_trans(Tween.TRANS_ELASTIC)
+			.set_trans(Tween.TRANS_CUBIC)
 
 		_register_tween(tile, tween)
 		tween.finished.connect(

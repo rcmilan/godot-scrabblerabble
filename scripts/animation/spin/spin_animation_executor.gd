@@ -38,7 +38,7 @@ func execute(tiles: Array[Tile], strategy: SpinTileAnimation) -> void:
 		tween.set_parallel(false)
 		tween.tween_property(tile, "scale", Vector2.ONE, strategy.spin_down_duration) \
 			.set_ease(Tween.EASE_OUT) \
-			.set_trans(Tween.TRANS_ELASTIC)
+			.set_trans(Tween.TRANS_CUBIC)
 
 		_register_tween(tile, tween)
 		tween.finished.connect(
