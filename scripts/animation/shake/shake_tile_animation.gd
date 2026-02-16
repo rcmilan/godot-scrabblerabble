@@ -28,6 +28,9 @@ func get_start_position_offset() -> Vector2:
 
 
 func get_start_properties() -> Dictionary:
+	# NOTE: modulate is reset to WHITE here to clear any leftover tween state from
+	# prior animations. Shake does not tween modulate — it only sets the initial
+	# state. Modifier tint is reapplied by on_animation_complete → _update_visual().
 	return {
 		"scale": Vector2.ONE,
 		"modulate": Color.WHITE
@@ -35,6 +38,9 @@ func get_start_properties() -> Dictionary:
 
 
 func get_end_properties() -> Dictionary:
+	# NOTE: modulate is reset to WHITE here to clear any leftover tween state from
+	# prior animations. Shake does not tween modulate — it only sets the initial
+	# state. Modifier tint is reapplied by on_animation_complete → _update_visual().
 	return {
 		"scale": Vector2.ONE,
 		"modulate": Color.WHITE

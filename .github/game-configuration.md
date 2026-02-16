@@ -4,9 +4,9 @@ Core game parameters and constants used throughout the project.
 
 ## Board Configuration
 
-- **Grid Size**: 11×11 cells
-- **Cell Size**: 48px
-- **Total Board Size**: 528×528px (11 × 48)
+- **Grid Size**: 8×8 cells
+- **Cell Size**: 64px
+- **Total Board Size**: 512×512px (8 × 64 + 7 × 4 spacing)
 - **Board Type**: Scrabble-like word placement grid
 
 ## Window/Display Configuration

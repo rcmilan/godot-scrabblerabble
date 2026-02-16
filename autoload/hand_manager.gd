@@ -150,7 +150,7 @@ func get_discard_count() -> int:
 	return discard_pile.size()
 
 
-## Clears the discard pile (for special effects).
+## Clears the discard pile and returns its contents. Called during round reset.
 func clear_discard_pile() -> Array[Tile]:
 	var tiles: Array[Tile] = discard_pile.duplicate()
 	discard_pile.clear()

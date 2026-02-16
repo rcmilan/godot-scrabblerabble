@@ -25,34 +25,34 @@ func _on_check_word_pressed():
 		print("[debug_overlay] No word entered")
 		return
 	
-	# Find word_test to use its validate_word method
+	# Delegate to current scene if it implements validate_word
 	var word_test = get_tree().get_current_scene()
 	if word_test and word_test.has_method("validate_word"):
 		var valid = word_test.validate_word(word)
 		print("[debug_overlay] Word '", word, "' is ", "VALID" if valid else "INVALID")
 	else:
-		print("[debug_overlay] Cannot validate - word_test not found")
+		print("[debug_overlay] Cannot validate - current scene missing validate_word()")
 
 func _on_remove_all_pressed():
-	# Find word_test and call its remove all handler
+	# Delegate to current scene if it implements _on_remove_all_pressed
 	var word_test = get_tree().get_current_scene()
 	if word_test and word_test.has_method("_on_remove_all_pressed"):
 		word_test._on_remove_all_pressed()
 	else:
-		print("[debug_overlay] Cannot remove all - word_test not found")
+		print("[debug_overlay] Cannot remove all - current scene missing _on_remove_all_pressed()")
 
 func _on_redraw_pressed():
-	# Find word_test and call its redraw handler
+	# Delegate to current scene if it implements _on_redraw_hand_pressed
 	var word_test = get_tree().get_current_scene()
 	if word_test and word_test.has_method("_on_redraw_hand_pressed"):
 		word_test._on_redraw_hand_pressed()
 	else:
-		print("[debug_overlay] Cannot redraw - word_test not found")
+		print("[debug_overlay] Cannot redraw - current scene missing _on_redraw_hand_pressed()")
 
 func _on_print_rack_pressed():
-	# Find word_test and call its print rack handler
+	# Delegate to current scene if it implements _on_print_rack_pressed
 	var word_test = get_tree().get_current_scene()
 	if word_test and word_test.has_method("_on_print_rack_pressed"):
 		word_test._on_print_rack_pressed()
 	else:
-		print("[debug_overlay] Cannot print rack - word_test not found")
+		print("[debug_overlay] Cannot print rack - current scene missing _on_print_rack_pressed()")

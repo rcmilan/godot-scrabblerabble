@@ -23,7 +23,7 @@ const COLOR_SPECIAL_MULTIPLIER: Color = Color(1, 0.84, 0, 0.3)  # Gold for speci
 var tile: Tile = null
 var grid_position: Vector2i = Vector2i.ZERO
 
-# === Cell Modifiers (for future features) ===
+# === Cell Type (multiplier logic implemented; special cells not yet assigned in level design) ===
 enum CellType {
 	NORMAL,
 	DOUBLE_LETTER,
