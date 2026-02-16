@@ -33,10 +33,10 @@ var tile_data: LetterTileData = null
 var letter: String = ""
 var base_points: int = 0
 
-# === Tile Modifiers (for future features) ===
+# === Legacy Point Modifier (see modifiers: Dictionary for composable modifiers) ===
 var point_modifier: int = 0        # Bonus/penalty to base points
-var is_wild: bool = false          # Wild card tile
-var is_locked: bool = false        # Cannot be moved once placed
+var is_wild: bool = false          # Wild card tile (unused)
+var is_locked: bool = false        # Cannot be moved once placed (synced from LOCKED modifier)
 
 # === Composable Modifiers ===
 var modifiers: Dictionary = {}     # Keyed by ModifierTypes.Type → ModifierInstance

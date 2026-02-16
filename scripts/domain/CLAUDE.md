@@ -30,7 +30,7 @@ scripts/domain/
     ├── run_quality.gd               # Base class (in parent)
     ├── time_attack_quality.gd       # Timer-based quality
     ├── limited_time_with_increment_quality.gd  # Timer with per-play bonus
-    ├── max_hand_size_quality.gd     # Reduce hand capacity
+    ├── max_hand_size_quality.gd     # Increase hand size to 15
     ├── max_score_in_n_rounds_quality.gd  # Must score within N rounds
     └── random_modifiers_quality.gd  # Apply random modifiers
 ```

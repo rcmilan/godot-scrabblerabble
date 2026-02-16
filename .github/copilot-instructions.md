@@ -65,7 +65,7 @@ When changes are needed:
 
 - **Main** (`scenes/main.gd`): Root scene that creates and manages GameplayController, orchestrates component lifecycle
 - **GameplayController** (`scripts/controllers/gameplay_controller.gd`): Manages all tile gameplay (selection, drag-drop, placement, discard, play submission)
-- **Board** (`scenes/board/board.gd`): 11×11 grid-based board with cell management, hover detection, and sequential cell queries
+- **Board** (`scenes/board/board.gd`): 8×8 grid-based board with cell management, hover detection, and sequential cell queries
 - **BoardCell** (`scenes/board/board_cell.gd`): Individual cell with occupancy state, multiplier infrastructure, and visual feedback
 - **Tile** (`scenes/tile/tile.gd`): Draggable letter tiles with atomic cell binding, location tracking, and selection visuals
 - **Hand** (`scenes/hand/hand.gd`): Tile container that manages tile display and delegates selection to SelectionManager
@@ -76,16 +76,17 @@ When changes are needed:
 
 ### Autoload Managers
 
-| Manager | Purpose |
-|---------|---------|
-| `EventBus` | Global signal hub for decoupled communication |
-| `GameManager` | Game phases, scoring, round progression |
-| `TileBag` | Tile pool (deck) creation, shuffling, drawing |
-| `HandManager` | Draw, discard, refill operations |
-| `SelectionManager` | Single/multi-select mode and selection state |
-| `TileAnimator` | Coordinates tile animations using strategy pattern |
-| `DragManager` | Multi-tile drag operation coordination |
-| `DebugManager` | Debug console command processing |
+| Manager | Purpose | Type |
+|---------|---------|------|
+| `EventBus` | Global signal hub for decoupled communication | Autoload |
+| `GameManager` | Game phases, scoring, round progression | Autoload |
+| `TileBag` | Tile pool (deck) creation, shuffling, drawing | Autoload |
+| `HandManager` | Draw, discard, refill operations | Autoload |
+| `TileAnimator` | Coordinates tile animations using strategy pattern | Autoload |
+| `RunManager` | Run lifecycle & progression orchestrator | Autoload |
+| `SelectionManager` | Single/multi-select mode and selection state | Local Node (created by Main) |
+| `DragManager` | Multi-tile drag operation coordination | Local Node (created by GameplayController) |
+| `DebugManager` | Debug console command processing | RefCounted (owned by DebugConsole) |
 
 ### Selection System
 
@@ -372,22 +373,36 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 
 ## Development Roadmap
 
-### Completed
-- ✅ Phase 1: Tile Visual Configuration (LetterTileData system)
-- ✅ Phase 2: Architecture Foundation (EventBus + GameManager)
-- ✅ Phase 3: Debug System
-- ✅ Phase 4: Tile Pool Management (TileBag + BagDistribution)
-- ✅ Phase 5: Selection System (SelectionManager, multi-select)
-- ✅ Discard System (confirmation, drop zone, refill)
+### ✅ Completed Phases
+- Phase 1: Tile Visual Configuration (LetterTileData system)
+- Phase 2: Architecture Foundation (EventBus + GameManager)
+- Phase 3: Debug System (Debug console + commands)
+- Phase 4: Tile Pool Management (TileBag + BagDistribution)
+- Phase 5: Selection System (SelectionManager, multi-select)
+- Phase 6: Discard System (confirmation, drop zone, refill)
+- Phase 7: Word Detection & Validation (find_formed_words algorithm)
+- Phase 8: Scoring System with multipliers (WordValidator service)
+- Phase 9: Animation System (draw, glide, shake, stomp, spin)
+- Phase 10: Run & Progression System (RoundConfig, ProgressionRules)
+- Phase 11: Roguelike Quality Modifiers (RunQuality, RunBuilder, modifier system)
+- Phase 12: Title Screen & Game Configuration (RunSetupPopup, MenuController)
+- Phase 13: Shop Phase Between Rounds (ShopOverlay, round transitions)
+- Phase 14: Game State Management (multi-round runs, victory/defeat conditions)
 
-### In Progress
-- 🔄 Phase 6: Word Detection & Validation
-- 🔄 Phase 7: Scoring System with multipliers
+### 🔄 In Progress
+- Phase 15: UI Polish and Game Feel Refinement
+- Phase 16: Tile Modifiers System (EXTRA, MULTI, EXPO, RESET, LOCKED with composable behaviors, visual pipeline, play animations)
 
-### Future
-- Phase 8: Turn Management
-- Phase 9: Multi-Turn & Round System
-- Phase 10: UI Polish & Game Feel
+### 📋 Future Phases
+- Phase 17: Cell Multipliers on Board (visual + scoring)
+- Phase 18: Save/Load Game State
+- Phase 19: Multiple Starting Decks/Themes
+- Phase 20: Wild Card Tiles (blank tiles with custom letter assignment)
+- Phase 21: Additional Modifier Types and Behaviors
+- Phase 22: Achievement & Statistics System
+- Phase 23: Sound and Music
+- Phase 24: Mobile Touch Controls Refinement
+- Phase 25: Leaderboard System
 
 **Architecture Philosophy:**
 - Each phase builds on previous phases

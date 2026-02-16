@@ -4,7 +4,6 @@ extends RefCounted
 ## DebugManager: Debug command helper owned by DebugConsole.
 ## Provides console commands for rapid testing of tile creation, drawing, and board manipulation.
 
-# Referencing game systems
 var _main_scene: Node = null
 var _log_fn: Callable
 var tile_scene: PackedScene = preload("res://scenes/tile/Tile.tscn")
@@ -41,9 +40,7 @@ func execute_command(command: String) -> void:
 			log_output("Unknown command: %s (type 'help' for available commands)" % cmd)
 
 
-# commands
-
-## help
+## Shows all available debug commands
 func cmd_help() -> void:
 	log_output("Available commands: ")
 	log_output("  help - Shows debug helper menu")
@@ -53,7 +50,7 @@ func cmd_help() -> void:
 	log_output("  clear_board - Remove all tiles from board")
 
 
-## close console
+## Hides the debug console
 func cmd_close() -> void:
 	if _main_scene == null:
 		log_output("Error: Main scene not found")
@@ -65,7 +62,7 @@ func cmd_close() -> void:
 		log_output("Error: Console not found")
 
 
-## spawn a tile for a specific letter in the hand
+## Spawns tiles of a specific letter into the hand
 func cmd_spawn(args: Array) -> void:
 	if args.is_empty():
 		log_output("Please give a letter as argument: spawn <letter> [count]")
@@ -107,7 +104,7 @@ func cmd_clear_board() -> void:
 	log_output("Cleared %d tile(s) from board" % tiles_cleared)
 
 
-## creating tile spawning function
+## Creates and registers tiles in the hand for a given letter
 func spawn_tile(letter: String, count: int = 1) -> void:
 	if _main_scene == null:
 		log_output("Error: Main scene not found.")
@@ -134,7 +131,7 @@ func spawn_tile(letter: String, count: int = 1) -> void:
 	log_output("Spawned %d x '%s' tile(s)" % [count, letter])
 
 
-## debug draw command
+## Draws tiles from the bag into the hand
 func cmd_draw(args: Array) -> void:
 	var count = int(args[0]) if args.size() > 0 else 1
 
@@ -145,7 +142,7 @@ func cmd_draw(args: Array) -> void:
 	HandManager.draw_tiles(count)
 
 
-## logging to console
+## Sends a message to the debug console output
 func log_output(message: String) -> void:
 	print("[Debug] %s" % message)
 	if _log_fn.is_valid():
