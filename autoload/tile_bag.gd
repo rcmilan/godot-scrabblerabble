@@ -17,17 +17,17 @@ var _tile_scene: PackedScene = null
 # STATE
 # =============================================================================
 
-var __available_tiles: Array[Tile] = []
-var __drawn_tiles: Array[Tile] = []
+var _available_tiles: Array[Tile] = []
+var _drawn_tiles: Array[Tile] = []
 var _current_distribution: BagDistribution = null
 var _initial_count: int = 0
 
 
-func get__available_tiles() -> Array[Tile]:
-	return __available_tiles.duplicate()
+func get_available_tiles() -> Array[Tile]:
+	return _available_tiles.duplicate()
 
-func get__drawn_tiles() -> Array[Tile]:
-	return __drawn_tiles.duplicate()
+func get_drawn_tiles() -> Array[Tile]:
+	return _drawn_tiles.duplicate()
 
 func get_current_distribution() -> BagDistribution:
 	return _current_distribution
