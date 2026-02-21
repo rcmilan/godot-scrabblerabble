@@ -6,6 +6,8 @@ Visual assets used throughout the game: textures, images, and graphical resource
 ## Structure
 ```
 Assets/
+├── blank_tile.png      # Blank tile template (root level)
+├── letter.png          # Base tile template (root level)
 └── Tiles/              # Letter tile graphics
     ├── letter.png      # Base tile template
     └── letter_A.png    # Individual letter graphics (A-Z)
