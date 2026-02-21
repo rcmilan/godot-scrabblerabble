@@ -27,8 +27,8 @@ enum InteractionMode {
 	DRAGGING        # Tile being dragged
 }
 
-var interaction_mode: InteractionMode = InteractionMode.IDLE
-var selected_tile: Tile = null
+var __interaction_mode: InteractionMode = InteractionMode.IDLE
+var __selected_tile: Tile = null
 var _is_active: bool = false
 
 # =============================================================================
@@ -254,7 +254,7 @@ func _on_tile_drag_started(tile: Tile) -> void:
 		print("[Gameplay] Cannot drag non-interactable tile: %s" % tile.name)
 		return
 
-	var tiles_to_drag: Array[Tile] = _selection.get_selected_tiles()
+	var tiles_to_drag: Array[Tile] = _selection.get__selected_tiles()
 
 	# Filter out any locked/non-interactable tiles from multi-drag
 	var valid_tiles: Array[Tile] = []
@@ -333,15 +333,15 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 
-	var selected_tiles: Array[Tile] = _selection.get_selected_tiles()
+	var _selected_tiles: Array[Tile] = _selection.get__selected_tiles()
 
-	if selected_tiles.is_empty():
+	if _selected_tiles.is_empty():
 		print("[Gameplay] No tile selected")
 		return
 
 	# Filter out locked tiles - they cannot be moved
 	var movable_tiles: Array[Tile] = []
-	for tile in selected_tiles:
+	for tile in _selected_tiles:
 		if not tile.is_locked:
 			movable_tiles.append(tile)
 
@@ -351,31 +351,31 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 		_update_interaction_state()
 		return
 
-	selected_tiles = movable_tiles
+	_selected_tiles = movable_tiles
 
 	if cell.is_occupied():
 		print("[Gameplay] Cell occupied: %s" % cell.name)
 		return
 
-	if selected_tiles.size() > 1:
-		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, selected_tiles.size())
+	if _selected_tiles.size() > 1:
+		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, _selected_tiles.size())
 		if cells.is_empty():
-			print("[Gameplay] Cannot place %d tiles starting at %s" % [selected_tiles.size(), cell.name])
+			print("[Gameplay] Cannot place %d tiles starting at %s" % [_selected_tiles.size(), cell.name])
 			return
 
-		for i in selected_tiles.size():
-			_placement.place_tile_on_cell_silent(selected_tiles[i], cells[i])
+		for i in _selected_tiles.size():
+			_placement.place_tile_on_cell_silent(_selected_tiles[i], cells[i])
 
 		_selection.deselect_all()
 		_update_interaction_state()
 		_play.update_play_button_state()
-		tile_placement_completed.emit(selected_tiles[0], cell)
-		print("[Gameplay] Placed %d tiles starting at %s" % [selected_tiles.size(), cell.name])
+		tile_placement_completed.emit(_selected_tiles[0], cell)
+		print("[Gameplay] Placed %d tiles starting at %s" % [_selected_tiles.size(), cell.name])
 	else:
-		_placement.place_tile_on_cell(selected_tiles[0], cell)
+		_placement.place_tile_on_cell(_selected_tiles[0], cell)
 		_update_interaction_state()
 		_play.update_play_button_state()
-		tile_placement_completed.emit(selected_tiles[0], cell)
+		tile_placement_completed.emit(_selected_tiles[0], cell)
 
 
 func _on_cell_hovered(cell: BoardCell) -> void:
@@ -412,10 +412,10 @@ func _on_cell_unhovered(cell: BoardCell) -> void:
 
 ## Discards selected hand tiles directly (no confirmation).
 func _request_discard() -> void:
-	var selected_tiles: Array[Tile] = _selection.get_selected_tiles()
+	var _selected_tiles: Array[Tile] = _selection.get__selected_tiles()
 
 	var hand_tiles: Array[Tile] = []
-	for tile in selected_tiles:
+	for tile in _selected_tiles:
 		if tile.location == Tile.TileLocation.IN_HAND:
 			hand_tiles.append(tile)
 
@@ -538,12 +538,12 @@ func _update_interaction_state() -> void:
 	var has_selection: bool = _selection.has_selection()
 
 	if has_selection:
-		interaction_mode = InteractionMode.TILE_SELECTED
-		selected_tile = _selection.get_selected_tiles()[0] if _selection.get_selection_count() == 1 else null
+		_interaction_mode = InteractionMode.TILE_SELECTED
+		_selected_tile = _selection.get__selected_tiles()[0] if _selection.get_selection_count() == 1 else null
 		_set_hand_tiles_hover_enabled(false)
 	else:
-		interaction_mode = InteractionMode.IDLE
-		selected_tile = null
+		_interaction_mode = InteractionMode.IDLE
+		_selected_tile = null
 		_set_hand_tiles_hover_enabled(true)
 		_placement.clear_all_cell_hovers()
 
