@@ -138,14 +138,17 @@ func _update_hand_tile_highlight() -> void:
 		return
 	if _highlighted_hand_tile and is_instance_valid(_highlighted_hand_tile):
 		_highlighted_hand_tile.set_cursor_highlighted(false)
+		_hand.get_fan_layout().remove_hover_effect(_highlighted_hand_tile)
 	_highlighted_hand_tile = new_tile
 	if _highlighted_hand_tile:
 		_highlighted_hand_tile.set_cursor_highlighted(true)
+		_hand.get_fan_layout().apply_hover_effect(_highlighted_hand_tile)
 
 
 func _clear_hand_tile_highlight() -> void:
 	if _highlighted_hand_tile and is_instance_valid(_highlighted_hand_tile):
 		_highlighted_hand_tile.set_cursor_highlighted(false)
+		_hand.get_fan_layout().remove_hover_effect(_highlighted_hand_tile)
 	_highlighted_hand_tile = null
 
 
