@@ -201,20 +201,15 @@ func _on_tile_selected(tile: Tile) -> void:
 
 	print("[Gameplay] Tile selected: %s" % tile.name)
 
-	# Clicking a board tile while we have selection
-	if _selection.has_selection() and tile.location == Tile.TileLocation.ON_BOARD:
-		print("[Gameplay] Cannot stack tiles")
-		return
-
-	# Clicking a tile that's already on the board (info only)
-	if not _selection.has_selection() and tile.location == Tile.TileLocation.ON_BOARD:
-		print("[Gameplay] Board tile at cell: %s" % tile.current_cell.name)
-		return
-
-	# Hand tile - use SelectionManager
-	if tile.location == Tile.TileLocation.IN_HAND:
-		_selection.select_tile(tile)
-		_update_interaction_state()
+	match tile.location:
+		Tile.TileLocation.ON_BOARD:
+			if _selection.has_selection():
+				print("[Gameplay] Cannot stack tiles")
+			else:
+				print("[Gameplay] Board tile at cell: %s" % tile.current_cell.name)
+		Tile.TileLocation.IN_HAND:
+			_selection.select_tile(tile)
+			_update_interaction_state()
 
 
 func _on_tile_right_clicked(tile: Tile) -> void:
