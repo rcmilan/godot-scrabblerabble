@@ -109,8 +109,16 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	_drop.setup(_placement, hand, _selection, _drag_mgr)
 
 	_play = PlayHandler.new()
-	_play.setup(board, main_hud, _selection)
+	_play.setup(board, _selection)
 	_play.play_completed.connect(func(tiles, words): play_completed.emit(tiles, words))
+	_play.draw_blocked_changed.connect(
+		func(blocked): main_hud.set_draw_button_blocked(blocked)
+	)
+	_play.play_button_changed.connect(
+		func(enabled, mode):
+			main_hud.set_play_button_enabled(enabled)
+			main_hud.set_play_button_mode(mode)
+	)
 
 
 ## Activates the controller and connects all signals.

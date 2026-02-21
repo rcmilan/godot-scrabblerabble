@@ -10,20 +10,20 @@ extends RefCounted
 # =============================================================================
 
 signal play_completed(tiles: Array[Tile], words: Array)
+signal draw_blocked_changed(blocked: bool)
+signal play_button_changed(enabled: bool, end_round_mode: bool)
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
 # =============================================================================
 
 var board: Board = null
-var main_hud: CanvasLayer = null
 var _word_validator: WordValidator = null
 var _selection: SelectionManager = null
 
 
-func setup(p_board: Board, p_hud: CanvasLayer, p_selection: SelectionManager) -> void:
+func setup(p_board: Board, p_selection: SelectionManager) -> void:
 	board = p_board
-	main_hud = p_hud
 	_selection = p_selection
 	_word_validator = WordValidator.new()
 
@@ -81,7 +81,7 @@ func on_play_requested() -> void:
 			tile.locked_border.visible = false
 
 	# Block draw button during play animations
-	main_hud.set_draw_button_blocked(true)
+	draw_blocked_changed.emit(true)
 
 	var animation_count: int = 0
 	if not stomp_tiles.is_empty():
@@ -95,7 +95,7 @@ func on_play_requested() -> void:
 	for i in animation_count:
 		await TileAnimator.animation_completed
 
-	main_hud.set_draw_button_blocked(false)
+	draw_blocked_changed.emit(false)
 
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
@@ -118,7 +118,7 @@ func _auto_end_round() -> void:
 	print("[Gameplay] Auto end round: consuming %d remaining plays" % GameManager.get_plays_remaining())
 
 	# Disable button during auto-play sequence
-	main_hud.set_play_button_enabled(false)
+	play_button_changed.emit(false, false)
 
 	# Get all board tiles and their positions
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
@@ -236,17 +236,10 @@ func has_valid_moves() -> bool:
 
 ## Updates the Play/End Round button state based on current board state.
 func update_play_button_state() -> void:
-	if not main_hud:
-		return
-
-	var has_unplayed_tiles: bool = not _get_unplayed_board_tiles().is_empty()
-
-	if has_unplayed_tiles:
-		main_hud.set_play_button_enabled(true)
-		main_hud.set_play_button_mode(false)
+	var has_unplayed: bool = not _get_unplayed_board_tiles().is_empty()
+	if has_unplayed:
+		play_button_changed.emit(true, false)
 	elif not has_valid_moves() and GameManager.get_plays_remaining() > 0:
-		main_hud.set_play_button_enabled(true)
-		main_hud.set_play_button_mode(true)
+		play_button_changed.emit(true, true)
 	else:
-		main_hud.set_play_button_enabled(false)
-		main_hud.set_play_button_mode(false)
+		play_button_changed.emit(false, false)

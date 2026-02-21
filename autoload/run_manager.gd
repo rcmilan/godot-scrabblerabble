@@ -14,7 +14,7 @@ var current_round_config: RoundConfig = null
 
 # Run builder integration
 var _active_run: Run = null
-var _quality_connections: Array[Dictionary] = []
+var _quality_tracker: SignalTracker = SignalTracker.new()
 
 # Debug overrides
 var _debug_override_board_size: Vector2i = Vector2i.ZERO  # Zero = no override
@@ -142,41 +142,27 @@ func _connect_quality_signals() -> void:
 	var round_started_cb := func(round_number: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_round_started(round_number)
-	EventBus.round_started.connect(round_started_cb)
-	_quality_connections.append({"signal": EventBus.round_started, "callable": round_started_cb})
+	_quality_tracker.track(EventBus.round_started, round_started_cb)
 
 	var play_completed_cb := func(plays_remaining: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_play_completed(plays_remaining)
-	EventBus.play_completed.connect(play_completed_cb)
-	_quality_connections.append({"signal": EventBus.play_completed, "callable": play_completed_cb})
+	_quality_tracker.track(EventBus.play_completed, play_completed_cb)
 
 	var score_updated_cb := func(total_score: int, delta: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_score_updated(total_score, delta)
-	EventBus.score_updated.connect(score_updated_cb)
-	_quality_connections.append({"signal": EventBus.score_updated, "callable": score_updated_cb})
+	_quality_tracker.track(EventBus.score_updated, score_updated_cb)
 
 	# Connect timer expiry signals from each quality
 	for quality in _active_run.qualities:
 		var expired_cb := func() -> void:
 			_on_quality_time_expired()
-		quality.time_expired.connect(expired_cb)
-		_quality_connections.append({"signal": quality.time_expired, "callable": expired_cb})
+		_quality_tracker.track(quality.time_expired, expired_cb)
 
 
 func _disconnect_quality_signals() -> void:
-	if _quality_connections.is_empty():
-		return
-	for conn in _quality_connections:
-		var sig: Signal = conn["signal"]
-		var cb: Callable = conn["callable"]
-		# Guard: quality signals may originate from RefCounted objects that were freed
-		if not is_instance_valid(sig.get_object()):
-			continue
-		if sig.is_connected(cb):
-			sig.disconnect(cb)
-	_quality_connections.clear()
+	_quality_tracker.disconnect_all()
 	print("[RunManager] Quality signals disconnected")
 
 
