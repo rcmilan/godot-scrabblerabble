@@ -22,7 +22,7 @@ signal tile_ready(tile: Tile)
 # =============================================================================
 
 var hand_size: int = 10
-var discard_pile: Array[Tile] = []
+var __discard_pile: Array[Tile] = []
 
 # =============================================================================
 # SCENE REFERENCES (resolved at runtime)
@@ -115,13 +115,13 @@ func discard_tile(tile: Tile) -> bool:
 
 	_hand_ui.remove_tile(tile)
 	tile.move_to_discard()  # Atomic state update
-	discard_pile.append(tile)
+	_discard_pile.append(tile)
 
 	EventBus.tile_discarded.emit(tile)
-	EventBus.discard_count_changed.emit(discard_pile.size())
+	EventBus.discard_count_changed.emit(_discard_pile.size())
 	EventBus.hand_count_changed.emit(_hand_ui.get_tile_count())
 
-	print("[HandManager] Discarded tile: %s | Discard pile: %d" % [tile.letter, discard_pile.size()])
+	print("[HandManager] Discarded tile: %s | Discard pile: %d" % [tile.letter, _discard_pile.size()])
 	return true
 
 
@@ -141,21 +141,21 @@ func discard_selected() -> int:
 
 
 ## Returns the discard pile contents.
-func get_discard_pile() -> Array[Tile]:
-	return discard_pile.duplicate()
+func get__discard_pile() -> Array[Tile]:
+	return _discard_pile.duplicate()
 
 
 ## Gets the discard pile size.
 func get_discard_count() -> int:
-	return discard_pile.size()
+	return _discard_pile.size()
 
 
 ## Clears the discard pile and returns its contents. Called during round reset.
-func clear_discard_pile() -> Array[Tile]:
-	var tiles: Array[Tile] = discard_pile.duplicate()
-	discard_pile.clear()
+func clear__discard_pile() -> Array[Tile]:
+	var tiles: Array[Tile] = _discard_pile.duplicate()
+	_discard_pile.clear()
 	EventBus.discard_count_changed.emit(0)
-	EventBus.discard_pile_changed.emit([])
+	EventBus._discard_pile_changed.emit([])
 	return tiles
 
 
