@@ -324,53 +324,45 @@ func _handle_drag_release(tile: Tile) -> void:
 # CELL HANDLERS
 # =============================================================================
 
+## Places one or more movable tiles starting at the target cell.
+func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell) -> void:
+	if movable.size() > 1:
+		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
+		if cells.is_empty():
+			print("[Gameplay] Cannot place %d tiles starting at %s" % [movable.size(), cell.name])
+			return
+		for i in movable.size():
+			_placement.place_tile_on_cell_silent(movable[i], cells[i])
+		print("[Gameplay] Placed %d tiles starting at %s" % [movable.size(), cell.name])
+	else:
+		_placement.place_tile_on_cell(movable[0], cell)
+	_selection.deselect_all()
+	_update_interaction_state()
+	_play.update_play_button_state()
+	tile_placement_completed.emit(movable[0], cell)
+
+
 func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 
-	var _selected_tiles: Array[Tile] = _selection.get_selected_tiles()
-
-	if _selected_tiles.is_empty():
+	var selected: Array[Tile] = _selection.get_selected_tiles()
+	if selected.is_empty():
 		print("[Gameplay] No tile selected")
 		return
 
-	# Filter out locked tiles - they cannot be moved
-	var movable_tiles: Array[Tile] = []
-	for tile in _selected_tiles:
-		if not tile.is_locked:
-			movable_tiles.append(tile)
-
-	if movable_tiles.is_empty():
+	var movable: Array[Tile] = selected.filter(func(t): return not t.is_locked)
+	if movable.is_empty():
 		print("[Gameplay] All selected tiles are locked")
 		_selection.deselect_all()
 		_update_interaction_state()
 		return
 
-	_selected_tiles = movable_tiles
-
 	if cell.is_occupied():
 		print("[Gameplay] Cell occupied: %s" % cell.name)
 		return
 
-	if _selected_tiles.size() > 1:
-		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, _selected_tiles.size())
-		if cells.is_empty():
-			print("[Gameplay] Cannot place %d tiles starting at %s" % [_selected_tiles.size(), cell.name])
-			return
-
-		for i in _selected_tiles.size():
-			_placement.place_tile_on_cell_silent(_selected_tiles[i], cells[i])
-
-		_selection.deselect_all()
-		_update_interaction_state()
-		_play.update_play_button_state()
-		tile_placement_completed.emit(_selected_tiles[0], cell)
-		print("[Gameplay] Placed %d tiles starting at %s" % [_selected_tiles.size(), cell.name])
-	else:
-		_placement.place_tile_on_cell(_selected_tiles[0], cell)
-		_update_interaction_state()
-		_play.update_play_button_state()
-		tile_placement_completed.emit(_selected_tiles[0], cell)
+	_place_tiles_on_cell(movable, cell)
 
 
 func _on_cell_hovered(cell: BoardCell) -> void:
