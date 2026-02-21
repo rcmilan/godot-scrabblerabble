@@ -45,6 +45,25 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
+
+	# Forward WASD (navigate_*) as ui_* so Godot's focus traversal picks them up.
+	# Safe from loops: the re-injected InputEventAction("ui_up") is not matched by
+	# is_action_pressed("navigate_up") because ui_up is not in navigate_up's bindings.
+	var nav_map: Dictionary = {
+		"navigate_up":    "ui_up",
+		"navigate_down":  "ui_down",
+		"navigate_left":  "ui_left",
+		"navigate_right": "ui_right",
+	}
+	for game_action: String in nav_map:
+		if event.is_action_pressed(game_action):
+			var fake := InputEventAction.new()
+			fake.action = nav_map[game_action]
+			fake.pressed = true
+			Input.parse_input_event(fake)
+			get_viewport().set_input_as_handled()
+			return
+
 	if event.is_action_pressed("ui_cancel"):
 		close_popup()
 		get_viewport().set_input_as_handled()
