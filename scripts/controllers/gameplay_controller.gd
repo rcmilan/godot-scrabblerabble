@@ -308,7 +308,7 @@ func _on_cursor_confirmed(zone: FocusCursor.Zone, position: Variant) -> void:
 					func(t: Tile) -> bool: return not t.is_locked
 				)
 				if not movable.is_empty() and not cell.is_occupied():
-					_place_tiles_on_cell(movable, cell)
+					_place_tiles_on_cell(movable, cell, true)
 					if _cursor:
 						_cursor.clear_held_tile()
 				elif cell.is_occupied():
@@ -492,8 +492,9 @@ func _handle_drag_release(tile: Tile) -> void:
 # =============================================================================
 
 ## Places one or more movable tiles starting at the target cell.
-func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell) -> void:
+func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = false) -> void:
 	if movable.size() > 1:
+		# Multi-tile placement: animated flag intentionally ignored (batch glide not in scope).
 		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
 		if cells.is_empty():
 			print("[Gameplay] Cannot place %d tiles starting at %s" % [movable.size(), cell.name])
@@ -509,7 +510,10 @@ func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell) -> void:
 		# PSM: remove from old position if tile is moving between board cells
 		if movable[0].current_cell:
 			_play_state_manager.remove_tile_at(movable[0].current_cell.grid_position)
-		_placement.place_tile_on_cell(movable[0], cell)
+		if animated:
+			_placement.place_tile_on_cell_animated(movable[0], cell)
+		else:
+			_placement.place_tile_on_cell(movable[0], cell)
 		_play_state_manager.place_temporary_tile(movable[0], cell.grid_position)
 	_selection.deselect_all()
 	_run_realtime_word_scan()

@@ -33,6 +33,22 @@ func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
 	_selection.deselect_tile(tile)
 
 
+## Places a tile on a cell and starts a glide animation from hand to board.
+## Only for single-tile keyboard placements. Animation runs fire-and-forget.
+func place_tile_on_cell_animated(tile: Tile, cell: BoardCell) -> void:
+	if cell.is_occupied():
+		return
+
+	# Capture hand position BEFORE reparenting — used as animation start point.
+	var start_global_pos: Vector2 = tile.global_position
+
+	# Synchronous placement: reparents tile to cell anchor, sets position = Vector2.ZERO.
+	place_tile_on_cell(tile, cell)
+
+	# Fire-and-forget glide animation.
+	TileAnimator.animate_place_to_board(tile, start_global_pos)
+
+
 ## Places a tile on a cell without updating selection state.
 ## Used for batch placement (multi-tile click/drop).
 func place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
