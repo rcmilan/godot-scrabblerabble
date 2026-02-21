@@ -83,14 +83,14 @@ func deactivate() -> void:
 func set_held_tile(tile: Tile) -> void:
 	_held_tile = tile
 	if tile:
-		tile.modulate.a = 0.5
+		tile.self_modulate.a = 0.5
 	_update_ghost_display()
 
 
 ## Postcondition: _held_tile cleared; tile alpha restored to 1.0.
 func clear_held_tile() -> void:
 	if _held_tile:
-		_held_tile.modulate.a = 1.0
+		_held_tile.self_modulate.a = 1.0
 	_held_tile = null
 	_update_ghost_display()
 
@@ -199,6 +199,7 @@ func _navigate_hand(direction: Vector2i) -> void:
 			cursor_moved.emit(Zone.HAND, _hand_index)
 		Vector2i.UP:
 			_switch_to_board_zone()
+		# DOWN in HAND zone: intentional no-op (hand is at the bottom of the layout)
 
 
 func _navigate_board(direction: Vector2i) -> void:
