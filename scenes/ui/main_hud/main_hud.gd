@@ -153,16 +153,27 @@ func _connect_timer_qualities() -> void:
 		if quality.has_timer():
 			has_timer = true
 
+	print("[MainHUD] Connected timer signals for %d qualities (has_timer=%s)" % [run.qualities.size(), has_timer])
 	timer_label.visible = has_timer
 	timer_increment_label.visible = false
 
 
 func _disconnect_timer_qualities() -> void:
+	if _timer_connections.is_empty():
+		return
+	var disconnected := 0
+	var skipped_freed := 0
 	for conn in _timer_connections:
 		var sig: Signal = conn["signal"]
 		var cb: Callable = conn["callable"]
+		# Guard: source object may have been freed (e.g. RunManager.reset() called first)
+		if not is_instance_valid(sig.get_object()):
+			skipped_freed += 1
+			continue
 		if sig.is_connected(cb):
 			sig.disconnect(cb)
+			disconnected += 1
+	print("[MainHUD] Disconnected timer signals: %d disconnected, %d skipped (source freed)" % [disconnected, skipped_freed])
 	_timer_connections.clear()
 
 

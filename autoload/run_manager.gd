@@ -14,7 +14,7 @@ var current_round_config: RoundConfig = null
 
 # Run builder integration
 var _active_run: Run = null
-var _quality_connections: Array[Dictionary] = []
+var _quality_tracker: SignalTracker = SignalTracker.new()
 
 # Debug overrides
 var _debug_override_board_size: Vector2i = Vector2i.ZERO  # Zero = no override
@@ -43,26 +43,9 @@ func _process(delta: float) -> void:
 # PUBLIC API: RUN LIFECYCLE
 # =============================================================================
 
-## Initializes a new run. Call BEFORE changing scene to Main.
-func initialize_run(
-	bag_config: BagDistribution,
-	plays_per_round: int = 2,
-	hand_size: int = 10,
-	progression_config: ProgressionConfig = null
-) -> void:
-	run_state = RunState.new()
-	run_state.start_run(plays_per_round, hand_size, bag_config)
-
-	if progression_config == null:
-		progression_config = load("res://Data/Progression/progression_default.tres")
-	progression_rules = ProgressionRules.new(progression_config)
-
-	_active_run = null
-	print("[RunManager] Run initialized - Plays/round: %d | Hand: %d" % [plays_per_round, hand_size])
-
-
 ## Initializes a run from a Run object built by RunBuilder.
 func initialize_run_from_builder(run: Run) -> void:
+	_debug_auto_win = false
 	_active_run = run
 
 	# Set up RunState from the Run config
@@ -111,6 +94,7 @@ func get_active_run() -> Run:
 
 
 ## Resets all run state (for returning to title).
+## Postcondition: all run state is null/zero/false — no previous run bleeds into the next.
 func reset() -> void:
 	_disconnect_quality_signals()
 	_active_run = null
@@ -118,6 +102,7 @@ func reset() -> void:
 	progression_rules = null
 	current_round_config = null
 	_debug_override_board_size = Vector2i.ZERO
+	_debug_auto_win = false
 	print("[RunManager] Reset")
 
 
@@ -157,36 +142,28 @@ func _connect_quality_signals() -> void:
 	var round_started_cb := func(round_number: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_round_started(round_number)
-	EventBus.round_started.connect(round_started_cb)
-	_quality_connections.append({"signal": EventBus.round_started, "callable": round_started_cb})
+	_quality_tracker.track(EventBus.round_started, round_started_cb)
 
 	var play_completed_cb := func(plays_remaining: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_play_completed(plays_remaining)
-	EventBus.play_completed.connect(play_completed_cb)
-	_quality_connections.append({"signal": EventBus.play_completed, "callable": play_completed_cb})
+	_quality_tracker.track(EventBus.play_completed, play_completed_cb)
 
 	var score_updated_cb := func(total_score: int, delta: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_score_updated(total_score, delta)
-	EventBus.score_updated.connect(score_updated_cb)
-	_quality_connections.append({"signal": EventBus.score_updated, "callable": score_updated_cb})
+	_quality_tracker.track(EventBus.score_updated, score_updated_cb)
 
 	# Connect timer expiry signals from each quality
 	for quality in _active_run.qualities:
 		var expired_cb := func() -> void:
 			_on_quality_time_expired()
-		quality.time_expired.connect(expired_cb)
-		_quality_connections.append({"signal": quality.time_expired, "callable": expired_cb})
+		_quality_tracker.track(quality.time_expired, expired_cb)
 
 
 func _disconnect_quality_signals() -> void:
-	for conn in _quality_connections:
-		var sig: Signal = conn["signal"]
-		var cb: Callable = conn["callable"]
-		if sig.is_connected(cb):
-			sig.disconnect(cb)
-	_quality_connections.clear()
+	_quality_tracker.disconnect_all()
+	print("[RunManager] Quality signals disconnected")
 
 
 func _on_quality_time_expired() -> void:
@@ -220,33 +197,41 @@ func _advance_to_next_round() -> void:
 	print("[RunManager] %s" % current_round_config)
 
 
+## Checks if any quality wants to end the run. Handles the transition if so.
+## Returns true if the run was ended (caller should return early).
+func _check_quality_win_conditions() -> bool:
+	if _active_run == null:
+		return false
+	for quality in _active_run.qualities:
+		if not quality.has_custom_win_condition():
+			continue
+		var result := quality.check_run_end_condition(run_state)
+		if not result.get("should_end", false):
+			continue
+		var victory: bool = result.get("victory", false)
+		run_state.end_run()
+		EventBus.run_ended.emit(victory, run_state.total_score)
+		print("[RunManager] Quality '%s' ended run - Victory: %s" % [quality.get_quality_name(), victory])
+		return true
+	return false
+
+
 func _on_round_ended(round_number: int, success: bool) -> void:
 	if not run_state or not run_state.is_run_active:
 		return
 
-	# Forward to qualities
 	if _active_run:
 		for quality in _active_run.qualities:
 			quality.on_round_ended(round_number, success)
 
-	if success:
-		run_state.complete_round(GameManager.get_current_score())
-
-		# Check custom win conditions from qualities
-		if _active_run:
-			for quality in _active_run.qualities:
-				if quality.has_custom_win_condition():
-					var result := quality.check_run_end_condition(run_state)
-					if result.get("should_end", false):
-						var victory: bool = result.get("victory", false)
-						run_state.end_run()
-						EventBus.run_ended.emit(victory, run_state.total_score)
-						print("[RunManager] Quality '%s' ended run - Victory: %s" % [quality.get_quality_name(), victory])
-						return
-
-		EventBus.run_shop_requested.emit(run_state.current_round)
-		print("[RunManager] Round %d won - proceeding to shop" % round_number)
-	else:
+	if not success:
 		run_state.end_run()
 		EventBus.run_ended.emit(false, run_state.total_score)
 		print("[RunManager] Round %d lost - run ended" % round_number)
+		return
+
+	run_state.complete_round(GameManager.get_current_score())
+	if _check_quality_win_conditions():
+		return
+	EventBus.run_shop_requested.emit(run_state.current_round)
+	print("[RunManager] Round %d won - proceeding to shop" % round_number)
