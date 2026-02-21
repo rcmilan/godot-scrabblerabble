@@ -23,6 +23,7 @@ TileBag="*res://autoload/tile_bag.gd"
 HandManager="*res://autoload/hand_manager.gd"
 TileAnimator="*res://autoload/tile_animator.gd"
 RunManager="*res://autoload/run_manager.gd"
+KeybindingConfig="*res://scripts/managers/keybinding_config.gd"
 
 [dotnet]
 
