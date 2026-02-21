@@ -1,7 +1,7 @@
 ## DebugConsole: Interactive debug command interface.
 ##
 ## Displays command output and accepts user input for DebugManager commands.
-## Toggled via D key. Owns DebugManager instance for command execution.
+## Toggled via F1 key. Owns DebugManager instance for command execution.
 ##
 ## Commands available: help, spawn, draw, clear_board, close/exit
 ## (See DebugManager for command documentation)
@@ -25,11 +25,11 @@ func _ready() -> void:
 	_debug_mgr = DebugManager.new()
 	_debug_mgr.setup(get_parent(), print_line)
 
-	print_line("Debug Console ready (press D to toggle)")
+	print_line("Debug Console ready (press F1 to toggle)")
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_D:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
 		# Only show console if currently hidden
 		if not visible:
 			show_console()

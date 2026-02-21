@@ -26,7 +26,7 @@ DebugConsole (CanvasLayer, layer=1)
 ```
 
 ### Activation & Interaction
-- **Visibility**: Press **D** key to toggle visibility
+- **Visibility**: Press **F1** key to toggle visibility
 - **Input**: Type command in InputLine and press Enter
 - **Output**: Responses appear in OutputLog with auto-scroll to bottom
 - **Focus**: Console automatically grabs focus when shown
