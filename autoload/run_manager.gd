@@ -43,25 +43,6 @@ func _process(delta: float) -> void:
 # PUBLIC API: RUN LIFECYCLE
 # =============================================================================
 
-## Initializes a new run. Call BEFORE changing scene to Main.
-func initialize_run(
-	bag_config: BagDistribution,
-	plays_per_round: int = 2,
-	hand_size: int = 10,
-	progression_config: ProgressionConfig = null
-) -> void:
-	_debug_auto_win = false
-	run_state = RunState.new()
-	run_state.start_run(plays_per_round, hand_size, bag_config)
-
-	if progression_config == null:
-		progression_config = load("res://Data/Progression/progression_default.tres")
-	progression_rules = ProgressionRules.new(progression_config)
-
-	_active_run = null
-	print("[RunManager] Run initialized - Plays/round: %d | Hand: %d" % [plays_per_round, hand_size])
-
-
 ## Initializes a run from a Run object built by RunBuilder.
 func initialize_run_from_builder(run: Run) -> void:
 	_debug_auto_win = false
