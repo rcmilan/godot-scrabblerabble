@@ -319,10 +319,10 @@ func _handle_drag_release(tile: Tile) -> void:
 	])
 
 	# Unified drop handling for single and multi-tile
-	_drop.handle_tile_drop(cell, dragged_tiles)
+	var success := _drop.handle_tile_drop(cell, dragged_tiles)
 	_update_interaction_state()
 	_play.update_play_button_state()
-	_drag_mgr.end_drag(_drop.last_placement_success)
+	_drag_mgr.end_drag(success)
 
 
 # =============================================================================

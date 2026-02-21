@@ -14,10 +14,6 @@ var hand: Hand = null
 var _selection: SelectionManager = null
 var _drag_mgr: DragManager = null
 
-## Tracks whether the last drop was successful (read by coordinator).
-var last_placement_success: bool = false
-
-
 func setup(placement: TilePlacementHandler, p_hand: Hand, p_selection: SelectionManager, p_drag_mgr: DragManager) -> void:
 	_placement = placement
 	hand = p_hand
@@ -33,7 +29,6 @@ func setup(placement: TilePlacementHandler, p_hand: Hand, p_selection: Selection
 ## Validates placement, handles cancellation with animation, or places tiles.
 func handle_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> bool:
 	if tiles.is_empty():
-		last_placement_success = false
 		return false
 
 	var has_board_tiles: bool = _any_tiles_on_board(tiles)
@@ -41,11 +36,9 @@ func handle_tile_drop(drop_cell: BoardCell, tiles: Array[Tile]) -> bool:
 
 	if target_cells.is_empty():
 		_handle_invalid_drop(tiles, has_board_tiles, drop_cell)
-		last_placement_success = false
 		return false
 
 	_execute_valid_drop(tiles, target_cells)
-	last_placement_success = true
 	return true
 
 
