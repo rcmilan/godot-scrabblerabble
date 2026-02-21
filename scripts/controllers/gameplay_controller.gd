@@ -30,6 +30,7 @@ enum InteractionMode {
 var _interaction_mode: InteractionMode = InteractionMode.IDLE
 var _selected_tile: Tile = null
 var _is_active: bool = false
+var _cursor: FocusCursor = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -104,15 +105,24 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("discard_tiles"):
 		_request_discard()
 
+	if event.is_action_pressed("play_hand"):
+		_on_play_requested()
+		get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("draw_tiles"):
+		_on_draw_requested()
+		get_viewport().set_input_as_handled()
+
 
 ## Sets up the controller with required scene references and creates handlers.
-func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dialog: CanvasLayer, p_hud: CanvasLayer, p_selection: SelectionManager) -> void:
+func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dialog: CanvasLayer, p_hud: CanvasLayer, p_selection: SelectionManager, p_cursor: FocusCursor = null) -> void:
 	board = p_board
 	hand = p_hand
 	discard_pile = p_discard_pile
 	discard_dialog = p_discard_dialog
 	main_hud = p_hud
 	_selection = p_selection
+	_cursor = p_cursor
 
 	# Create DragManager as local child
 	_drag_mgr = DragManager.new()
@@ -185,6 +195,11 @@ func _connect_signals() -> void:
 	_tracker.track(_drag_mgr.drag_release_requested, _handle_drag_release)
 	_tracker.track(EventBus.hand_count_changed, _on_tile_supply_changed)
 	_tracker.track(EventBus.bag_count_changed, _on_tile_supply_changed)
+
+	if _cursor:
+		_tracker.track(_cursor.cursor_confirmed, _on_cursor_confirmed)
+		_tracker.track(_cursor.cursor_cancelled, _on_cursor_cancelled)
+		_tracker.track(_cursor.cursor_moved,     _on_cursor_moved)
 
 
 # =============================================================================
@@ -269,6 +284,67 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 	_update_interaction_state()
 	tile_returned_to_hand.emit(tile)
 	_play.update_play_button_state()
+
+
+func _on_cursor_confirmed(zone: FocusCursor.Zone, position: Variant) -> void:
+	if not _is_active:
+		return
+	match zone:
+		FocusCursor.Zone.HAND:
+			var tile: Tile = hand.get_tile_at(int(position))
+			if tile == null:
+				return
+			_on_tile_selected(tile)
+			if _selection.has_selection() and _cursor:
+				_cursor.set_held_tile(tile)
+
+		FocusCursor.Zone.BOARD:
+			var coords := position as Vector2i
+			var cell: BoardCell = board.get_cell(coords.y, coords.x)
+			if cell == null:
+				return
+			if _selection.has_selection():
+				var movable: Array[Tile] = _selection.get_selected_tiles().filter(
+					func(t: Tile) -> bool: return not t.is_locked
+				)
+				if not movable.is_empty() and not cell.is_occupied():
+					_place_tiles_on_cell(movable, cell)
+					if _cursor:
+						_cursor.clear_held_tile()
+				elif cell.is_occupied():
+					print("[Gameplay] Cursor: target cell occupied at %s" % coords)
+			elif cell.is_occupied():
+				var board_tile: Tile = cell.tile
+				if not board_tile.is_locked:
+					_placement.return_tile_to_hand(board_tile)
+					_selection.select_tile(board_tile)
+					if _cursor:
+						_cursor.set_held_tile(board_tile)
+					_update_interaction_state()
+					tile_returned_to_hand.emit(board_tile)
+				else:
+					TileAnimator.animate_shake(board_tile)
+
+
+func _on_cursor_cancelled(_zone: FocusCursor.Zone, _position: Variant) -> void:
+	if not _is_active:
+		return
+	_selection.deselect_all()
+	if _cursor:
+		_cursor.clear_held_tile()
+	_update_interaction_state()
+	_play.update_play_button_state()
+
+
+func _on_cursor_moved(zone: FocusCursor.Zone, position: Variant) -> void:
+	if not _is_active:
+		return
+	_placement.clear_all_cell_hovers()
+	if zone == FocusCursor.Zone.BOARD:
+		var coords := position as Vector2i
+		var cell: BoardCell = board.get_cell(coords.y, coords.x)
+		if cell:
+			_on_cell_hovered(cell)
 
 
 ## Builds the list of tiles to drag. Ensures lead tile is always included.
