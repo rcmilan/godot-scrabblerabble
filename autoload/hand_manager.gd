@@ -22,7 +22,7 @@ signal tile_ready(tile: Tile)
 # =============================================================================
 
 var hand_size: int = 10
-var __discard_pile: Array[Tile] = []
+var _discard_pile: Array[Tile] = []
 
 # =============================================================================
 # SCENE REFERENCES (resolved at runtime)
@@ -141,7 +141,7 @@ func discard_selected() -> int:
 
 
 ## Returns the discard pile contents.
-func get__discard_pile() -> Array[Tile]:
+func get_discard_pile() -> Array[Tile]:
 	return _discard_pile.duplicate()
 
 
@@ -151,11 +151,11 @@ func get_discard_count() -> int:
 
 
 ## Clears the discard pile and returns its contents. Called during round reset.
-func clear__discard_pile() -> Array[Tile]:
+func clear_discard_pile() -> Array[Tile]:
 	var tiles: Array[Tile] = _discard_pile.duplicate()
 	_discard_pile.clear()
 	EventBus.discard_count_changed.emit(0)
-	EventBus._discard_pile_changed.emit([])
+	EventBus.discard_pile_changed.emit([])
 	return tiles
 
 

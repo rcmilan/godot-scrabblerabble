@@ -27,8 +27,8 @@ enum InteractionMode {
 	DRAGGING        # Tile being dragged
 }
 
-var __interaction_mode: InteractionMode = InteractionMode.IDLE
-var __selected_tile: Tile = null
+var _interaction_mode: InteractionMode = InteractionMode.IDLE
+var _selected_tile: Tile = null
 var _is_active: bool = false
 
 # =============================================================================
@@ -254,7 +254,7 @@ func _on_tile_drag_started(tile: Tile) -> void:
 		print("[Gameplay] Cannot drag non-interactable tile: %s" % tile.name)
 		return
 
-	var tiles_to_drag: Array[Tile] = _selection.get__selected_tiles()
+	var tiles_to_drag: Array[Tile] = _selection.get_selected_tiles()
 
 	# Filter out any locked/non-interactable tiles from multi-drag
 	var valid_tiles: Array[Tile] = []
@@ -333,7 +333,7 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 
-	var _selected_tiles: Array[Tile] = _selection.get__selected_tiles()
+	var _selected_tiles: Array[Tile] = _selection.get_selected_tiles()
 
 	if _selected_tiles.is_empty():
 		print("[Gameplay] No tile selected")
@@ -412,7 +412,7 @@ func _on_cell_unhovered(cell: BoardCell) -> void:
 
 ## Discards selected hand tiles directly (no confirmation).
 func _request_discard() -> void:
-	var _selected_tiles: Array[Tile] = _selection.get__selected_tiles()
+	var _selected_tiles: Array[Tile] = _selection.get_selected_tiles()
 
 	var hand_tiles: Array[Tile] = []
 	for tile in _selected_tiles:
@@ -539,7 +539,7 @@ func _update_interaction_state() -> void:
 
 	if has_selection:
 		_interaction_mode = InteractionMode.TILE_SELECTED
-		_selected_tile = _selection.get__selected_tiles()[0] if _selection.get_selection_count() == 1 else null
+		_selected_tile = _selection.get_selected_tiles()[0] if _selection.get_selection_count() == 1 else null
 		_set_hand_tiles_hover_enabled(false)
 	else:
 		_interaction_mode = InteractionMode.IDLE
