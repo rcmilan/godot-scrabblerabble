@@ -32,8 +32,8 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event.is_action_pressed("ui_accept"):
-		_on_return_pressed()
 		get_viewport().set_input_as_handled()
+		_on_return_pressed()
 
 # =============================================================================
 # PUBLIC API
