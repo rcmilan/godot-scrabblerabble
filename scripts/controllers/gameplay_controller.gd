@@ -60,7 +60,7 @@ var _play: PlayHandler = null
 # SIGNAL CONNECTION TRACKING
 # =============================================================================
 
-var _connections: Array[Dictionary] = []
+var _tracker: SignalTracker = SignalTracker.new()
 
 
 # =============================================================================
@@ -128,7 +128,7 @@ func deactivate() -> void:
 	if not _is_active:
 		return
 	_is_active = false
-	_disconnect_all()
+	_tracker.disconnect_all()
 	_selection.deselect_all()
 	print("[GameplayController] Deactivated")
 
@@ -137,42 +137,24 @@ func deactivate() -> void:
 # SIGNAL CONNECTION MANAGEMENT
 # =============================================================================
 
-func _safe_connect(sig: Signal, handler: Callable) -> void:
-	sig.connect(handler)
-	_connections.append({"signal": sig, "handler": handler})
-
-
-func _disconnect_all() -> void:
-	for conn in _connections:
-		if conn.signal.is_connected(conn.handler):
-			conn.signal.disconnect(conn.handler)
-	_connections.clear()
-
-
 func _connect_signals() -> void:
-	# Board signals
 	if board:
-		_safe_connect(board.cell_clicked, _on_cell_clicked)
-		_safe_connect(board.cell_hovered, _on_cell_hovered)
-		_safe_connect(board.cell_unhovered, _on_cell_unhovered)
+		_tracker.track(board.cell_clicked, _on_cell_clicked)
+		_tracker.track(board.cell_hovered, _on_cell_hovered)
+		_tracker.track(board.cell_unhovered, _on_cell_unhovered)
 
-	# Discard signals
 	if discard_pile:
-		_safe_connect(discard_pile.tiles_dropped, _on_discard_pile_tiles_dropped)
-		_safe_connect(discard_pile.discard_clicked, _on_discard_pile_clicked)
-		_safe_connect(discard_pile.peek_requested, _on_discard_pile_peek_requested)
+		_tracker.track(discard_pile.tiles_dropped, _on_discard_pile_tiles_dropped)
+		_tracker.track(discard_pile.discard_clicked, _on_discard_pile_clicked)
+		_tracker.track(discard_pile.peek_requested, _on_discard_pile_peek_requested)
 
-	# HUD signals
 	if main_hud:
-		_safe_connect(main_hud.draw_requested, _on_draw_requested)
-		_safe_connect(main_hud.play_requested, _on_play_requested)
+		_tracker.track(main_hud.draw_requested, _on_draw_requested)
+		_tracker.track(main_hud.play_requested, _on_play_requested)
 
-	# Drag signals
-	_safe_connect(_drag_mgr.drag_release_requested, _handle_drag_release)
-
-	# Tile supply signals (for Play/End Round button state)
-	_safe_connect(EventBus.hand_count_changed, _on_tile_supply_changed)
-	_safe_connect(EventBus.bag_count_changed, _on_tile_supply_changed)
+	_tracker.track(_drag_mgr.drag_release_requested, _handle_drag_release)
+	_tracker.track(EventBus.hand_count_changed, _on_tile_supply_changed)
+	_tracker.track(EventBus.bag_count_changed, _on_tile_supply_changed)
 
 
 # =============================================================================
