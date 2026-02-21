@@ -70,21 +70,10 @@ func on_play_requested() -> void:
 	# Animate ALL board tiles (locked and newly locked)
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
 
-	# Split by animation type BEFORE consuming (modifiers still present):
-	# RESET dominates → stomp (denies special animations)
-	# EXTRA / MULTI / EXPO (no RESET) → spin
-	# Everything else → stomp
-	var spin_tiles: Array[Tile] = []
-	var stomp_tiles: Array[Tile] = []
-	for tile in all_tiles:
-		if tile.has_modifier(ModifierTypes.Type.RESET):
-			stomp_tiles.append(tile)
-		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
-			or tile.has_modifier(ModifierTypes.Type.MULTI) \
-			or tile.has_modifier(ModifierTypes.Type.EXPO):
-			spin_tiles.append(tile)
-		else:
-			stomp_tiles.append(tile)
+	# Split by animation type BEFORE consuming (modifiers still present)
+	var cats := _categorize_tiles_by_animation(all_tiles)
+	var spin_tiles: Array[Tile] = cats.spin
+	var stomp_tiles: Array[Tile] = cats.stomp
 
 	# Hide locked border during animations (on_animation_complete restores it)
 	for tile in all_tiles:
@@ -160,17 +149,9 @@ func _auto_end_round() -> void:
 	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
 
 	# Split ALL tiles by animation type (once, modifiers don't change between loops)
-	var spin_tiles: Array[Tile] = []
-	var stomp_tiles: Array[Tile] = []
-	for tile in all_tiles:
-		if tile.has_modifier(ModifierTypes.Type.RESET):
-			stomp_tiles.append(tile)
-		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
-			or tile.has_modifier(ModifierTypes.Type.MULTI) \
-			or tile.has_modifier(ModifierTypes.Type.EXPO):
-			spin_tiles.append(tile)
-		else:
-			stomp_tiles.append(tile)
+	var cats := _categorize_tiles_by_animation(all_tiles)
+	var spin_tiles: Array[Tile] = cats.spin
+	var stomp_tiles: Array[Tile] = cats.stomp
 
 	# Loop: hide borders -> animate -> await -> commit for each remaining play
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
@@ -213,6 +194,22 @@ func _get_all_board_tiles() -> Array[Tile]:
 		if cell.is_occupied():
 			tiles.append(cell.tile)
 	return tiles
+
+
+## Splits tiles into spin (EXTRA/MULTI/EXPO) and stomp (RESET/plain) groups.
+func _categorize_tiles_by_animation(tiles: Array[Tile]) -> Dictionary:
+	var spin: Array[Tile] = []
+	var stomp: Array[Tile] = []
+	for tile in tiles:
+		if tile.has_modifier(ModifierTypes.Type.RESET):
+			stomp.append(tile)
+		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
+			or tile.has_modifier(ModifierTypes.Type.MULTI) \
+			or tile.has_modifier(ModifierTypes.Type.EXPO):
+			spin.append(tile)
+		else:
+			stomp.append(tile)
+	return {spin = spin, stomp = stomp}
 
 
 ## Checks if the player has any valid moves remaining.
