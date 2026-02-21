@@ -147,7 +147,7 @@ tile.restore_cell_binding()  # restores cell.tile from current_cell
 - **Normal**: White modulate
 - **Hover**: Slightly brighter (Color 1.1, 1.1, 1.1), uses modifier tint as base
 - **Dragging**: Bright overlay (Color 1.2, 1.2, 1.2), uses modifier tint as base
-- **Selected**: Green border visible
+- **Selected**: Golden yellow border visible
 - **Locked**: Black 2px border (LockedBorder panel), hidden during play animations
 - **Modifier Tint**: Determined by `ModifierVisualPipeline` (EXTRA/MULTI/EXPO have tier-based tints)
 - **Invert Shader**: Applied to RESET tiles (via lazy-loaded ShaderMaterial)
@@ -218,7 +218,7 @@ var order = tile.selection_order  # -1 if not selected
 Tile (Control, 64x64)
 ├── TextureRect         # Letter texture
 ├── BadgeContainer      # HBoxContainer for modifier badges (+, x, ^)
-├── Border              # Green selection border (visible when selected)
+├── Border              # Golden yellow selection border (visible when selected)
 └── LockedBorder        # Black 2px border (visible when is_locked)
 ```
 
