@@ -5,8 +5,8 @@ class_name AllResetQuality
 ## Bundled by CursedDeck; NOT registered in QualityRegistry (not shown in UI quality list).
 ##
 ## on_round_started:
-##   Precondition : TileBag.available_tiles is populated.
-##   Postcondition: every tile in TileBag.available_tiles carries a RESET/PER_ROUND modifier.
+##   Precondition : TileBag._available_tiles is populated.
+##   Postcondition: every tile in TileBag._available_tiles carries a RESET/PER_ROUND modifier.
 ##   Invariant    : tile.add_modifier() replaces by type — no duplicates possible.
 
 # =============================================================================
@@ -36,11 +36,11 @@ func on_round_started(_round_number: int) -> void:
 # =============================================================================
 
 func _apply_reset_to_all_bag_tiles() -> void:
-	for tile in TileBag.available_tiles:
+	for tile in TileBag.get_available_tiles():
 		var modifier: ModifierInstance = ModifierRegistry.create_modifier(
 			ModifierTypes.Type.RESET,
 			ModifierTypes.Tier.BRONZE,
 			ModifierTypes.Lifetime.PER_ROUND
 		)
 		tile.add_modifier(modifier)
-	print("[AllResetQuality] Applied RESET to %d bag tiles" % TileBag.available_tiles.size())
+	print("[AllResetQuality] Applied RESET to %d bag tiles" % TileBag.tiles_remaining())

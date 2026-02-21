@@ -150,36 +150,36 @@ func cancel_tile_animation(tile: Tile) -> void:
 # PRIVATE: LAZY INITIALIZATION
 # =============================================================================
 
+## Lazy-initializes a strategy (no constructor args).
+func _ensure_strategy(current: Variant, klass: GDScript) -> Variant:
+	return current if current != null else klass.new()
+
+
+## Lazy-initializes an executor (takes _context as constructor arg).
+func _ensure_executor(current: Variant, klass: GDScript) -> Variant:
+	return current if current != null else klass.new(_context)
+
+
 func _ensure_draw_resources() -> void:
-	if _draw_animation == null:
-		_draw_animation = DrawTileAnimation.new()
-	if _batch_executor == null:
-		_batch_executor = BatchAnimationExecutor.new(_context)
+	_draw_animation = _ensure_strategy(_draw_animation, DrawTileAnimation)
+	_batch_executor = _ensure_executor(_batch_executor, BatchAnimationExecutor)
 
 
 func _ensure_glide_resources() -> void:
-	if _glide_animation == null:
-		_glide_animation = GlideTileAnimation.new()
-	if _return_executor == null:
-		_return_executor = ReturnAnimationExecutor.new(_context)
+	_glide_animation = _ensure_strategy(_glide_animation, GlideTileAnimation)
+	_return_executor = _ensure_executor(_return_executor, ReturnAnimationExecutor)
 
 
 func _ensure_shake_resources() -> void:
-	if _shake_animation == null:
-		_shake_animation = ShakeTileAnimation.new()
-	if _shake_executor == null:
-		_shake_executor = ShakeAnimationExecutor.new(_context)
+	_shake_animation = _ensure_strategy(_shake_animation, ShakeTileAnimation)
+	_shake_executor = _ensure_executor(_shake_executor, ShakeAnimationExecutor)
 
 
 func _ensure_stomp_resources() -> void:
-	if _stomp_animation == null:
-		_stomp_animation = StompTileAnimation.new()
-	if _stomp_executor == null:
-		_stomp_executor = StompAnimationExecutor.new(_context)
+	_stomp_animation = _ensure_strategy(_stomp_animation, StompTileAnimation)
+	_stomp_executor = _ensure_executor(_stomp_executor, StompAnimationExecutor)
 
 
 func _ensure_spin_resources() -> void:
-	if _spin_animation == null:
-		_spin_animation = SpinTileAnimation.new()
-	if _spin_executor == null:
-		_spin_executor = SpinAnimationExecutor.new(_context)
+	_spin_animation = _ensure_strategy(_spin_animation, SpinTileAnimation)
+	_spin_executor = _ensure_executor(_spin_executor, SpinAnimationExecutor)

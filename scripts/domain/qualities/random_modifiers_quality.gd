@@ -52,7 +52,7 @@ func on_round_started(_round_number: int) -> void:
 
 func _assign_modifiers_to_bag() -> void:
 	var count: int = 0
-	for tile in TileBag.available_tiles:
+	for tile in TileBag.get_available_tiles():
 		if randf() < MODIFIER_CHANCE:
 			var type: ModifierTypes.Type = _pick_weighted_type()
 			var tier: ModifierTypes.Tier = _pick_weighted_tier()
@@ -62,35 +62,27 @@ func _assign_modifiers_to_bag() -> void:
 			tile.add_modifier(modifier)
 			count += 1
 	print("[RandomModifiers] Assigned %d modifiers to %d available tiles" % [
-		count, TileBag.available_tiles.size()
+		count, TileBag.tiles_remaining()
 	])
 
 
-func _pick_weighted_type() -> ModifierTypes.Type:
+## Picks a random key from a weights dictionary {key: int_weight}.
+func _pick_weighted(weights: Dictionary) -> Variant:
 	var total: int = 0
-	for w in TYPE_WEIGHTS.values():
+	for w in weights.values():
 		total += w
-
 	var roll: int = randi() % total
 	var cumulative: int = 0
-	for type in TYPE_WEIGHTS.keys():
-		cumulative += TYPE_WEIGHTS[type]
+	for key in weights:
+		cumulative += weights[key]
 		if roll < cumulative:
-			return type
+			return key
+	return weights.keys()[0]
 
-	return ModifierTypes.Type.EXTRA
+
+func _pick_weighted_type() -> ModifierTypes.Type:
+	return _pick_weighted(TYPE_WEIGHTS)
 
 
 func _pick_weighted_tier() -> ModifierTypes.Tier:
-	var total: int = 0
-	for w in TIER_WEIGHTS.values():
-		total += w
-
-	var roll: int = randi() % total
-	var cumulative: int = 0
-	for tier in TIER_WEIGHTS.keys():
-		cumulative += TIER_WEIGHTS[tier]
-		if roll < cumulative:
-			return tier
-
-	return ModifierTypes.Tier.BRONZE
+	return _pick_weighted(TIER_WEIGHTS)

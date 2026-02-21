@@ -33,9 +33,6 @@ var tile_data: LetterTileData = null
 var letter: String = ""
 var base_points: int = 0
 
-# === Legacy Point Modifier (see modifiers: Dictionary for composable modifiers) ===
-var point_modifier: int = 0        # Bonus/penalty to base points
-var is_wild: bool = false          # Wild card tile (unused)
 var is_locked: bool = false        # Cannot be moved once placed (synced from LOCKED modifier)
 
 # === Composable Modifiers ===
@@ -161,7 +158,7 @@ func _animate_selection_scale() -> void:
 
 ## Get the total point value including modifiers.
 func get_points() -> int:
-	return base_points + point_modifier
+	return base_points
 
 
 ## Check if this tile can be interacted with.
@@ -332,7 +329,6 @@ func reset() -> void:
 	detach_from_cell()
 	is_selected = false
 	is_locked = false
-	point_modifier = 0
 	modifiers.clear()
 	_remove_spark_effect()
 	location = TileLocation.IN_BAG

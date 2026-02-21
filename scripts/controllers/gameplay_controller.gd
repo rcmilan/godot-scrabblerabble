@@ -27,8 +27,8 @@ enum InteractionMode {
 	DRAGGING        # Tile being dragged
 }
 
-var interaction_mode: InteractionMode = InteractionMode.IDLE
-var selected_tile: Tile = null
+var _interaction_mode: InteractionMode = InteractionMode.IDLE
+var _selected_tile: Tile = null
 var _is_active: bool = false
 
 # =============================================================================
@@ -60,7 +60,7 @@ var _play: PlayHandler = null
 # SIGNAL CONNECTION TRACKING
 # =============================================================================
 
-var _connections: Array[Dictionary] = []
+var _tracker: SignalTracker = SignalTracker.new()
 
 
 # =============================================================================
@@ -109,8 +109,16 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	_drop.setup(_placement, hand, _selection, _drag_mgr)
 
 	_play = PlayHandler.new()
-	_play.setup(board, main_hud, _selection)
+	_play.setup(board, _selection)
 	_play.play_completed.connect(func(tiles, words): play_completed.emit(tiles, words))
+	_play.draw_blocked_changed.connect(
+		func(blocked): main_hud.set_draw_button_blocked(blocked)
+	)
+	_play.play_button_changed.connect(
+		func(enabled, mode):
+			main_hud.set_play_button_enabled(enabled)
+			main_hud.set_play_button_mode(mode)
+	)
 
 
 ## Activates the controller and connects all signals.
@@ -128,7 +136,7 @@ func deactivate() -> void:
 	if not _is_active:
 		return
 	_is_active = false
-	_disconnect_all()
+	_tracker.disconnect_all()
 	_selection.deselect_all()
 	print("[GameplayController] Deactivated")
 
@@ -137,42 +145,24 @@ func deactivate() -> void:
 # SIGNAL CONNECTION MANAGEMENT
 # =============================================================================
 
-func _safe_connect(sig: Signal, handler: Callable) -> void:
-	sig.connect(handler)
-	_connections.append({"signal": sig, "handler": handler})
-
-
-func _disconnect_all() -> void:
-	for conn in _connections:
-		if conn.signal.is_connected(conn.handler):
-			conn.signal.disconnect(conn.handler)
-	_connections.clear()
-
-
 func _connect_signals() -> void:
-	# Board signals
 	if board:
-		_safe_connect(board.cell_clicked, _on_cell_clicked)
-		_safe_connect(board.cell_hovered, _on_cell_hovered)
-		_safe_connect(board.cell_unhovered, _on_cell_unhovered)
+		_tracker.track(board.cell_clicked, _on_cell_clicked)
+		_tracker.track(board.cell_hovered, _on_cell_hovered)
+		_tracker.track(board.cell_unhovered, _on_cell_unhovered)
 
-	# Discard signals
 	if discard_pile:
-		_safe_connect(discard_pile.tiles_dropped, _on_discard_pile_tiles_dropped)
-		_safe_connect(discard_pile.discard_clicked, _on_discard_pile_clicked)
-		_safe_connect(discard_pile.peek_requested, _on_discard_pile_peek_requested)
+		_tracker.track(discard_pile.tiles_dropped, _on_discard_pile_tiles_dropped)
+		_tracker.track(discard_pile.discard_clicked, _on_discard_pile_clicked)
+		_tracker.track(discard_pile.peek_requested, _on_discard_pile_peek_requested)
 
-	# HUD signals
 	if main_hud:
-		_safe_connect(main_hud.draw_requested, _on_draw_requested)
-		_safe_connect(main_hud.play_requested, _on_play_requested)
+		_tracker.track(main_hud.draw_requested, _on_draw_requested)
+		_tracker.track(main_hud.play_requested, _on_play_requested)
 
-	# Drag signals
-	_safe_connect(_drag_mgr.drag_release_requested, _handle_drag_release)
-
-	# Tile supply signals (for Play/End Round button state)
-	_safe_connect(EventBus.hand_count_changed, _on_tile_supply_changed)
-	_safe_connect(EventBus.bag_count_changed, _on_tile_supply_changed)
+	_tracker.track(_drag_mgr.drag_release_requested, _handle_drag_release)
+	_tracker.track(EventBus.hand_count_changed, _on_tile_supply_changed)
+	_tracker.track(EventBus.bag_count_changed, _on_tile_supply_changed)
 
 
 # =============================================================================
@@ -201,20 +191,15 @@ func _on_tile_selected(tile: Tile) -> void:
 
 	print("[Gameplay] Tile selected: %s" % tile.name)
 
-	# Clicking a board tile while we have selection
-	if _selection.has_selection() and tile.location == Tile.TileLocation.ON_BOARD:
-		print("[Gameplay] Cannot stack tiles")
-		return
-
-	# Clicking a tile that's already on the board (info only)
-	if not _selection.has_selection() and tile.location == Tile.TileLocation.ON_BOARD:
-		print("[Gameplay] Board tile at cell: %s" % tile.current_cell.name)
-		return
-
-	# Hand tile - use SelectionManager
-	if tile.location == Tile.TileLocation.IN_HAND:
-		_selection.select_tile(tile)
-		_update_interaction_state()
+	match tile.location:
+		Tile.TileLocation.ON_BOARD:
+			if _selection.has_selection():
+				print("[Gameplay] Cannot stack tiles")
+			else:
+				print("[Gameplay] Board tile at cell: %s" % tile.current_cell.name)
+		Tile.TileLocation.IN_HAND:
+			_selection.select_tile(tile)
+			_update_interaction_state()
 
 
 func _on_tile_right_clicked(tile: Tile) -> void:
@@ -245,41 +230,36 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 	_play.update_play_button_state()
 
 
-func _on_tile_drag_started(tile: Tile) -> void:
-	if not _is_active:
-		return
-
-	# Safety check - tile should have prevented this, but double-check
-	if not tile.can_interact():
-		print("[Gameplay] Cannot drag non-interactable tile: %s" % tile.name)
-		return
-
-	var tiles_to_drag: Array[Tile] = _selection.get_selected_tiles()
-
-	# Filter out any locked/non-interactable tiles from multi-drag
-	var valid_tiles: Array[Tile] = []
-	for t in tiles_to_drag:
+## Builds the list of tiles to drag. Ensures lead tile is always included.
+## Removes followers that refuse drag. Resets selection if lead was not selected.
+func _collect_drag_candidates(tile: Tile) -> Array[Tile]:
+	var candidates: Array[Tile] = []
+	for t in _selection.get_selected_tiles():
 		if t.can_interact():
-			valid_tiles.append(t)
+			candidates.append(t)
 
-	if tile not in valid_tiles:
+	if tile not in candidates:
 		_selection.deselect_all()
 		_selection.select_tile(tile)
-		valid_tiles = [tile]
+		return [tile]
 
-	# Set follower tiles (skip lead tile)
-	for t in valid_tiles:
-		if t != tile:
-			if not t.set_as_drag_follower():
-				# Tile refused to be a follower (locked), remove from drag
-				valid_tiles.erase(t)
+	for t in candidates.duplicate():
+		if t != tile and not t.set_as_drag_follower():
+			candidates.erase(t)
 
+	return candidates
+
+
+func _on_tile_drag_started(tile: Tile) -> void:
+	if not _is_active or not tile.can_interact():
+		return
+
+	var valid_tiles := _collect_drag_candidates(tile)
 	if valid_tiles.is_empty():
 		print("[Gameplay] No valid tiles to drag")
 		return
 
 	_drag_mgr.start_drag(tile, valid_tiles)
-
 	if valid_tiles.size() > 1:
 		print("[Gameplay] Multi-drag started with %d tiles" % valid_tiles.size())
 
@@ -319,63 +299,55 @@ func _handle_drag_release(tile: Tile) -> void:
 	])
 
 	# Unified drop handling for single and multi-tile
-	_drop.handle_tile_drop(cell, dragged_tiles)
+	var success := _drop.handle_tile_drop(cell, dragged_tiles)
 	_update_interaction_state()
 	_play.update_play_button_state()
-	_drag_mgr.end_drag(_drop.last_placement_success)
+	_drag_mgr.end_drag(success)
 
 
 # =============================================================================
 # CELL HANDLERS
 # =============================================================================
 
+## Places one or more movable tiles starting at the target cell.
+func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell) -> void:
+	if movable.size() > 1:
+		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
+		if cells.is_empty():
+			print("[Gameplay] Cannot place %d tiles starting at %s" % [movable.size(), cell.name])
+			return
+		for i in movable.size():
+			_placement.place_tile_on_cell_silent(movable[i], cells[i])
+		print("[Gameplay] Placed %d tiles starting at %s" % [movable.size(), cell.name])
+	else:
+		_placement.place_tile_on_cell(movable[0], cell)
+	_selection.deselect_all()
+	_update_interaction_state()
+	_play.update_play_button_state()
+	tile_placement_completed.emit(movable[0], cell)
+
+
 func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 
-	var selected_tiles: Array[Tile] = _selection.get_selected_tiles()
-
-	if selected_tiles.is_empty():
+	var selected: Array[Tile] = _selection.get_selected_tiles()
+	if selected.is_empty():
 		print("[Gameplay] No tile selected")
 		return
 
-	# Filter out locked tiles - they cannot be moved
-	var movable_tiles: Array[Tile] = []
-	for tile in selected_tiles:
-		if not tile.is_locked:
-			movable_tiles.append(tile)
-
-	if movable_tiles.is_empty():
+	var movable: Array[Tile] = selected.filter(func(t): return not t.is_locked)
+	if movable.is_empty():
 		print("[Gameplay] All selected tiles are locked")
 		_selection.deselect_all()
 		_update_interaction_state()
 		return
 
-	selected_tiles = movable_tiles
-
 	if cell.is_occupied():
 		print("[Gameplay] Cell occupied: %s" % cell.name)
 		return
 
-	if selected_tiles.size() > 1:
-		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, selected_tiles.size())
-		if cells.is_empty():
-			print("[Gameplay] Cannot place %d tiles starting at %s" % [selected_tiles.size(), cell.name])
-			return
-
-		for i in selected_tiles.size():
-			_placement.place_tile_on_cell_silent(selected_tiles[i], cells[i])
-
-		_selection.deselect_all()
-		_update_interaction_state()
-		_play.update_play_button_state()
-		tile_placement_completed.emit(selected_tiles[0], cell)
-		print("[Gameplay] Placed %d tiles starting at %s" % [selected_tiles.size(), cell.name])
-	else:
-		_placement.place_tile_on_cell(selected_tiles[0], cell)
-		_update_interaction_state()
-		_play.update_play_button_state()
-		tile_placement_completed.emit(selected_tiles[0], cell)
+	_place_tiles_on_cell(movable, cell)
 
 
 func _on_cell_hovered(cell: BoardCell) -> void:
@@ -412,10 +384,10 @@ func _on_cell_unhovered(cell: BoardCell) -> void:
 
 ## Discards selected hand tiles directly (no confirmation).
 func _request_discard() -> void:
-	var selected_tiles: Array[Tile] = _selection.get_selected_tiles()
+	var _selected_tiles: Array[Tile] = _selection.get_selected_tiles()
 
 	var hand_tiles: Array[Tile] = []
-	for tile in selected_tiles:
+	for tile in _selected_tiles:
 		if tile.location == Tile.TileLocation.IN_HAND:
 			hand_tiles.append(tile)
 
@@ -538,12 +510,12 @@ func _update_interaction_state() -> void:
 	var has_selection: bool = _selection.has_selection()
 
 	if has_selection:
-		interaction_mode = InteractionMode.TILE_SELECTED
-		selected_tile = _selection.get_selected_tiles()[0] if _selection.get_selection_count() == 1 else null
+		_interaction_mode = InteractionMode.TILE_SELECTED
+		_selected_tile = _selection.get_selected_tiles()[0] if _selection.get_selection_count() == 1 else null
 		_set_hand_tiles_hover_enabled(false)
 	else:
-		interaction_mode = InteractionMode.IDLE
-		selected_tile = null
+		_interaction_mode = InteractionMode.IDLE
+		_selected_tile = null
 		_set_hand_tiles_hover_enabled(true)
 		_placement.clear_all_cell_hovers()
 
