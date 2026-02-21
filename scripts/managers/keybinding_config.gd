@@ -1,5 +1,4 @@
 extends Node
-class_name KeybindingConfig
 
 ## Manages saving and loading InputMap overrides from user://keybindings.cfg.
 ## Acts as an autoload; call load_and_apply() once on game start.
@@ -8,7 +7,7 @@ const SAVE_PATH := "user://keybindings.cfg"
 
 const KEYBINDABLE_ACTIONS: Array[StringName] = [
 	&"navigate_left", &"navigate_right", &"navigate_up", &"navigate_down",
-	&"confirm_action", &"cancel_action",
+	&"confirm_action", &"cancel_action", &"switch_zone",
 	&"play_hand", &"draw_tiles", &"discard_tiles",
 	&"pause_game", &"toggle_multi_select",
 ]
@@ -20,6 +19,7 @@ const ACTION_DISPLAY_NAMES: Dictionary = {
 	&"navigate_down":       "Navigate Down",
 	&"confirm_action":      "Confirm / Place",
 	&"cancel_action":       "Cancel / Return",
+	&"switch_zone":         "Switch Zone",
 	&"play_hand":           "Play Hand",
 	&"draw_tiles":          "Draw Tiles",
 	&"discard_tiles":       "Discard Tiles",

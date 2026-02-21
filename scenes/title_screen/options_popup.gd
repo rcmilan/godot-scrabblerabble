@@ -11,6 +11,7 @@ signal closed()
 # =============================================================================
 
 @onready var _close_button: Button       = $Panel/MarginContainer/VBoxContainer/CloseButton
+@onready var _tab_container: TabContainer = $Panel/MarginContainer/VBoxContainer/TabContainer
 @onready var _fullscreen_check: CheckBox = $Panel/MarginContainer/VBoxContainer/TabContainer/Display/FullscreenCheck
 @onready var _vsync_check: CheckBox      = $Panel/MarginContainer/VBoxContainer/TabContainer/Display/VsyncCheck
 @onready var _volume_slider: HSlider     = $Panel/MarginContainer/VBoxContainer/TabContainer/Display/VolumeSlider
@@ -46,7 +47,7 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 
-	# Capture rebind
+	# Capture rebind — takes full priority while listening
 	if _listening_action != &"":
 		if event is InputEventKey and event.pressed and not event.is_echo():
 			if event.keycode == KEY_ESCAPE:
@@ -59,7 +60,36 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_pressed("ui_cancel"):
+	# Block game navigation from bleeding to menu buttons behind the modal
+	var nav_actions := ["navigate_up", "navigate_down", "navigate_left", "navigate_right",
+						"confirm_action", "ui_up", "ui_down", "ui_left", "ui_right"]
+	for action in nav_actions:
+		if event.is_action_pressed(action):
+			get_viewport().set_input_as_handled()
+			return
+
+	# Tab switching: 1/2 keys or L1/R1 controller
+	if event is InputEventKey and event.pressed and not event.is_echo():
+		if event.keycode == KEY_1:
+			_tab_container.current_tab = 0
+			get_viewport().set_input_as_handled()
+			return
+		elif event.keycode == KEY_2:
+			_tab_container.current_tab = 1
+			get_viewport().set_input_as_handled()
+			return
+	elif event is InputEventJoypadButton and event.pressed:
+		if event.button_index == JOY_BUTTON_LEFT_SHOULDER:
+			_tab_container.current_tab = max(0, _tab_container.current_tab - 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			_tab_container.current_tab = min(_tab_container.tab_count - 1, _tab_container.current_tab + 1)
+			get_viewport().set_input_as_handled()
+			return
+
+	# Close on cancel (Backspace/Delete/ESC/B-button)
+	if event.is_action_pressed("cancel_action") or event.is_action_pressed("ui_cancel"):
 		close_popup()
 		get_viewport().set_input_as_handled()
 

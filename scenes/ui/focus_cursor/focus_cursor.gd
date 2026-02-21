@@ -32,6 +32,7 @@ var _hand_index: int = 0
 var _board_coords: Vector2i = Vector2i(0, 0)
 var _held_tile: Tile = null
 var _is_active: bool = false
+var _highlighted_hand_tile: Tile = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -67,20 +68,22 @@ func activate() -> void:
 	_is_active = true
 	_hand_index = 0
 	_zone = Zone.HAND
-	_cursor_rect.show()
 	set_process_unhandled_input(true)
+	_update_hand_tile_highlight()
 
 
 ## Postcondition: cursor hides, stops processing input, held tile restored.
 func deactivate() -> void:
 	_is_active = false
+	_clear_hand_tile_highlight()
 	clear_held_tile()
 	_cursor_rect.hide()
 	set_process_unhandled_input(false)
 
 
-## Postcondition: _held_tile set; tile faded to 50% alpha in hand.
+## Postcondition: _held_tile set; cursor highlight removed, tile faded to 50% alpha.
 func set_held_tile(tile: Tile) -> void:
+	_clear_hand_tile_highlight()
 	_held_tile = tile
 	if tile:
 		tile.self_modulate.a = 0.5
@@ -112,29 +115,38 @@ func _process(_delta: float) -> void:
 
 
 func _update_cursor_rect() -> void:
-	var target_rect := _get_target_rect()
-	if target_rect == Rect2():
+	if _zone == Zone.HAND:
+		_cursor_rect.hide()
+		_update_hand_tile_highlight()
+		return
+	# BOARD zone: use cursor rect, ensure hand tile is not highlighted
+	if _highlighted_hand_tile:
+		_clear_hand_tile_highlight()
+	var cell := _board.get_cell(_board_coords.y, _board_coords.x)
+	if cell == null:
 		_cursor_rect.hide()
 		return
 	_cursor_rect.show()
-	_cursor_rect.position = target_rect.position - global_position
-	_cursor_rect.size = target_rect.size
+	_cursor_rect.position = cell.get_global_rect().position - global_position
+	_cursor_rect.size = cell.get_global_rect().size
 	_update_cursor_tint()
 
 
-func _get_target_rect() -> Rect2:
-	match _zone:
-		Zone.HAND:
-			var tile := _hand.get_tile_at(_hand_index)
-			if tile == null:
-				return Rect2()
-			return tile.get_global_rect()
-		Zone.BOARD:
-			var cell := _board.get_cell(_board_coords.y, _board_coords.x)
-			if cell == null:
-				return Rect2()
-			return cell.get_global_rect()
-	return Rect2()
+func _update_hand_tile_highlight() -> void:
+	var new_tile: Tile = _hand.get_tile_at(_hand_index) if _hand != null else null
+	if new_tile == _highlighted_hand_tile:
+		return
+	if _highlighted_hand_tile and is_instance_valid(_highlighted_hand_tile):
+		_highlighted_hand_tile.set_cursor_highlighted(false)
+	_highlighted_hand_tile = new_tile
+	if _highlighted_hand_tile:
+		_highlighted_hand_tile.set_cursor_highlighted(true)
+
+
+func _clear_hand_tile_highlight() -> void:
+	if _highlighted_hand_tile and is_instance_valid(_highlighted_hand_tile):
+		_highlighted_hand_tile.set_cursor_highlighted(false)
+	_highlighted_hand_tile = null
 
 
 func _update_cursor_tint() -> void:
@@ -178,6 +190,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("cancel_action"):
 		_cancel()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("switch_zone"):
+		if _zone == Zone.HAND:
+			_switch_to_board_zone()
+		else:
+			_switch_to_hand_zone()
+		get_viewport().set_input_as_handled()
 
 
 func _navigate(direction: Vector2i) -> void:
@@ -215,6 +233,7 @@ func _navigate_board(direction: Vector2i) -> void:
 
 
 func _switch_to_board_zone() -> void:
+	_clear_hand_tile_highlight()
 	_zone = Zone.BOARD
 	var count := _hand.get_tile_count()
 	var col := 0
