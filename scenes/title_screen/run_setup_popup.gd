@@ -97,7 +97,8 @@ func _populate_deck_selector() -> void:
 	_content_vbox.move_child(section, 0)
 	_content_vbox.move_child(sep, 1)
 
-	_on_deck_selected(0)
+	var default_index := _deck_ids.find(&"standard")
+	_on_deck_selected(maxi(default_index, 0))
 
 
 func _on_deck_selected(index: int) -> void:
@@ -111,7 +112,7 @@ func _on_deck_selected(index: int) -> void:
 func _get_selected_deck() -> DeckDefinition:
 	var index := _deck_option.selected if _deck_option else 0
 	if index < 0 or index >= _deck_ids.size():
-		return StandardDeck.new()
+		return DeckRegistry.create_default(&"standard")
 	return DeckRegistry.create_default(_deck_ids[index])
 
 
