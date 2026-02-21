@@ -211,33 +211,41 @@ func _advance_to_next_round() -> void:
 	print("[RunManager] %s" % current_round_config)
 
 
+## Checks if any quality wants to end the run. Handles the transition if so.
+## Returns true if the run was ended (caller should return early).
+func _check_quality_win_conditions() -> bool:
+	if _active_run == null:
+		return false
+	for quality in _active_run.qualities:
+		if not quality.has_custom_win_condition():
+			continue
+		var result := quality.check_run_end_condition(run_state)
+		if not result.get("should_end", false):
+			continue
+		var victory: bool = result.get("victory", false)
+		run_state.end_run()
+		EventBus.run_ended.emit(victory, run_state.total_score)
+		print("[RunManager] Quality '%s' ended run - Victory: %s" % [quality.get_quality_name(), victory])
+		return true
+	return false
+
+
 func _on_round_ended(round_number: int, success: bool) -> void:
 	if not run_state or not run_state.is_run_active:
 		return
 
-	# Forward to qualities
 	if _active_run:
 		for quality in _active_run.qualities:
 			quality.on_round_ended(round_number, success)
 
-	if success:
-		run_state.complete_round(GameManager.get_current_score())
-
-		# Check custom win conditions from qualities
-		if _active_run:
-			for quality in _active_run.qualities:
-				if quality.has_custom_win_condition():
-					var result := quality.check_run_end_condition(run_state)
-					if result.get("should_end", false):
-						var victory: bool = result.get("victory", false)
-						run_state.end_run()
-						EventBus.run_ended.emit(victory, run_state.total_score)
-						print("[RunManager] Quality '%s' ended run - Victory: %s" % [quality.get_quality_name(), victory])
-						return
-
-		EventBus.run_shop_requested.emit(run_state.current_round)
-		print("[RunManager] Round %d won - proceeding to shop" % round_number)
-	else:
+	if not success:
 		run_state.end_run()
 		EventBus.run_ended.emit(false, run_state.total_score)
 		print("[RunManager] Round %d lost - run ended" % round_number)
+		return
+
+	run_state.complete_round(GameManager.get_current_score())
+	if _check_quality_win_conditions():
+		return
+	EventBus.run_shop_requested.emit(run_state.current_round)
+	print("[RunManager] Round %d won - proceeding to shop" % round_number)
