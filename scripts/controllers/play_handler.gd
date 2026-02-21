@@ -10,20 +10,20 @@ extends RefCounted
 # =============================================================================
 
 signal play_completed(tiles: Array[Tile], words: Array)
+signal draw_blocked_changed(blocked: bool)
+signal play_button_changed(enabled: bool, end_round_mode: bool)
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
 # =============================================================================
 
 var board: Board = null
-var main_hud: CanvasLayer = null
 var _word_validator: WordValidator = null
 var _selection: SelectionManager = null
 
 
-func setup(p_board: Board, p_hud: CanvasLayer, p_selection: SelectionManager) -> void:
+func setup(p_board: Board, p_selection: SelectionManager) -> void:
 	board = p_board
-	main_hud = p_hud
 	_selection = p_selection
 	_word_validator = WordValidator.new()
 
@@ -70,21 +70,10 @@ func on_play_requested() -> void:
 	# Animate ALL board tiles (locked and newly locked)
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
 
-	# Split by animation type BEFORE consuming (modifiers still present):
-	# RESET dominates → stomp (denies special animations)
-	# EXTRA / MULTI / EXPO (no RESET) → spin
-	# Everything else → stomp
-	var spin_tiles: Array[Tile] = []
-	var stomp_tiles: Array[Tile] = []
-	for tile in all_tiles:
-		if tile.has_modifier(ModifierTypes.Type.RESET):
-			stomp_tiles.append(tile)
-		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
-			or tile.has_modifier(ModifierTypes.Type.MULTI) \
-			or tile.has_modifier(ModifierTypes.Type.EXPO):
-			spin_tiles.append(tile)
-		else:
-			stomp_tiles.append(tile)
+	# Split by animation type BEFORE consuming (modifiers still present)
+	var cats := _categorize_tiles_by_animation(all_tiles)
+	var spin_tiles: Array[Tile] = cats.spin
+	var stomp_tiles: Array[Tile] = cats.stomp
 
 	# Hide locked border during animations (on_animation_complete restores it)
 	for tile in all_tiles:
@@ -92,7 +81,7 @@ func on_play_requested() -> void:
 			tile.locked_border.visible = false
 
 	# Block draw button during play animations
-	main_hud.set_draw_button_blocked(true)
+	draw_blocked_changed.emit(true)
 
 	var animation_count: int = 0
 	if not stomp_tiles.is_empty():
@@ -106,7 +95,7 @@ func on_play_requested() -> void:
 	for i in animation_count:
 		await TileAnimator.animation_completed
 
-	main_hud.set_draw_button_blocked(false)
+	draw_blocked_changed.emit(false)
 
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
@@ -129,7 +118,7 @@ func _auto_end_round() -> void:
 	print("[Gameplay] Auto end round: consuming %d remaining plays" % GameManager.get_plays_remaining())
 
 	# Disable button during auto-play sequence
-	main_hud.set_play_button_enabled(false)
+	play_button_changed.emit(false, false)
 
 	# Get all board tiles and their positions
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
@@ -160,17 +149,9 @@ func _auto_end_round() -> void:
 	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
 
 	# Split ALL tiles by animation type (once, modifiers don't change between loops)
-	var spin_tiles: Array[Tile] = []
-	var stomp_tiles: Array[Tile] = []
-	for tile in all_tiles:
-		if tile.has_modifier(ModifierTypes.Type.RESET):
-			stomp_tiles.append(tile)
-		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
-			or tile.has_modifier(ModifierTypes.Type.MULTI) \
-			or tile.has_modifier(ModifierTypes.Type.EXPO):
-			spin_tiles.append(tile)
-		else:
-			stomp_tiles.append(tile)
+	var cats := _categorize_tiles_by_animation(all_tiles)
+	var spin_tiles: Array[Tile] = cats.spin
+	var stomp_tiles: Array[Tile] = cats.stomp
 
 	# Loop: hide borders -> animate -> await -> commit for each remaining play
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
@@ -215,6 +196,22 @@ func _get_all_board_tiles() -> Array[Tile]:
 	return tiles
 
 
+## Splits tiles into spin (EXTRA/MULTI/EXPO) and stomp (RESET/plain) groups.
+func _categorize_tiles_by_animation(tiles: Array[Tile]) -> Dictionary:
+	var spin: Array[Tile] = []
+	var stomp: Array[Tile] = []
+	for tile in tiles:
+		if tile.has_modifier(ModifierTypes.Type.RESET):
+			stomp.append(tile)
+		elif tile.has_modifier(ModifierTypes.Type.EXTRA) \
+			or tile.has_modifier(ModifierTypes.Type.MULTI) \
+			or tile.has_modifier(ModifierTypes.Type.EXPO):
+			spin.append(tile)
+		else:
+			stomp.append(tile)
+	return {spin = spin, stomp = stomp}
+
+
 ## Checks if the player has any valid moves remaining.
 func has_valid_moves() -> bool:
 	# Valid moves exist if there are unplayed tiles on the board
@@ -239,17 +236,10 @@ func has_valid_moves() -> bool:
 
 ## Updates the Play/End Round button state based on current board state.
 func update_play_button_state() -> void:
-	if not main_hud:
-		return
-
-	var has_unplayed_tiles: bool = not _get_unplayed_board_tiles().is_empty()
-
-	if has_unplayed_tiles:
-		main_hud.set_play_button_enabled(true)
-		main_hud.set_play_button_mode(false)
+	var has_unplayed: bool = not _get_unplayed_board_tiles().is_empty()
+	if has_unplayed:
+		play_button_changed.emit(true, false)
 	elif not has_valid_moves() and GameManager.get_plays_remaining() > 0:
-		main_hud.set_play_button_enabled(true)
-		main_hud.set_play_button_mode(true)
+		play_button_changed.emit(true, true)
 	else:
-		main_hud.set_play_button_enabled(false)
-		main_hud.set_play_button_mode(false)
+		play_button_changed.emit(false, false)

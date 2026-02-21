@@ -9,6 +9,7 @@ class_name RunBuilder
 # =============================================================================
 
 var _bag_config: BagDistribution = null
+var _deck: DeckDefinition = null
 var _hand_size: int = -1
 var _plays_per_round: int = -1
 var _progression_config: ProgressionConfig = null
@@ -20,6 +21,15 @@ var _qualities: Array[RunQuality] = []
 
 func set_bag(bag: BagDistribution) -> RunBuilder:
 	_bag_config = bag
+	return self
+
+
+## set_deck: Selects a deck for this run.
+## Postcondition: build() uses deck.create_distribution() as bag_config.
+## Postcondition: if deck.create_bundled_quality() != null, quality is added to run.qualities.
+## Invariant    : deck takes precedence over set_bag() when both are called.
+func set_deck(deck: DeckDefinition) -> RunBuilder:
+	_deck = deck
 	return self
 
 
@@ -62,7 +72,12 @@ func build() -> Run:
 	var run := Run.new()
 
 	# Apply defaults for missing fields
-	if _bag_config:
+	if _deck:
+		run.bag_config = _deck.create_distribution()
+		var bundled := _deck.create_bundled_quality()
+		if bundled != null:
+			add_quality(bundled)
+	elif _bag_config:
 		run.bag_config = _bag_config
 	else:
 		var default_bag := load("res://Data/BagDistribution/bag_default.tres") as BagDistribution
@@ -81,8 +96,14 @@ func build() -> Run:
 	run.hand_size = _hand_size if _hand_size > 0 else run.progression_config.default_hand_size
 	run.plays_per_round = _plays_per_round if _plays_per_round > 0 else run.progression_config.default_plays_per_round
 
-	# Transfer qualities to the Run (builder should not be reused after build)
+	# Transfer qualities and reset all builder state so build() is safe to call again.
+	## Postcondition: every field returns to its sentinel/null value after build().
 	run.qualities = _qualities.duplicate()
+	_bag_config = null
+	_deck = null
+	_hand_size = -1
+	_plays_per_round = -1
+	_progression_config = null
 	_qualities.clear()
 
 	return run

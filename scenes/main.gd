@@ -77,8 +77,7 @@ func _start_run() -> void:
 	# If RunManager was not initialized (e.g., scene loaded directly for testing),
 	# initialize with defaults
 	if RunManager.run_state == null:
-		var default_bag: BagDistribution = load("res://Data/BagDistribution/bag_default.tres")
-		RunManager.initialize_run(default_bag)
+		RunManager.initialize_run_from_builder(RunBuilder.new().build())
 
 	# Populate tile bag once for the entire run
 	TileBag.populate_bag(RunManager.run_state.bag_config)
