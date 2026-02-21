@@ -9,7 +9,7 @@ border_width_left = 4
 border_width_top = 4
 border_width_right = 4
 border_width_bottom = 4
-border_color = Color(0.11350792, 0.60272574, 0.19527751, 1)
+border_color = Color(1.0, 0.85, 0.1, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_locked"]
 bg_color = Color(0, 0, 0, 0)
