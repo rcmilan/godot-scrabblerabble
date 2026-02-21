@@ -313,6 +313,7 @@ func _on_cursor_confirmed(zone: FocusCursor.Zone, position: Variant) -> void:
 						_cursor.clear_held_tile()
 				elif cell.is_occupied():
 					print("[Gameplay] Cursor: target cell occupied at %s" % coords)
+					TileAnimator.animate_shake(movable[0])
 			elif cell.is_occupied():
 				var board_tile: Tile = cell.tile
 				if not board_tile.is_locked:
