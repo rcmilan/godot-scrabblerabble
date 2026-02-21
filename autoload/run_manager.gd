@@ -185,12 +185,18 @@ func _connect_quality_signals() -> void:
 
 
 func _disconnect_quality_signals() -> void:
+	if _quality_connections.is_empty():
+		return
 	for conn in _quality_connections:
 		var sig: Signal = conn["signal"]
 		var cb: Callable = conn["callable"]
+		# Guard: quality signals may originate from RefCounted objects that were freed
+		if not is_instance_valid(sig.get_object()):
+			continue
 		if sig.is_connected(cb):
 			sig.disconnect(cb)
 	_quality_connections.clear()
+	print("[RunManager] Quality signals disconnected")
 
 
 func _on_quality_time_expired() -> void:
