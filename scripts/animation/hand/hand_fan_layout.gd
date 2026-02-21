@@ -108,6 +108,18 @@ func cleanup() -> void:
 	_base_positions.clear()
 	_tile_tweens.clear()
 
+
+## Triggers the hover push effect for the given tile as if it were mouse-hovered.
+## Called by FocusCursor for keyboard/controller navigation.
+func apply_hover_effect(tile: Tile) -> void:
+	_on_tile_mouse_entered(tile)
+
+
+## Removes the hover push effect for the given tile.
+## Called by FocusCursor when cursor moves away.
+func remove_hover_effect(tile: Tile) -> void:
+	_on_tile_mouse_exited(tile)
+
 # =============================================================================
 # SPACING ALGORITHM
 # =============================================================================

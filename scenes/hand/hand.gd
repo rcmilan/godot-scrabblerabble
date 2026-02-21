@@ -35,6 +35,11 @@ func set_selection_manager(sm: SelectionManager) -> void:
 	_selection = sm
 
 
+## Returns the HandFanLayout instance for this hand.
+func get_fan_layout() -> HandFanLayout:
+	return _fan_layout
+
+
 # === Public API: Tile Management ===
 
 ## Adds a tile to the hand.
