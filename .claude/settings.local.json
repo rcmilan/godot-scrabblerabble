@@ -18,7 +18,8 @@
       "Bash(read file:*)",
       "Bash(bash:*)",
       "Bash(rm:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git:*)"
     ]
   }
 }
