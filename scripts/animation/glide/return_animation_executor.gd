@@ -2,7 +2,7 @@ extends AnimationExecutor
 class_name ReturnAnimationExecutor
 
 ## Executes glide animations for tile transitions.
-## Handles return-to-hand, cancel, and discard animations.
+## Handles return-to-hand, cancel, discard, and place-to-board animations.
 
 
 ## Animates a single tile returning from board to hand.
@@ -238,3 +238,26 @@ func _create_discard_completion_callback(
 			_context.emit_animation_completed(tiles)
 			if on_complete.is_valid():
 				on_complete.call()
+
+
+## Animates a tile gliding from a captured hand position to its board cell.
+## Pre-condition: tile has already been placed on the cell (reparented to
+## cell_anchor, position = Vector2.ZERO) by place_tile_on_cell() (via place_tile_on_cell_animated()).
+## start_global_pos: tile.global_position captured BEFORE placement.
+func execute_place_to_board(
+	tile: Tile,
+	start_global_pos: Vector2,
+	strategy: TileAnimationStrategy
+) -> void:
+	_context.is_animating = true
+	var tiles_array: Array[Tile] = [tile]
+	_context.emit_animation_started(tiles_array)
+
+	var start_props: Dictionary = strategy.get_start_properties()
+	_apply_properties(tile, start_props)
+	strategy.on_animation_start(tile)
+
+	await _context.get_tree().process_frame
+
+	_animate_position_transition(tile, start_global_pos, strategy)
+	print("[ReturnAnimationExecutor] Started place-to-board animation for: %s" % tile.name)
