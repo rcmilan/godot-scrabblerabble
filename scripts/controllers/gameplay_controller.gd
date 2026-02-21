@@ -245,41 +245,36 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 	_play.update_play_button_state()
 
 
-func _on_tile_drag_started(tile: Tile) -> void:
-	if not _is_active:
-		return
-
-	# Safety check - tile should have prevented this, but double-check
-	if not tile.can_interact():
-		print("[Gameplay] Cannot drag non-interactable tile: %s" % tile.name)
-		return
-
-	var tiles_to_drag: Array[Tile] = _selection.get_selected_tiles()
-
-	# Filter out any locked/non-interactable tiles from multi-drag
-	var valid_tiles: Array[Tile] = []
-	for t in tiles_to_drag:
+## Builds the list of tiles to drag. Ensures lead tile is always included.
+## Removes followers that refuse drag. Resets selection if lead was not selected.
+func _collect_drag_candidates(tile: Tile) -> Array[Tile]:
+	var candidates: Array[Tile] = []
+	for t in _selection.get_selected_tiles():
 		if t.can_interact():
-			valid_tiles.append(t)
+			candidates.append(t)
 
-	if tile not in valid_tiles:
+	if tile not in candidates:
 		_selection.deselect_all()
 		_selection.select_tile(tile)
-		valid_tiles = [tile]
+		return [tile]
 
-	# Set follower tiles (skip lead tile)
-	for t in valid_tiles:
-		if t != tile:
-			if not t.set_as_drag_follower():
-				# Tile refused to be a follower (locked), remove from drag
-				valid_tiles.erase(t)
+	for t in candidates.duplicate():
+		if t != tile and not t.set_as_drag_follower():
+			candidates.erase(t)
 
+	return candidates
+
+
+func _on_tile_drag_started(tile: Tile) -> void:
+	if not _is_active or not tile.can_interact():
+		return
+
+	var valid_tiles := _collect_drag_candidates(tile)
 	if valid_tiles.is_empty():
 		print("[Gameplay] No valid tiles to drag")
 		return
 
 	_drag_mgr.start_drag(tile, valid_tiles)
-
 	if valid_tiles.size() > 1:
 		print("[Gameplay] Multi-drag started with %d tiles" % valid_tiles.size())
 
