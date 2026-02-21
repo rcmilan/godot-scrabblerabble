@@ -478,7 +478,7 @@ func _update_badges(badges: Array) -> void:
 
 
 ## Sets cursor highlight (FocusCursor navigating over this tile in hand).
-## Postcondition: green border shown and hover brightness applied when value is true.
+## Postcondition: hover brightness applied when value is true. Border is unaffected.
 func set_cursor_highlighted(value: bool) -> void:
 	_is_cursor_highlighted = value
 	_update_visual()
@@ -486,7 +486,7 @@ func set_cursor_highlighted(value: bool) -> void:
 
 func _update_visual() -> void:
 	if border:
-		border.visible = is_selected or _is_cursor_highlighted
+		border.visible = is_selected
 	if locked_border:
 		locked_border.visible = is_locked
 
