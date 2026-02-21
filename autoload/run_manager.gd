@@ -50,6 +50,7 @@ func initialize_run(
 	hand_size: int = 10,
 	progression_config: ProgressionConfig = null
 ) -> void:
+	_debug_auto_win = false
 	run_state = RunState.new()
 	run_state.start_run(plays_per_round, hand_size, bag_config)
 
@@ -63,6 +64,7 @@ func initialize_run(
 
 ## Initializes a run from a Run object built by RunBuilder.
 func initialize_run_from_builder(run: Run) -> void:
+	_debug_auto_win = false
 	_active_run = run
 
 	# Set up RunState from the Run config
@@ -111,6 +113,7 @@ func get_active_run() -> Run:
 
 
 ## Resets all run state (for returning to title).
+## Postcondition: all run state is null/zero/false — no previous run bleeds into the next.
 func reset() -> void:
 	_disconnect_quality_signals()
 	_active_run = null
@@ -118,6 +121,7 @@ func reset() -> void:
 	progression_rules = null
 	current_round_config = null
 	_debug_override_board_size = Vector2i.ZERO
+	_debug_auto_win = false
 	print("[RunManager] Reset")
 
 

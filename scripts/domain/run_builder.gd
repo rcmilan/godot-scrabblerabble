@@ -96,8 +96,14 @@ func build() -> Run:
 	run.hand_size = _hand_size if _hand_size > 0 else run.progression_config.default_hand_size
 	run.plays_per_round = _plays_per_round if _plays_per_round > 0 else run.progression_config.default_plays_per_round
 
-	# Transfer qualities to the Run (builder should not be reused after build)
+	# Transfer qualities and reset all builder state so build() is safe to call again.
+	## Postcondition: every field returns to its sentinel/null value after build().
 	run.qualities = _qualities.duplicate()
+	_bag_config = null
+	_deck = null
+	_hand_size = -1
+	_plays_per_round = -1
+	_progression_config = null
 	_qualities.clear()
 
 	return run
