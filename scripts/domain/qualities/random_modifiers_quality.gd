@@ -66,31 +66,23 @@ func _assign_modifiers_to_bag() -> void:
 	])
 
 
-func _pick_weighted_type() -> ModifierTypes.Type:
+## Picks a random key from a weights dictionary {key: int_weight}.
+func _pick_weighted(weights: Dictionary) -> Variant:
 	var total: int = 0
-	for w in TYPE_WEIGHTS.values():
+	for w in weights.values():
 		total += w
-
 	var roll: int = randi() % total
 	var cumulative: int = 0
-	for type in TYPE_WEIGHTS.keys():
-		cumulative += TYPE_WEIGHTS[type]
+	for key in weights:
+		cumulative += weights[key]
 		if roll < cumulative:
-			return type
+			return key
+	return weights.keys()[0]
 
-	return ModifierTypes.Type.EXTRA
+
+func _pick_weighted_type() -> ModifierTypes.Type:
+	return _pick_weighted(TYPE_WEIGHTS)
 
 
 func _pick_weighted_tier() -> ModifierTypes.Tier:
-	var total: int = 0
-	for w in TIER_WEIGHTS.values():
-		total += w
-
-	var roll: int = randi() % total
-	var cumulative: int = 0
-	for tier in TIER_WEIGHTS.keys():
-		cumulative += TIER_WEIGHTS[tier]
-		if roll < cumulative:
-			return tier
-
-	return ModifierTypes.Tier.BRONZE
+	return _pick_weighted(TIER_WEIGHTS)
