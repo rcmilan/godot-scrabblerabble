@@ -17,10 +17,20 @@ var _tile_scene: PackedScene = null
 # STATE
 # =============================================================================
 
-var available_tiles: Array[Tile] = []
-var drawn_tiles: Array[Tile] = []
-var current_distribution: BagDistribution = null
+var __available_tiles: Array[Tile] = []
+var __drawn_tiles: Array[Tile] = []
+var _current_distribution: BagDistribution = null
 var _initial_count: int = 0
+
+
+func get__available_tiles() -> Array[Tile]:
+	return __available_tiles.duplicate()
+
+func get__drawn_tiles() -> Array[Tile]:
+	return __drawn_tiles.duplicate()
+
+func get_current_distribution() -> BagDistribution:
+	return _current_distribution
 
 
 func _ready() -> void:
@@ -39,7 +49,7 @@ func populate_bag(distribution: BagDistribution) -> bool:
 		return false
 
 	_clear_all_tiles()
-	current_distribution = distribution
+	_current_distribution = distribution
 
 	for letter in distribution.distribution.keys():
 		var count: int = distribution.distribution[letter]
@@ -51,30 +61,30 @@ func populate_bag(distribution: BagDistribution) -> bool:
 		for i in count:
 			var tile: Tile = _create_tile(tile_data)
 			if tile:
-				available_tiles.append(tile)
+				_available_tiles.append(tile)
 
-	_initial_count = available_tiles.size()
+	_initial_count = _available_tiles.size()
 	shuffle_bag()
 
-	print("[TileBag] Populated with %d tiles" % available_tiles.size())
+	print("[TileBag] Populated with %d tiles" % _available_tiles.size())
 	return true
 
 
 ## Shuffles the available tiles randomly.
 func shuffle_bag() -> void:
-	available_tiles.shuffle()
+	_available_tiles.shuffle()
 
 
 ## Resets the bag to initial state (returns all drawn tiles).
 func reset_bag() -> void:
-	for tile in drawn_tiles:
+	for tile in _drawn_tiles:
 		tile.reset()
-		available_tiles.append(tile)
+		_available_tiles.append(tile)
 
-	drawn_tiles.clear()
+	_drawn_tiles.clear()
 	shuffle_bag()
 
-	print("[TileBag] Reset - %d tiles available" % available_tiles.size())
+	print("[TileBag] Reset - %d tiles available" % _available_tiles.size())
 
 
 # =============================================================================
@@ -83,15 +93,15 @@ func reset_bag() -> void:
 
 ## Draws a single tile from the bag.
 func draw_tile() -> Tile:
-	if available_tiles.is_empty():
+	if _available_tiles.is_empty():
 		print("[TileBag] Empty - cannot draw")
 		return null
 
-	var tile: Tile = available_tiles.pop_back()
-	drawn_tiles.append(tile)
+	var tile: Tile = _available_tiles.pop_back()
+	_drawn_tiles.append(tile)
 
 	EventBus.tile_drawn.emit(tile)
-	print("[TileBag] Drew: %s | Remaining: %d" % [tile.letter, available_tiles.size()])
+	print("[TileBag] Drew: %s | Remaining: %d" % [tile.letter, _available_tiles.size()])
 
 	return tile
 
@@ -111,14 +121,14 @@ func draw_tiles(count: int) -> Array[Tile]:
 
 ## Returns a tile to the bag (for special effects).
 func return_tile(tile: Tile) -> void:
-	if tile in drawn_tiles:
-		drawn_tiles.erase(tile)
+	if tile in _drawn_tiles:
+		_drawn_tiles.erase(tile)
 
 	tile.reset()
-	available_tiles.append(tile)
+	_available_tiles.append(tile)
 	shuffle_bag()
 
-	print("[TileBag] Returned: %s | Available: %d" % [tile.letter, available_tiles.size()])
+	print("[TileBag] Returned: %s | Available: %d" % [tile.letter, _available_tiles.size()])
 
 
 # =============================================================================
@@ -127,12 +137,12 @@ func return_tile(tile: Tile) -> void:
 
 ## Returns the number of tiles remaining in the bag.
 func tiles_remaining() -> int:
-	return available_tiles.size()
+	return _available_tiles.size()
 
 
 ## Returns true if the bag is empty.
 func is_empty() -> bool:
-	return available_tiles.is_empty()
+	return _available_tiles.is_empty()
 
 
 ## Returns the initial tile count when bag was populated.
@@ -142,16 +152,16 @@ func get_initial_count() -> int:
 
 ## Returns the number of tiles that have been drawn.
 func get_drawn_count() -> int:
-	return drawn_tiles.size()
+	return _drawn_tiles.size()
 
 
 ## Peeks at the top N tiles without drawing them (for debugging).
 func peek_tiles(count: int) -> Array[Tile]:
 	var result: Array[Tile] = []
-	var peek_count: int = mini(count, available_tiles.size())
+	var peek_count: int = mini(count, _available_tiles.size())
 
-	for i in range(available_tiles.size() - peek_count, available_tiles.size()):
-		result.append(available_tiles[i])
+	for i in range(_available_tiles.size() - peek_count, _available_tiles.size()):
+		result.append(_available_tiles[i])
 
 	return result
 
@@ -183,13 +193,13 @@ func _create_tile(data: LetterTileData) -> Tile:
 
 
 func _clear_all_tiles() -> void:
-	for tile in available_tiles:
+	for tile in _available_tiles:
 		if is_instance_valid(tile):
 			tile.queue_free()
-	for tile in drawn_tiles:
+	for tile in _drawn_tiles:
 		if is_instance_valid(tile):
 			tile.queue_free()
 
-	available_tiles.clear()
-	drawn_tiles.clear()
+	_available_tiles.clear()
+	_drawn_tiles.clear()
 	_initial_count = 0

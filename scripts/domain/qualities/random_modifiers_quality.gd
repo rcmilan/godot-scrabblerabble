@@ -52,7 +52,7 @@ func on_round_started(_round_number: int) -> void:
 
 func _assign_modifiers_to_bag() -> void:
 	var count: int = 0
-	for tile in TileBag.available_tiles:
+	for tile in TileBag.get_available_tiles():
 		if randf() < MODIFIER_CHANCE:
 			var type: ModifierTypes.Type = _pick_weighted_type()
 			var tier: ModifierTypes.Tier = _pick_weighted_tier()
@@ -62,7 +62,7 @@ func _assign_modifiers_to_bag() -> void:
 			tile.add_modifier(modifier)
 			count += 1
 	print("[RandomModifiers] Assigned %d modifiers to %d available tiles" % [
-		count, TileBag.available_tiles.size()
+		count, TileBag.tiles_remaining()
 	])
 
 
