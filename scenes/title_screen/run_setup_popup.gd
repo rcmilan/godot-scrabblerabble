@@ -101,7 +101,7 @@ func _populate_deck_selector() -> void:
 
 
 func _on_deck_selected(index: int) -> void:
-	if _deck_desc_label == null or index >= _deck_ids.size():
+	if _deck_desc_label == null or index < 0 or index >= _deck_ids.size():
 		return
 	var deck := DeckRegistry.create_default(_deck_ids[index])
 	if deck:
