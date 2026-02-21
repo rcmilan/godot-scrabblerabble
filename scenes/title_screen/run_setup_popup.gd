@@ -18,12 +18,17 @@ signal cancelled()
 @onready var _quality_list: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/QualityList
 @onready var _start_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/StartButton
 @onready var _back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/BackButton
+@onready var _content_vbox: VBoxContainer = $Panel/MarginContainer/VBoxContainer
 
 # =============================================================================
 # STATE
 # =============================================================================
 
 var _quality_checkboxes: Dictionary = {}  # StringName -> CheckBox
+
+var _deck_option: OptionButton = null
+var _deck_desc_label: Label = null
+var _deck_ids: Array[StringName] = []
 
 # =============================================================================
 # LIFECYCLE
@@ -33,6 +38,7 @@ func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
 	set_process_input(true)
+	_populate_deck_selector()
 	_populate_quality_list()
 
 
@@ -59,6 +65,55 @@ func close_popup() -> void:
 # =============================================================================
 # PRIVATE
 # =============================================================================
+
+func _populate_deck_selector() -> void:
+	var deck_label := Label.new()
+	deck_label.text = "Deck"
+	deck_label.add_theme_font_size_override("font_size", 14)
+
+	_deck_option = OptionButton.new()
+	_deck_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_deck_ids = DeckRegistry.get_all_deck_ids()
+	for id in _deck_ids:
+		var deck := DeckRegistry.create_default(id)
+		_deck_option.add_item(deck.get_display_name())
+	_deck_option.item_selected.connect(_on_deck_selected)
+
+	_deck_desc_label = Label.new()
+	_deck_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_deck_desc_label.add_theme_font_size_override("font_size", 12)
+	_deck_desc_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", 6)
+	section.add_child(deck_label)
+	section.add_child(_deck_option)
+	section.add_child(_deck_desc_label)
+
+	var sep := HSeparator.new()
+
+	_content_vbox.add_child(section)
+	_content_vbox.add_child(sep)
+	_content_vbox.move_child(section, 0)
+	_content_vbox.move_child(sep, 1)
+
+	_on_deck_selected(0)
+
+
+func _on_deck_selected(index: int) -> void:
+	if _deck_desc_label == null or index >= _deck_ids.size():
+		return
+	var deck := DeckRegistry.create_default(_deck_ids[index])
+	if deck:
+		_deck_desc_label.text = deck.get_description()
+
+
+func _get_selected_deck() -> DeckDefinition:
+	var index := _deck_option.selected if _deck_option else 0
+	if index < 0 or index >= _deck_ids.size():
+		return StandardDeck.new()
+	return DeckRegistry.create_default(_deck_ids[index])
+
 
 func _populate_quality_list() -> void:
 	# Clear existing children
@@ -105,7 +160,7 @@ func _populate_quality_list() -> void:
 
 func _build_run() -> Run:
 	var builder := RunBuilder.new()
-	builder.set_bag(load("res://Data/BagDistribution/bag_default.tres"))
+	builder.set_deck(_get_selected_deck())
 
 	for id in _quality_checkboxes:
 		var checkbox: CheckBox = _quality_checkboxes[id]
