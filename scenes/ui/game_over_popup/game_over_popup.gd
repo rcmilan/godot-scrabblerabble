@@ -11,6 +11,12 @@ class_name GameOverPopup
 signal return_to_title_requested
 
 # =============================================================================
+# STATE
+# =============================================================================
+
+var _guard: ModalInputGuard
+
+# =============================================================================
 # NODE REFERENCES
 # =============================================================================
 
@@ -25,15 +31,14 @@ signal return_to_title_requested
 
 func _ready() -> void:
 	_return_button.pressed.connect(_on_return_pressed)
+	_guard = ModalInputGuard.new().setup(self).add_close_action(&"ui_accept")
+	_guard.close_requested.connect(_on_return_pressed)
 	hide()
 
 
 func _input(event: InputEvent) -> void:
-	if not visible:
+	if _guard.handle(event):
 		return
-	if event.is_action_pressed("ui_accept"):
-		get_viewport().set_input_as_handled()
-		_on_return_pressed()
 
 # =============================================================================
 # PUBLIC API

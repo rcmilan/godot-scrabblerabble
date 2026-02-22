@@ -6,6 +6,8 @@ extends CanvasLayer
 signal confirmed
 signal cancelled
 
+var _guard: ModalInputGuard
+
 @onready var panel: Panel = $CenterContainer/Panel
 @onready var message_label: Label = $CenterContainer/Panel/VBoxContainer/MessageLabel
 @onready var yes_button: Button = $CenterContainer/Panel/VBoxContainer/ButtonContainer/YesButton
@@ -17,11 +19,12 @@ var _tile_count: int = 0
 func _ready() -> void:
 	yes_button.pressed.connect(_on_yes_pressed)
 	no_button.pressed.connect(_on_no_pressed)
+	_guard = ModalInputGuard.new().setup(self)
 	hide()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
+func _input(event: InputEvent) -> void:
+	if _guard.handle(event):
 		return
 
 	# Close on Escape

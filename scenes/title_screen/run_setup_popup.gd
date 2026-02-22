@@ -26,6 +26,8 @@ signal cancelled()
 
 var _quality_checkboxes: Dictionary = {}  # StringName -> CheckBox
 
+var _guard: ModalInputGuard
+
 var _deck_option: OptionButton = null
 var _deck_desc_label: Label = null
 var _deck_ids: Array[StringName] = []
@@ -37,32 +39,35 @@ var _deck_ids: Array[StringName] = []
 func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
+	_guard = ModalInputGuard.new().setup(self)
 	set_process_input(true)
 	_populate_deck_selector()
 	_populate_quality_list()
 
 
 func _input(event: InputEvent) -> void:
-	if not visible:
-		return
-
 	# Forward WASD (navigate_*) as ui_* so Godot's focus traversal picks them up.
+	# Must run before guard, which would otherwise block these actions.
 	# Safe from loops: the re-injected InputEventAction("ui_up") is not matched by
 	# is_action_pressed("navigate_up") because ui_up is not in navigate_up's bindings.
-	var nav_map: Dictionary = {
-		KeyAction.NAVIGATE_UP:    &"ui_up",
-		KeyAction.NAVIGATE_DOWN:  &"ui_down",
-		KeyAction.NAVIGATE_LEFT:  &"ui_left",
-		KeyAction.NAVIGATE_RIGHT: &"ui_right",
-	}
-	for game_action: StringName in nav_map:
-		if event.is_action_pressed(game_action):
-			var fake := InputEventAction.new()
-			fake.action = nav_map[game_action]
-			fake.pressed = true
-			Input.parse_input_event(fake)
-			get_viewport().set_input_as_handled()
-			return
+	if visible:
+		var nav_map: Dictionary = {
+			KeyAction.NAVIGATE_UP:    &"ui_up",
+			KeyAction.NAVIGATE_DOWN:  &"ui_down",
+			KeyAction.NAVIGATE_LEFT:  &"ui_left",
+			KeyAction.NAVIGATE_RIGHT: &"ui_right",
+		}
+		for game_action: StringName in nav_map:
+			if event.is_action_pressed(game_action):
+				var fake := InputEventAction.new()
+				fake.action = nav_map[game_action]
+				fake.pressed = true
+				Input.parse_input_event(fake)
+				get_viewport().set_input_as_handled()
+				return
+
+	if _guard.handle(event):
+		return
 
 	if event.is_action_pressed(&"ui_cancel"):
 		close_popup()

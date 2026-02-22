@@ -27,6 +27,8 @@ signal closed()
 var _listening_action: StringName = &""
 var _listening_button: Button = null
 
+var _guard: ModalInputGuard
+
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
@@ -35,6 +37,7 @@ func _ready() -> void:
 	_close_button.pressed.connect(_on_close_pressed)
 	_volume_slider.value_changed.connect(_on_volume_changed)
 	_reset_button.pressed.connect(_on_reset_defaults_pressed)
+	_guard = ModalInputGuard.new().setup(self)
 	set_process_input(true)
 
 	_fullscreen_check.button_pressed = false
@@ -45,11 +48,10 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not visible:
-		return
-
-	# Capture rebind — takes full priority while listening
+	# Capture rebind — takes full priority while listening (before guard)
 	if _listening_action != &"":
+		if not visible:
+			return
 		if event is InputEventKey and event.pressed and not event.is_echo():
 			if event.keycode == KEY_ESCAPE:
 				_listening_button.text = KeybindingConfig.get_event_display_text(_listening_action)
@@ -61,14 +63,8 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	# Block game navigation from bleeding to menu buttons behind the modal
-	var nav_actions: Array[StringName] = [KeyAction.NAVIGATE_UP, KeyAction.NAVIGATE_DOWN,
-					KeyAction.NAVIGATE_LEFT, KeyAction.NAVIGATE_RIGHT,
-					KeyAction.CONFIRM, &"ui_up", &"ui_down", &"ui_left", &"ui_right"]
-	for action in nav_actions:
-		if event.is_action_pressed(action):
-			get_viewport().set_input_as_handled()
-			return
+	if _guard.handle(event):
+		return
 
 	# Tab switching: 1/2 keys or L1/R1 controller
 	if event is InputEventKey and event.pressed and not event.is_echo():
