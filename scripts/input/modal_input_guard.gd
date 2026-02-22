@@ -3,12 +3,12 @@ class_name ModalInputGuard
 extends RefCounted
 
 ## Shared input guard for modal popups (CanvasLayer or Control-based).
-## Blocks gameplay navigation from bleeding through, and closes the popup
-## on configured close actions. Compose via ModalInputGuard.new().setup(self).
+## Owner must be a Node with .visible and .get_viewport() — both CanvasLayer
+## and Control satisfy this. Compose via ModalInputGuard.new().setup(self).
 
 signal close_requested
 
-var _owner: CanvasItem = null
+var _owner: Node = null
 var _close_actions:   Array[StringName] = []
 var _blocked_actions: Array[StringName] = [
 	KeyAction.NAVIGATE_LEFT,
@@ -21,7 +21,7 @@ var _blocked_actions: Array[StringName] = [
 
 
 ## Fluent — call .setup(self) first, then chain .add_close_action() as needed.
-func setup(owner: CanvasItem) -> ModalInputGuard:
+func setup(owner: Node) -> ModalInputGuard:
 	_owner = owner
 	return self
 
