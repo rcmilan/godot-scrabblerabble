@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://b3x7qnm2kdvf8"]
+
+[ext_resource type="Script" path="res://scenes/ui/keyboard_hint_bar/keyboard_hint_bar.gd" id="1_a4r9t"]
+
+[node name="KeyboardHintBar" type="HBoxContainer"]
+script = ExtResource("1_a4r9t")
+alignment = 1
+size_flags_horizontal = 3
