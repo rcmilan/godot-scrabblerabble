@@ -17,6 +17,7 @@ signal closed()
 @onready var _volume_slider: HSlider     = $Panel/MarginContainer/VBoxContainer/TabContainer/Display/VolumeSlider
 @onready var _volume_label: Label        = $Panel/MarginContainer/VBoxContainer/TabContainer/Display/VolumeValueLabel
 @onready var _reset_button: Button       = $Panel/MarginContainer/VBoxContainer/TabContainer/Controls/ResetButton
+@onready var _reset_cancel_button: Button = $Panel/MarginContainer/VBoxContainer/TabContainer/Controls/ResetCancelButton
 @onready var _action_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/TabContainer/Controls/ScrollContainer/ActionList
 
 # =============================================================================
@@ -28,6 +29,8 @@ var _listening_button: Button = null
 
 var _guard: ModalInputGuard
 
+var _reset_confirming: bool = false
+
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
@@ -36,6 +39,7 @@ func _ready() -> void:
 	_close_button.pressed.connect(_on_close_pressed)
 	_volume_slider.value_changed.connect(_on_volume_changed)
 	_reset_button.pressed.connect(_on_reset_defaults_pressed)
+	_reset_cancel_button.pressed.connect(_on_reset_cancel_pressed)
 	_guard = ModalInputGuard.new().setup(self)
 	set_process_input(true)
 
@@ -154,8 +158,23 @@ func _on_rebind_pressed(action: StringName, button: Button) -> void:
 
 
 func _on_reset_defaults_pressed() -> void:
+	if not _reset_confirming:
+		_reset_confirming = true
+		_reset_button.text = "Confirm reset"
+		_reset_cancel_button.show()
+		return
+	# Second press — execute reset
+	_reset_confirming = false
+	_reset_button.text = "Reset to Defaults"
+	_reset_cancel_button.hide()
 	KeybindingConfig.reset_to_defaults()
 	_populate_controls_tab()
+
+
+func _on_reset_cancel_pressed() -> void:
+	_reset_confirming = false
+	_reset_button.text = "Reset to Defaults"
+	_reset_cancel_button.hide()
 
 # =============================================================================
 # DISPLAY TAB CALLBACKS

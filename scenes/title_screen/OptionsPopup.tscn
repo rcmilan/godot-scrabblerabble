@@ -102,6 +102,11 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "Reset to Defaults"
 
+[node name="ResetCancelButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Controls"]
+layout_mode = 2
+visible = false
+text = "Cancel"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Controls"]
 layout_mode = 2
 size_flags_vertical = 3
