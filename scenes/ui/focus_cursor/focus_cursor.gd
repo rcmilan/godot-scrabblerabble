@@ -85,7 +85,9 @@ func set_held_tile(tile: Tile) -> void:
 
 ## Postcondition: held_tile cleared; tile alpha restored to 1.0.
 func clear_held_tile() -> void:
-	if _state and _state.held_tile:
+	if _state == null:
+		return
+	if _state.held_tile:
 		_state.held_tile.self_modulate.a = 1.0
 	_state = _state.cleared_tile()
 	_update_ghost_display()
@@ -165,6 +167,9 @@ func _update_cursor_tint() -> void:
 
 
 func _update_ghost_display() -> void:
+	if _state == null:
+		_ghost_label.hide()
+		return
 	if _state.held_tile != null and _state.position.is_board():
 		_ghost_label.text = _state.held_tile.letter
 		_ghost_label.show()
