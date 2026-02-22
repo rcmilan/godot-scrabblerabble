@@ -286,48 +286,47 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 	_play.update_play_button_state()
 
 
-func _on_cursor_confirmed(zone: FocusCursor.Zone, position: Variant) -> void:
+func _on_cursor_confirmed(pos: CursorPosition) -> void:
 	if not _is_active:
 		return
-	match zone:
-		FocusCursor.Zone.HAND:
-			var tile: Tile = hand.get_tile_at(int(position))
-			if tile == null:
-				return
-			_on_tile_selected(tile)
-			if _selection.has_selection() and _cursor:
-				_cursor.set_held_tile(tile)
 
-		FocusCursor.Zone.BOARD:
-			var coords := position as Vector2i
-			var cell: BoardCell = board.get_cell(coords.y, coords.x)
-			if cell == null:
-				return
-			if _selection.has_selection():
-				var movable: Array[Tile] = _selection.get_selected_tiles().filter(
-					func(t: Tile) -> bool: return not t.is_locked
-				)
-				if not movable.is_empty() and not cell.is_occupied():
-					_place_tiles_on_cell(movable, cell, true)
-					if _cursor:
-						_cursor.clear_held_tile()
-				elif cell.is_occupied():
-					print("[Gameplay] Cursor: target cell occupied at %s" % coords)
-					TileAnimator.animate_shake(movable[0])
+	if pos.is_hand():
+		var tile: Tile = hand.get_tile_at(pos.hand_index)
+		if tile == null:
+			return
+		_on_tile_selected(tile)
+		if _selection.has_selection() and _cursor:
+			_cursor.set_held_tile(tile)
+
+	elif pos.is_board():
+		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
+		if cell == null:
+			return
+		if _selection.has_selection():
+			var movable: Array[Tile] = _selection.get_selected_tiles().filter(
+				func(t: Tile) -> bool: return not t.is_locked
+			)
+			if not movable.is_empty() and not cell.is_occupied():
+				_place_tiles_on_cell(movable, cell, true)
+				if _cursor:
+					_cursor.clear_held_tile()
 			elif cell.is_occupied():
-				var board_tile: Tile = cell.tile
-				if not board_tile.is_locked:
-					_placement.return_tile_to_hand(board_tile)
-					_selection.select_tile(board_tile)
-					if _cursor:
-						_cursor.set_held_tile(board_tile)
-					_update_interaction_state()
-					tile_returned_to_hand.emit(board_tile)
-				else:
-					TileAnimator.animate_shake(board_tile)
+				print("[Gameplay] Cursor: target cell occupied at %s" % pos.board_coords)
+				TileAnimator.animate_shake(movable[0])
+		elif cell.is_occupied():
+			var board_tile: Tile = cell.tile
+			if not board_tile.is_locked:
+				_placement.return_tile_to_hand(board_tile)
+				_selection.select_tile(board_tile)
+				if _cursor:
+					_cursor.set_held_tile(board_tile)
+				_update_interaction_state()
+				tile_returned_to_hand.emit(board_tile)
+			else:
+				TileAnimator.animate_shake(board_tile)
 
 
-func _on_cursor_cancelled(_zone: FocusCursor.Zone, _position: Variant) -> void:
+func _on_cursor_cancelled(_pos: CursorPosition) -> void:
 	if not _is_active:
 		return
 	_selection.deselect_all()
@@ -337,13 +336,12 @@ func _on_cursor_cancelled(_zone: FocusCursor.Zone, _position: Variant) -> void:
 	_play.update_play_button_state()
 
 
-func _on_cursor_moved(zone: FocusCursor.Zone, position: Variant) -> void:
+func _on_cursor_moved(pos: CursorPosition) -> void:
 	if not _is_active:
 		return
 	_placement.clear_all_cell_hovers()
-	if zone == FocusCursor.Zone.BOARD:
-		var coords := position as Vector2i
-		var cell: BoardCell = board.get_cell(coords.y, coords.x)
+	if pos.is_board():
+		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
 		if cell:
 			_on_cell_hovered(cell)
 
