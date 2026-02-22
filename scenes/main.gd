@@ -190,6 +190,7 @@ func _on_shop_continue() -> void:
 func _on_run_ended(victory: bool, total_score: int) -> void:
 	_gameplay_controller.deactivate()
 	_focus_cursor.deactivate()
+	main_hud.hide_hint_bar()
 	if victory:
 		game_over_popup.show_victory(total_score)
 	else:
@@ -231,6 +232,7 @@ func _show_gameplay_ui() -> void:
 	board.show()
 	hand.show()
 	main_hud.show()
+	main_hud.show_hint_bar()
 	shop_overlay.hide()
 	game_over_popup.hide()
 
@@ -238,6 +240,7 @@ func _show_gameplay_ui() -> void:
 func _hide_gameplay_ui() -> void:
 	board.hide()
 	hand.hide()
+	main_hud.hide_hint_bar()
 
 
 # =============================================================================
