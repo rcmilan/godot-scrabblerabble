@@ -114,6 +114,16 @@ func animate_cancel_to_hand(tiles: Array[Tile], hand: Node, restore_fn: Callable
 	_return_executor.execute_cancel_batch(tiles, hand, _glide_animation, restore_fn)
 
 
+## Animates a batch of tiles gliding from hand positions to their board cells.
+## Call AFTER all tiles have been placed (reparented to their cells).
+## start_positions: Dictionary mapping Tile -> Vector2 captured BEFORE placement.
+func animate_place_batch_to_board(tiles: Array[Tile], start_positions: Dictionary) -> void:
+	if tiles.is_empty():
+		return
+	_ensure_glide_resources()
+	_return_executor.execute_place_batch_to_board(tiles, start_positions, _glide_animation)
+
+
 ## Animates a tile gliding from its hand position to a board cell.
 ## Call AFTER place_tile_on_cell_silent() has reparented the tile.
 ## start_global_pos: tile.global_position captured BEFORE placement.
