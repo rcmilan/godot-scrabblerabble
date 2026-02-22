@@ -108,6 +108,8 @@ func _process(_delta: float) -> void:
 
 
 func _update_cursor_rect() -> void:
+	if _state == null:
+		return
 	if _state.position.is_hand():
 		_cursor_rect.hide()
 		_update_hand_tile_highlight()
@@ -129,6 +131,8 @@ func _update_cursor_rect() -> void:
 
 
 func _update_hand_tile_highlight() -> void:
+	if _state == null:
+		return
 	var new_tile: Tile = _hand.get_tile_at(_state.position.hand_index) if _hand != null else null
 	if new_tile == _highlighted_hand_tile:
 		return
