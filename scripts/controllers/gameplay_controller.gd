@@ -494,16 +494,21 @@ func _handle_drag_release(tile: Tile) -> void:
 ## Places one or more movable tiles starting at the target cell.
 func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = false) -> void:
 	if movable.size() > 1:
-		# Multi-tile placement: animated flag intentionally ignored (batch glide not in scope).
 		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
 		if cells.is_empty():
 			print("[Gameplay] Cannot place %d tiles starting at %s" % [movable.size(), cell.name])
 			return
+		# PSM: remove from old positions if tiles are moving between board cells
 		for i in movable.size():
-			# PSM: remove from old position if tile is moving between board cells
 			if movable[i].current_cell:
 				_play_state_manager.remove_tile_at(movable[i].current_cell.grid_position)
-			_placement.place_tile_on_cell_silent(movable[i], cells[i])
+		if animated:
+			_placement.place_tiles_on_cells_animated(movable, cells)
+		else:
+			for i in movable.size():
+				_placement.place_tile_on_cell_silent(movable[i], cells[i])
+		# PSM: add new placements
+		for i in movable.size():
 			_play_state_manager.place_temporary_tile(movable[i], cells[i].grid_position)
 		print("[Gameplay] Placed %d tiles starting at %s" % [movable.size(), cell.name])
 	else:

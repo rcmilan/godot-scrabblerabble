@@ -143,6 +143,32 @@ func _animate_position_transition_with_delay(
 	)
 
 
+## Animates a batch of tiles gliding from captured hand positions to their board cells.
+## Pre-condition: all tiles already placed on their cells (reparented, position = Vector2.ZERO).
+## start_positions: Dictionary mapping Tile -> Vector2 (global_position captured BEFORE placement).
+func execute_place_batch_to_board(
+	tiles: Array[Tile],
+	start_positions: Dictionary,
+	strategy: TileAnimationStrategy
+) -> void:
+	_context.is_animating = true
+	_context.emit_animation_started(tiles)
+
+	var total_tiles: int = tiles.size()
+	var completed_count_ref: Array = [0]
+
+	for i in tiles.size():
+		var tile: Tile = tiles[i]
+		if not is_instance_valid(tile):
+			completed_count_ref[0] += 1
+			continue
+		var start_global_pos: Vector2 = start_positions.get(tile, tile.global_position)
+		var delay: float = i * strategy.stagger_delay
+		_animate_position_transition_with_delay(tile, start_global_pos, strategy, delay, tiles, completed_count_ref, total_tiles)
+
+	print("[ReturnAnimationExecutor] Started place-batch-to-board animation for %d tiles" % tiles.size())
+
+
 ## Animates tiles moving to discard pile and calls callback when complete.
 func execute_discard_batch(
 	tiles: Array[Tile],
