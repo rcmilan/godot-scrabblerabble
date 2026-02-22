@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dvvvp3s5ego5p"]
+[gd_scene load_steps=3 format=3 uid="uid://dvvvp3s5ego5p"]
 
 [ext_resource type="Script" uid="uid://ovu3bkok7cl3" path="res://scenes/ui/main_hud/main_hud.gd" id="1_mainhud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/keyboard_hint_bar/keyboard_hint_bar.tscn" id="2_kbhintbar"]
 
 [node name="MainHUD" type="CanvasLayer"]
 layer = 0
@@ -132,3 +133,11 @@ offset_top = 538.0
 offset_right = 965.0
 offset_bottom = 578.0
 text = "Play"
+
+[node name="KeyboardHintBar" parent="." instance=ExtResource("2_kbhintbar")]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -28.0
+offset_bottom = 0.0
+visible = false
