@@ -257,7 +257,8 @@ func execute_place_to_board(
 	_apply_properties(tile, start_props)
 	strategy.on_animation_start(tile)
 
-	await _context.get_tree().process_frame
-
+	# No await needed: the cell's position is known immediately after reparenting.
+	# Awaiting would show the tile at the cell for one frame before the tween
+	# begins, causing a visible "teleport" effect.
 	_animate_position_transition(tile, start_global_pos, strategy)
 	print("[ReturnAnimationExecutor] Started place-to-board animation for: %s" % tile.name)
