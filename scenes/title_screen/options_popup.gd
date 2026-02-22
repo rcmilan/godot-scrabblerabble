@@ -61,8 +61,9 @@ func _input(event: InputEvent) -> void:
 		return
 
 	# Block game navigation from bleeding to menu buttons behind the modal
-	var nav_actions := ["navigate_up", "navigate_down", "navigate_left", "navigate_right",
-						"confirm_action", "ui_up", "ui_down", "ui_left", "ui_right"]
+	var nav_actions: Array[StringName] = [KeyAction.NAVIGATE_UP, KeyAction.NAVIGATE_DOWN,
+					KeyAction.NAVIGATE_LEFT, KeyAction.NAVIGATE_RIGHT,
+					KeyAction.CONFIRM, &"ui_up", &"ui_down", &"ui_left", &"ui_right"]
 	for action in nav_actions:
 		if event.is_action_pressed(action):
 			get_viewport().set_input_as_handled()
@@ -89,7 +90,7 @@ func _input(event: InputEvent) -> void:
 			return
 
 	# Close on cancel (Backspace/Delete/ESC/B-button)
-	if event.is_action_pressed("cancel_action") or event.is_action_pressed("ui_cancel"):
+	if event.is_action_pressed(KeyAction.CANCEL) or event.is_action_pressed(&"ui_cancel"):
 		close_popup()
 		get_viewport().set_input_as_handled()
 

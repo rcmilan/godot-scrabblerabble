@@ -50,12 +50,12 @@ func _input(event: InputEvent) -> void:
 	# Safe from loops: the re-injected InputEventAction("ui_up") is not matched by
 	# is_action_pressed("navigate_up") because ui_up is not in navigate_up's bindings.
 	var nav_map: Dictionary = {
-		"navigate_up":    "ui_up",
-		"navigate_down":  "ui_down",
-		"navigate_left":  "ui_left",
-		"navigate_right": "ui_right",
+		KeyAction.NAVIGATE_UP:    &"ui_up",
+		KeyAction.NAVIGATE_DOWN:  &"ui_down",
+		KeyAction.NAVIGATE_LEFT:  &"ui_left",
+		KeyAction.NAVIGATE_RIGHT: &"ui_right",
 	}
-	for game_action: String in nav_map:
+	for game_action: StringName in nav_map:
 		if event.is_action_pressed(game_action):
 			var fake := InputEventAction.new()
 			fake.action = nav_map[game_action]
