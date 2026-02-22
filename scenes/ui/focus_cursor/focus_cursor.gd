@@ -175,25 +175,25 @@ func _update_ghost_display() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _is_active:
 		return
-	if event.is_action_pressed("navigate_left"):
+	if event.is_action_pressed(KeyAction.NAVIGATE_LEFT):
 		_navigate(Vector2i.LEFT)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("navigate_right"):
+	elif event.is_action_pressed(KeyAction.NAVIGATE_RIGHT):
 		_navigate(Vector2i.RIGHT)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("navigate_up"):
+	elif event.is_action_pressed(KeyAction.NAVIGATE_UP):
 		_navigate(Vector2i.UP)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("navigate_down"):
+	elif event.is_action_pressed(KeyAction.NAVIGATE_DOWN):
 		_navigate(Vector2i.DOWN)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("confirm_action"):
+	elif event.is_action_pressed(KeyAction.CONFIRM):
 		_confirm()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("cancel_action"):
+	elif event.is_action_pressed(KeyAction.CANCEL):
 		_cancel()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("switch_zone"):
+	elif event.is_action_pressed(KeyAction.SWITCH_ZONE):
 		if _zone == Zone.HAND:
 			_switch_to_board_zone()
 		else:

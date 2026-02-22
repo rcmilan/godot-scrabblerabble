@@ -94,22 +94,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _is_active:
 		return
 
-	if event.is_action_pressed("pause_game"):
+	if event.is_action_pressed(KeyAction.PAUSE_GAME):
 		pause_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_pressed("toggle_multi_select"):
+	if event.is_action_pressed(KeyAction.TOGGLE_MULTI):
 		_selection.toggle_mode()
 
-	if event.is_action_pressed("discard_tiles"):
+	if event.is_action_pressed(KeyAction.DISCARD_TILES):
 		_request_discard()
 
-	if event.is_action_pressed("play_hand"):
+	if event.is_action_pressed(KeyAction.PLAY_HAND):
 		_on_play_requested()
 		get_viewport().set_input_as_handled()
 
-	if event.is_action_pressed("draw_tiles"):
+	if event.is_action_pressed(KeyAction.DRAW_TILES):
 		_on_draw_requested()
 		get_viewport().set_input_as_handled()
 
