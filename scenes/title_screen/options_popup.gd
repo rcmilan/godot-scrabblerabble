@@ -110,8 +110,22 @@ func close_popup() -> void:
 func _populate_controls_tab() -> void:
 	for child in _action_list.get_children():
 		child.queue_free()
-	for action: StringName in KeybindingConfig.KEYBINDABLE_ACTIONS:
-		_action_list.add_child(_build_action_row(action))
+
+	for category in KeybindingConfig.CATEGORIES:
+		# Category header label
+		var header := Label.new()
+		header.text = category["label"]
+		header.add_theme_font_size_override("font_size", 14)
+		_action_list.add_child(header)
+
+		# One row per action in the category
+		for action in category["actions"]:
+			_action_list.add_child(_build_action_row(action))
+
+		# Spacer between categories
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(0, 8)
+		_action_list.add_child(spacer)
 
 
 func _build_action_row(action: StringName) -> HBoxContainer:
