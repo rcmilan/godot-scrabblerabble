@@ -9,28 +9,22 @@ class_name FocusCursor
 # SIGNALS
 # =============================================================================
 
-## position is int (hand index) for HAND zone, Vector2i (col, row) for BOARD zone.
-signal cursor_confirmed(zone: Zone, position: Variant)
-signal cursor_cancelled(zone: Zone, position: Variant)
-signal cursor_moved(zone: Zone, position: Variant)
+signal cursor_confirmed(pos: CursorPosition)
+signal cursor_cancelled(pos: CursorPosition)
+signal cursor_moved(pos: CursorPosition)
 
 # =============================================================================
-# ENUMS
+# CONSTANTS
 # =============================================================================
 
-enum Zone { HAND, BOARD }
+## Re-export so external code can still write FocusCursor.Zone if needed.
+const Zone := CursorPosition.Zone
 
 # =============================================================================
 # STATE
 # =============================================================================
 
-## Invariant: _hand_index in [0, hand.get_tile_count()-1] when HAND zone active.
-## Invariant: _board_coords within board bounds when BOARD zone active.
-## Invariant: _held_tile is null when no tile has been confirmed for placement.
-var _zone: Zone = Zone.HAND
-var _hand_index: int = 0
-var _board_coords: Vector2i = Vector2i(0, 0)
-var _held_tile: Tile = null
+var _state: CursorState = null  ## Initialised in activate().
 var _is_active: bool = false
 var _highlighted_hand_tile: Tile = null
 
@@ -66,8 +60,7 @@ func setup(board: Board, hand: Hand) -> void:
 ## Postcondition: cursor becomes visible and processes input.
 func activate() -> void:
 	_is_active = true
-	_hand_index = 0
-	_zone = Zone.HAND
+	_state = CursorState.at_hand(0)
 	set_process_unhandled_input(true)
 	_update_hand_tile_highlight()
 
@@ -81,28 +74,28 @@ func deactivate() -> void:
 	set_process_unhandled_input(false)
 
 
-## Postcondition: _held_tile set; cursor highlight removed, tile faded to 50% alpha.
+## Postcondition: held_tile set; cursor highlight removed, tile faded to 50% alpha.
 func set_held_tile(tile: Tile) -> void:
 	_clear_hand_tile_highlight()
-	_held_tile = tile
+	_state = _state.with_held_tile(tile)
 	if tile:
 		tile.self_modulate.a = 0.5
 	_update_ghost_display()
 
 
-## Postcondition: _held_tile cleared; tile alpha restored to 1.0.
+## Postcondition: held_tile cleared; tile alpha restored to 1.0.
 func clear_held_tile() -> void:
-	if _held_tile:
-		_held_tile.self_modulate.a = 1.0
-	_held_tile = null
+	if _state and _state.held_tile:
+		_state.held_tile.self_modulate.a = 1.0
+	_state = _state.cleared_tile()
 	_update_ghost_display()
 
 
-## Returns the BoardCell at _board_coords, or null if zone is HAND.
+## Returns the BoardCell at board_coords, or null if zone is HAND.
 func get_current_cell() -> BoardCell:
-	if _zone != Zone.BOARD or _board == null:
+	if _state == null or not _state.position.is_board() or _board == null:
 		return null
-	return _board.get_cell(_board_coords.y, _board_coords.x)
+	return _board.get_cell(_state.position.board_coords.y, _state.position.board_coords.x)
 
 # =============================================================================
 # VISUAL UPDATE
@@ -115,25 +108,28 @@ func _process(_delta: float) -> void:
 
 
 func _update_cursor_rect() -> void:
-	if _zone == Zone.HAND:
+	if _state.position.is_hand():
 		_cursor_rect.hide()
 		_update_hand_tile_highlight()
 		return
 	# BOARD zone: use cursor rect, ensure hand tile is not highlighted
 	if _highlighted_hand_tile:
 		_clear_hand_tile_highlight()
-	var cell := _board.get_cell(_board_coords.y, _board_coords.x)
+	var cell := _board.get_cell(
+		_state.position.board_coords.y,
+		_state.position.board_coords.x
+	)
 	if cell == null:
 		_cursor_rect.hide()
 		return
 	_cursor_rect.show()
 	_cursor_rect.position = cell.get_global_rect().position - global_position
-	_cursor_rect.size = cell.get_global_rect().size
+	_cursor_rect.size     = cell.get_global_rect().size
 	_update_cursor_tint()
 
 
 func _update_hand_tile_highlight() -> void:
-	var new_tile: Tile = _hand.get_tile_at(_hand_index) if _hand != null else null
+	var new_tile: Tile = _hand.get_tile_at(_state.position.hand_index) if _hand != null else null
 	if new_tile == _highlighted_hand_tile:
 		return
 	if _highlighted_hand_tile and is_instance_valid(_highlighted_hand_tile):
@@ -153,8 +149,11 @@ func _clear_hand_tile_highlight() -> void:
 
 
 func _update_cursor_tint() -> void:
-	if _zone == Zone.BOARD and _held_tile != null:
-		var cell := _board.get_cell(_board_coords.y, _board_coords.x)
+	if _state.position.is_board() and _state.held_tile != null:
+		var cell := _board.get_cell(
+			_state.position.board_coords.y,
+			_state.position.board_coords.x
+		)
 		if cell and cell.is_occupied():
 			_cursor_rect.modulate = Color(1.0, 0.3, 0.3)
 			return
@@ -162,8 +161,8 @@ func _update_cursor_tint() -> void:
 
 
 func _update_ghost_display() -> void:
-	if _held_tile != null and _zone == Zone.BOARD:
-		_ghost_label.text = _held_tile.letter
+	if _state.held_tile != null and _state.position.is_board():
+		_ghost_label.text = _state.held_tile.letter
 		_ghost_label.show()
 	else:
 		_ghost_label.hide()
@@ -194,7 +193,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_cancel()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(KeyAction.SWITCH_ZONE):
-		if _zone == Zone.HAND:
+		if _state.position.is_hand():
 			_switch_to_board_zone()
 		else:
 			_switch_to_hand_zone()
@@ -202,9 +201,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _navigate(direction: Vector2i) -> void:
-	match _zone:
-		Zone.HAND:  _navigate_hand(direction)
-		Zone.BOARD: _navigate_board(direction)
+	if _state.position.is_hand():
+		_navigate_hand(direction)
+	else:
+		_navigate_board(direction)
 
 
 func _navigate_hand(direction: Vector2i) -> void:
@@ -213,67 +213,61 @@ func _navigate_hand(direction: Vector2i) -> void:
 		return
 	match direction:
 		Vector2i.LEFT:
-			_hand_index = (_hand_index - 1 + count) % count
-			cursor_moved.emit(Zone.HAND, _hand_index)
+			_state = _state.with_hand_index((_state.position.hand_index - 1 + count) % count)
+			cursor_moved.emit(_state.position)
 		Vector2i.RIGHT:
-			_hand_index = (_hand_index + 1) % count
-			cursor_moved.emit(Zone.HAND, _hand_index)
+			_state = _state.with_hand_index((_state.position.hand_index + 1) % count)
+			cursor_moved.emit(_state.position)
 		Vector2i.UP:
 			_switch_to_board_zone()
 		# DOWN in HAND zone: intentional no-op (hand is at the bottom of the layout)
 
 
 func _navigate_board(direction: Vector2i) -> void:
-	if direction == Vector2i.DOWN and _board_coords.y >= _board.rows - 1:
+	if direction == Vector2i.DOWN and _state.position.board_coords.y >= _board.rows - 1:
 		_switch_to_hand_zone()
 		return
-	_board_coords = Vector2i(
-		clampi(_board_coords.x + direction.x, 0, _board.columns - 1),
-		clampi(_board_coords.y + direction.y, 0, _board.rows - 1)
+	var coords := Vector2i(
+		clampi(_state.position.board_coords.x + direction.x, 0, _board.columns - 1),
+		clampi(_state.position.board_coords.y + direction.y, 0, _board.rows - 1)
 	)
-	cursor_moved.emit(Zone.BOARD, _board_coords)
+	_state = _state.with_board_coords(coords)
+	cursor_moved.emit(_state.position)
 	_update_ghost_display()
 
 
 func _switch_to_board_zone() -> void:
 	_clear_hand_tile_highlight()
-	_zone = Zone.BOARD
 	var count := _hand.get_tile_count()
-	var col := 0
+	var col   := 0
 	if count > 0:
 		col = clampi(
-			int(float(_hand_index) / float(count) * float(_board.columns)),
+			int(float(_state.position.hand_index) / float(count) * float(_board.columns)),
 			0, _board.columns - 1
 		)
-	_board_coords = Vector2i(col, _board.rows - 1)
-	cursor_moved.emit(Zone.BOARD, _board_coords)
+	_state = _state.with_board_coords(Vector2i(col, _board.rows - 1))
+	cursor_moved.emit(_state.position)
 	_update_ghost_display()
 
 
 func _switch_to_hand_zone() -> void:
-	_zone = Zone.HAND
 	var count := _hand.get_tile_count()
+	var index := 0
 	if count > 0:
-		_hand_index = clampi(
-			int(float(_board_coords.x) / float(_board.columns) * float(count)),
+		index = clampi(
+			int(float(_state.position.board_coords.x) / float(_board.columns) * float(count)),
 			0, count - 1
 		)
-	else:
-		_hand_index = 0
-	cursor_moved.emit(Zone.HAND, _hand_index)
+	_state = _state.with_hand_index(index)
+	cursor_moved.emit(_state.position)
 	_update_ghost_display()
 
 
 func _confirm() -> void:
-	match _zone:
-		Zone.HAND:  cursor_confirmed.emit(Zone.HAND, _hand_index)
-		Zone.BOARD: cursor_confirmed.emit(Zone.BOARD, _board_coords)
+	cursor_confirmed.emit(_state.position)
 
 
 func _cancel() -> void:
-	match _zone:
-		Zone.HAND:
-			cursor_cancelled.emit(Zone.HAND, _hand_index)
-		Zone.BOARD:
-			cursor_cancelled.emit(Zone.BOARD, _board_coords)
-			_switch_to_hand_zone()
+	cursor_cancelled.emit(_state.position)
+	if _state.position.is_board():
+		_switch_to_hand_zone()
