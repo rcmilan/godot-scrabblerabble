@@ -23,8 +23,11 @@ func _ready() -> void:
 	_refresh_all()
 	KeybindingConfig.binding_changed.connect(_on_binding_changed)
 	Input.joy_connection_changed.connect(func(_id: int, _connected: bool) -> void:
+		var joypads := Input.get_connected_joypads().size()
+		print("[KeyboardHintBar] Joypad count changed: %d connected" % joypads)
 		_refresh_all()
 	)
+	print("[KeyboardHintBar] Ready — %d chips, joypad: %s" % [HINTS.size(), _using_joypad])
 
 
 func _build_chips() -> void:
