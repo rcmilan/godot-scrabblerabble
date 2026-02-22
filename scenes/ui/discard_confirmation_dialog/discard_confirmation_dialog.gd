@@ -28,12 +28,12 @@ func _input(event: InputEvent) -> void:
 		return
 
 	# Close on Escape
-	if event.is_action_pressed("ui_cancel"):
+	if event.is_action_pressed(&"ui_cancel"):
 		_on_no_pressed()
 		get_viewport().set_input_as_handled()
 
 	# Confirm on Enter
-	if event.is_action_pressed("ui_accept"):
+	if event.is_action_pressed(&"ui_accept"):
 		_on_yes_pressed()
 		get_viewport().set_input_as_handled()
 

@@ -77,6 +77,9 @@ func reset_to_defaults() -> void:
 	InputMap.load_from_project_settings()
 	var cfg := ConfigFile.new()
 	cfg.save(SAVE_PATH)
+	for category in CATEGORIES:
+		for action: StringName in category["actions"]:
+			binding_changed.emit(action)
 
 
 ## Returns a human-readable display name for an action.
