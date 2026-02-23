@@ -155,3 +155,90 @@ func get_cell_under_mouse(viewport: Viewport) -> BoardCell:
 func clear_all_cell_hovers() -> void:
 	for cell in board.get_all_cells():
 		cell.clear_hover()
+
+
+# =============================================================================
+# TILE SWAP
+# =============================================================================
+
+## Swaps two tiles between their locations (hand/board).
+## Handles: Board ↔ Board, Board ↔ Hand.
+func swap_tiles(tile_a: Tile, tile_b: Tile, target_cell: BoardCell) -> void:
+	var loc_a: Tile.TileLocation = tile_a.location
+	var loc_b: Tile.TileLocation = tile_b.location
+	var cell_a: BoardCell = tile_a.current_cell
+	var cell_b: BoardCell = tile_b.current_cell  # Should be same as target_cell
+	
+	print("[Gameplay] Swapping %s (%s) with %s (%s)" % [
+		tile_a.name, 
+		"board" if loc_a == Tile.TileLocation.ON_BOARD else "hand",
+		tile_b.name,
+		"board" if loc_b == Tile.TileLocation.ON_BOARD else "hand"
+	])
+	
+	# Case 1: Board ↔ Board swap
+	if loc_a == Tile.TileLocation.ON_BOARD and loc_b == Tile.TileLocation.ON_BOARD:
+		_swap_board_tiles(tile_a, tile_b, cell_a, cell_b)
+	
+	# Case 2: Hand → Board, Board → Hand
+	elif loc_a == Tile.TileLocation.IN_HAND and loc_b == Tile.TileLocation.ON_BOARD:
+		_swap_hand_and_board_tiles(tile_a, tile_b, cell_b)
+	
+	# Case 3: Invalid swap configuration
+	else:
+		push_error("[Gameplay] Invalid swap configuration: %s ↔ %s" % [loc_a, loc_b])
+		return
+	
+	clear_all_cell_hovers()
+
+
+## Swaps two tiles that are both on the board.
+func _swap_board_tiles(tile_a: Tile, tile_b: Tile, cell_a: BoardCell, cell_b: BoardCell) -> void:
+	# Detach both tiles from their cells
+	tile_a.detach_from_cell()
+	tile_b.detach_from_cell()
+	
+	# Reparent tile_a to cell_b
+	tile_a.get_parent().remove_child(tile_a)
+	cell_b.tile_anchor.add_child(tile_a)
+	tile_a.position = Vector2.ZERO
+	tile_a.attach_to_cell(cell_b)
+	
+	# Reparent tile_b to cell_a
+	tile_b.get_parent().remove_child(tile_b)
+	cell_a.tile_anchor.add_child(tile_b)
+	tile_b.position = Vector2.ZERO
+	tile_b.attach_to_cell(cell_a)
+	
+	EventBus.tile_placed.emit(tile_a, cell_b)
+	EventBus.tile_placed.emit(tile_b, cell_a)
+	
+	print("[Gameplay] Board ↔ Board swap complete: %s @ %s ↔ %s @ %s" % [
+		tile_a.name, cell_b.name, tile_b.name, cell_a.name
+	])
+
+
+## Swaps a hand tile with a board tile.
+func _swap_hand_and_board_tiles(hand_tile: Tile, board_tile: Tile, board_cell: BoardCell) -> void:
+	# Detach board tile from cell
+	board_tile.detach_from_cell()
+	
+	# Move board tile to hand
+	board_tile.get_parent().remove_child(board_tile)
+	hand.add_tile(board_tile)
+	board_tile.position = Vector2.ZERO
+	
+	# Move hand tile to board
+	hand.remove_tile(hand_tile)
+	board_cell.tile_anchor.add_child(hand_tile)
+	hand_tile.position = Vector2.ZERO
+	hand_tile.attach_to_cell(board_cell)
+	hand_tile.location = Tile.TileLocation.ON_BOARD
+	
+	EventBus.tile_placed.emit(hand_tile, board_cell)
+	EventBus.tile_removed.emit(board_tile, board_cell)
+	EventBus.hand_count_changed.emit(hand.get_tile_count())
+	
+	print("[Gameplay] Hand ↔ Board swap complete: %s → %s, %s → hand" % [
+		hand_tile.name, board_cell.name, board_tile.name
+	])

@@ -13,6 +13,7 @@ signal cell_unhovered(cell: BoardCell)
 const COLOR_VALID_HOVER: Color = Color(0, 1, 0, 0.45)
 const COLOR_INVALID_HOVER: Color = Color(1, 0, 0, 0.65)
 const COLOR_SPECIAL_MULTIPLIER: Color = Color(1, 0.84, 0, 0.3)  # Gold for special cells
+const COLOR_WORD_HIGHLIGHT: Color = Color(0.2, 0.9, 0.3, 0.35)  # Green for valid word member
 
 # === Node References ===
 @onready var visual: TextureRect = $ContentLayer/CenterContainer/Sprite2D
@@ -22,6 +23,7 @@ const COLOR_SPECIAL_MULTIPLIER: Color = Color(1, 0.84, 0, 0.3)  # Gold for speci
 # === State ===
 var tile: Tile = null
 var grid_position: Vector2i = Vector2i.ZERO
+var _word_highlight_active: bool = false  # True when cell is part of a valid word
 
 # === Cell Type (multiplier logic implemented; special cells not yet assigned in level design) ===
 enum CellType {
@@ -94,6 +96,22 @@ func show_invalid_hover() -> void:
 
 ## Clears the hover indicator.
 func clear_hover() -> void:
+	# If word highlight is active, restore it instead of hiding
+	if _word_highlight_active:
+		_show_overlay(COLOR_WORD_HIGHLIGHT)
+		return
+	hover_overlay.visible = false
+
+
+## Shows the valid-word highlight (persistent until cleared).
+func show_word_highlight() -> void:
+	_word_highlight_active = true
+	_show_overlay(COLOR_WORD_HIGHLIGHT)
+
+
+## Clears the valid-word highlight.
+func clear_word_highlight() -> void:
+	_word_highlight_active = false
 	hover_overlay.visible = false
 
 

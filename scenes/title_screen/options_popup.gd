@@ -19,6 +19,7 @@ signal closed()
 @onready var _vsync_check: CheckBox = $Panel/MarginContainer/VBoxContainer/SettingsContainer/VsyncCheck
 @onready var _volume_slider: HSlider = $Panel/MarginContainer/VBoxContainer/SettingsContainer/VolumeSlider
 @onready var _volume_label: Label = $Panel/MarginContainer/VBoxContainer/SettingsContainer/VolumeValueLabel
+
 # =============================================================================
 # LIFECYCLE
 # =============================================================================

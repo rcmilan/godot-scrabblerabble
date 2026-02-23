@@ -6,7 +6,7 @@ extends RefCounted
 
 var _main_scene: Node = null
 var _log_fn: Callable
-var tile_scene: PackedScene = preload("res://scenes/tile/Tile.tscn")
+var tile_scene: PackedScene = preload("res://Scenes/Tile/Tile.tscn")
 
 
 ## Sets up the debug manager with references.
@@ -85,21 +85,22 @@ func cmd_clear_board() -> void:
 		return
 
 	var board = _main_scene.get_node("Board")
-	var tiles_cleared = 0
+	var controller = _main_scene._gameplay_controller
+	var tiles_cleared: int = 0
 
-	var hand = _main_scene.get_node("Hand")
+	# Collect tiles first to avoid modifying cells while iterating
+	var tiles_to_return: Array[Tile] = []
 	for cell in board.get_all_cells():
-		if cell.is_occupied() and cell.tile != null:
-			var tile: Tile = cell.tile
-			tile.detach_from_cell()
-			tile.set_locked(false)
-			if tile.get_parent():
-				tile.get_parent().remove_child(tile)
-			hand.add_tile(tile)
-			tile.move_to_hand()
-			tiles_cleared += 1
+		if cell.is_occupied() and cell.tile != null and not cell.tile.is_locked:
+			tiles_to_return.append(cell.tile)
+
+	for tile in tiles_to_return:
+		if controller:
+			controller.debug_return_tile_to_hand(tile)
+		tiles_cleared += 1
 
 	if tiles_cleared > 0:
+		var hand = _main_scene.get_node("Hand")
 		EventBus.hand_count_changed.emit(hand.get_tile_count())
 	log_output("Cleared %d tile(s) from board" % tiles_cleared)
 

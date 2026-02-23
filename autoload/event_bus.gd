@@ -143,4 +143,3 @@ signal run_shop_requested(round_number: int)
 
 ## Emitted when the run ends (win or lose).
 signal run_ended(victory: bool, total_score: int)
-
