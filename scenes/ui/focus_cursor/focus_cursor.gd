@@ -66,6 +66,9 @@ func activate() -> void:
 
 
 ## Postcondition: cursor hides, stops processing input, held tile restored.
+## INVARIANT: caller MUST call deactivate() before showing any modal.
+## FocusCursor uses _input (not _unhandled_input), so while active it intercepts
+## confirm_action before modals see it. Main.deactivate_for_modal() enforces this.
 func deactivate() -> void:
 	_is_active = false
 	_clear_hand_tile_highlight()
