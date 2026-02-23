@@ -40,8 +40,8 @@ func handle(event: InputEvent) -> bool:
 		return false
 	for action: StringName in _close_actions:
 		if event.is_action_pressed(action):
-			close_requested.emit()
 			_owner.get_viewport().set_input_as_handled()
+			close_requested.emit()
 			return true
 	for action: StringName in _blocked_actions:
 		if event.is_action_pressed(action):
