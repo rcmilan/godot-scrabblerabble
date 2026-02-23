@@ -47,7 +47,7 @@ var _hand: Hand = null
 # =============================================================================
 
 func _ready() -> void:
-	set_process_unhandled_input(false)
+	set_process_input(false)
 	_cursor_rect.hide()
 
 
@@ -61,7 +61,7 @@ func setup(board: Board, hand: Hand) -> void:
 func activate() -> void:
 	_is_active = true
 	_state = CursorState.at_hand(0)
-	set_process_unhandled_input(true)
+	set_process_input(true)
 	_update_hand_tile_highlight()
 
 
@@ -71,7 +71,7 @@ func deactivate() -> void:
 	_clear_hand_tile_highlight()
 	clear_held_tile()
 	_cursor_rect.hide()
-	set_process_unhandled_input(false)
+	set_process_input(false)
 
 
 ## Postcondition: held_tile set; cursor highlight removed, tile faded to 50% alpha.
@@ -180,7 +180,7 @@ func _update_ghost_display() -> void:
 # INPUT HANDLING
 # =============================================================================
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
 	if event.is_action_pressed(KeyAction.NAVIGATE_LEFT):
