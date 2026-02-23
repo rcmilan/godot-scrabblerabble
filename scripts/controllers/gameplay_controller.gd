@@ -311,7 +311,6 @@ func _on_cursor_confirmed(pos: CursorPosition) -> void:
 				if _cursor:
 					_cursor.clear_held_tile()
 			elif cell.is_occupied():
-				print("[Gameplay] Cursor: target cell occupied at %s" % pos.board_coords)
 				TileAnimator.animate_shake(movable[0])
 		elif cell.is_occupied():
 			var board_tile: Tile = cell.tile
