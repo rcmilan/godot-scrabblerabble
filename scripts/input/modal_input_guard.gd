@@ -15,8 +15,6 @@ var _blocked_actions: Array[StringName] = [
 	KeyAction.NAVIGATE_RIGHT,
 	KeyAction.NAVIGATE_UP,
 	KeyAction.NAVIGATE_DOWN,
-	KeyAction.CONFIRM,
-	&"ui_up", &"ui_down", &"ui_left", &"ui_right",
 ]
 
 
