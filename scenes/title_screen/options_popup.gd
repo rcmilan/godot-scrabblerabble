@@ -40,7 +40,10 @@ func _ready() -> void:
 	_volume_slider.value_changed.connect(_on_volume_changed)
 	_reset_button.pressed.connect(_on_reset_defaults_pressed)
 	_reset_cancel_button.pressed.connect(_on_reset_cancel_pressed)
-	_guard = ModalInputGuard.new().setup(self)
+	_guard = ModalInputGuard.new().setup(self) \
+		.add_close_action(KeyAction.CANCEL) \
+		.add_close_action(&"ui_cancel")
+	_guard.close_requested.connect(close_popup)
 	set_process_input(true)
 
 	_fullscreen_check.button_pressed = false
@@ -88,11 +91,6 @@ func _input(event: InputEvent) -> void:
 			_tab_container.current_tab = min(_tab_container.tab_count - 1, _tab_container.current_tab + 1)
 			get_viewport().set_input_as_handled()
 			return
-
-	# Close on cancel (Backspace/Delete/ESC/B-button)
-	if event.is_action_pressed(KeyAction.CANCEL) or event.is_action_pressed(&"ui_cancel"):
-		close_popup()
-		get_viewport().set_input_as_handled()
 
 # =============================================================================
 # PUBLIC API
