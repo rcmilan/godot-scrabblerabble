@@ -56,10 +56,6 @@ func draw_tiles(count: int) -> int:
 	var drawn_tiles: Array[Tile] = []
 
 	for i in count:
-		if _hand_ui.is_full():
-			print("[HandManager] Hand is full")
-			break
-
 		var tile: Tile = TileBag.draw_tile()
 		if tile == null:
 			print("[HandManager] Bag is empty")
