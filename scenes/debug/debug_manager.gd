@@ -112,7 +112,7 @@ func spawn_tile(letter: String, count: int = 1) -> void:
 		return
 
 	var letter_lower = letter.to_lower()
-	var data_path = "res://Data/TileData/tiles/tile_%s.tres" % letter_lower
+	var data_path = "res://data/tile_data/tiles/tile_%s.tres" % letter_lower
 	var tile_data = load(data_path)
 
 	if tile_data == null:
