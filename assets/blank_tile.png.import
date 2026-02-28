@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://waorkaoff3cs"
-path="res://.godot/imported/blank_tile.png-072b8e45065b0e6f3abee586c9028ac1.ctex"
+uid="uid://c8xb3adb72hsw"
+path="res://.godot/imported/blank_tile.png-a9f4d927d20af3b52a1569c3fd897805.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/blank_tile.png"
-dest_files=["res://.godot/imported/blank_tile.png-072b8e45065b0e6f3abee586c9028ac1.ctex"]
+source_file="res://assets/blank_tile.png"
+dest_files=["res://.godot/imported/blank_tile.png-a9f4d927d20af3b52a1569c3fd897805.ctex"]
 
 [params]
 

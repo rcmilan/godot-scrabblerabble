@@ -16,7 +16,9 @@
       "Bash(cat:*)",
       "Bash(py:*)",
       "Bash(read file:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(rm:*)",
+      "Bash(test:*)"
     ]
   }
 }
