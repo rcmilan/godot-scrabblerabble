@@ -1,42 +1,31 @@
 extends RefCounted
 class_name HandFanLayout
 
-## HandFanLayout: Positions hand tiles in a fan arrangement.
-## Below FAN_THRESHOLD tiles are spaced normally. Above it, spacing
-## decreases progressively and tiles begin to overlap.
+## HandFanLayout: Positions hand tiles in a fan arrangement with parabolic arc.
+## Tiles are positioned using ArcLayoutComputer for elevation and rotation.
 ## Hovered tiles scale up, push neighbors aside, and render above them.
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
-## Tile count at or below which no overlap occurs.
-const FAN_THRESHOLD: int = 5
-
 ## Visual tile width in pixels.
 const TILE_WIDTH: float = 64.0
-
-## Gap between tiles when count <= FAN_THRESHOLD.
-const BASE_SPACING: float = 4.0
-
-## Smallest allowed distance between tile left-edges (limits max overlap).
-const MIN_STEP: float = 20.0
-
-## Maximum width the tile layout may occupy (forces earlier overlap).
-## Tiles are still centered within the full container.
-const MAX_LAYOUT_WIDTH: float = 400.0
 
 ## Hover effect constants.
 const HOVER_SCALE: Vector2 = Vector2(1.1, 1.1)
 const HOVER_Z_INDEX: int = 50
 const HOVER_TWEEN_DURATION: float = 0.1
 
-## Pixels the hovered tile rises above the hand.
-const HOVER_LIFT: float = 12.0
+## Pixels the hovered tile rises above the arc.
+const HOVER_LIFT: float = 10.0
 
 ## How many pixels immediate neighbors are pushed away on hover.
 ## Falls off with distance: push = HOVER_PUSH / abs(distance).
 const HOVER_PUSH: float = 12.0
+
+## Duration of reflow tweens when tiles are added/removed.
+const REFLOW_DURATION: float = 0.15
 
 # =============================================================================
 # STATE
@@ -46,23 +35,30 @@ var _container: Control = null
 var _managed_tiles: Array[Tile] = []
 var _hovered_tile: Tile = null
 
-## Cached base positions calculated by update_layout().
-## Index matches tile child order. Used as anchor for hover push offsets.
-var _base_positions: Array[Vector2] = []
+## Arc layout computer for parabolic positioning and rotation.
+var _computer: ArcLayoutComputer = null
+
+## Cached base transforms calculated by update_layout().
+## Keyed by Tile → TileArcTransform. Used as anchor for hover effects.
+var _base_transforms: Dictionary = {}  # Tile -> TileArcTransform
 
 ## One tween per tile — handles position + scale in parallel.
 var _tile_tweens: Dictionary = {}  # Tile -> Tween
+
+## Reflow tweens for smooth position/rotation transitions when tiles are added/removed.
+var _reflow_tweens: Dictionary = {}  # Tile -> Tween
 
 # =============================================================================
 # PUBLIC API
 # =============================================================================
 
-## Binds the layout to the tile container.
+## Binds the layout to the tile container and creates the ArcLayoutComputer.
 func setup(container: Control) -> void:
 	_container = container
+	_computer = ArcLayoutComputer.new()
 
 
-## Recalculates base positions for every tile in the container.
+## Recalculates base transforms for every tile in the container using ArcLayoutComputer.
 ## If a tile is currently hovered, the push offsets are reapplied.
 func update_layout() -> void:
 	if _container == null:
@@ -73,28 +69,48 @@ func update_layout() -> void:
 
 	var count := tiles.size()
 	if count == 0:
-		_base_positions.clear()
+		_base_transforms.clear()
 		return
 
-	var step := _calculate_step(count)
-	var total_width := (count - 1) * step + TILE_WIDTH
+	# Compute arc transforms via ArcLayoutComputer
 	var container_width := _container.size.x
-	var start_x := (container_width - total_width) / 2.0
-	var y_offset := (_container.size.y - TILE_WIDTH) / 2.0
+	var base_y := (_container.size.y - TILE_WIDTH) / 2.0
+	var arc_transforms := _computer.compute(count, container_width, base_y)
 
-	_base_positions.clear()
+	_base_transforms.clear()
 	for i in count:
 		var tile := tiles[i]
-		var pos := Vector2(start_x + i * step, y_offset)
-		_base_positions.append(pos)
-		tile.position = pos
+		var transform := arc_transforms[i]
+
+		# Set size and pivot
 		tile.size = Vector2(TILE_WIDTH, TILE_WIDTH)
-		tile.pivot_offset = Vector2(TILE_WIDTH / 2.0, TILE_WIDTH / 2.0)
+		tile.pivot_offset = Vector2(32, 32)
+		tile.z_index = i
+		tile.rotation = transform.rotation_rad
+
+		# NEW: new tiles get position set directly (draw animation handles entry)
+		# EXISTING: tiles tween to new position over REFLOW_DURATION
+		if tile not in _base_transforms:
+			# New tile: set directly (no tween)
+			tile.position = transform.position
+		else:
+			# Existing tile: tween for smooth reflow
+			_kill_reflow_tween(tile)
+			var tween := _container.create_tween()
+			tween.tween_property(tile, "position", transform.position, REFLOW_DURATION) \
+				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+			tween.tween_property(tile, "rotation", transform.rotation_rad, REFLOW_DURATION) \
+				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+			_reflow_tweens[tile] = tween
+
+		# Save transform
+		_base_transforms[tile] = transform
+
+		# Apply select/normal scale (don't touch hovered tiles here)
 		if tile != _hovered_tile:
-			tile.z_index = i
 			tile.scale = Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
 
-	# Reapply push if something is hovered (e.g. tiles were added/removed).
+	# Reapply hover push if something is hovered (handles tile add/remove)
 	if _hovered_tile and _managed_tiles.has(_hovered_tile):
 		_apply_hover_push(false)
 
@@ -105,8 +121,9 @@ func cleanup() -> void:
 		_unregister_tile(tile)
 	_managed_tiles.clear()
 	_hovered_tile = null
-	_base_positions.clear()
+	_base_transforms.clear()
 	_tile_tweens.clear()
+	_reflow_tweens.clear()
 
 
 ## Triggers the hover push effect for the given tile as if it were mouse-hovered.
@@ -119,33 +136,6 @@ func apply_hover_effect(tile: Tile) -> void:
 ## Called by FocusCursor when cursor moves away.
 func remove_hover_effect(tile: Tile) -> void:
 	_on_tile_mouse_exited(tile)
-
-# =============================================================================
-# SPACING ALGORITHM
-# =============================================================================
-
-## Returns the horizontal distance between the left edges of consecutive tiles.
-## - At or below FAN_THRESHOLD: full tile width + gap (no overlap).
-## - Above FAN_THRESHOLD: smoothly compresses to fit MAX_LAYOUT_WIDTH.
-## - Never goes below MIN_STEP to keep tiles recognisable.
-func _calculate_step(count: int) -> float:
-	if count <= 1:
-		return 0.0
-
-	var ideal_step := TILE_WIDTH + BASE_SPACING  # 68 px
-
-	if count <= FAN_THRESHOLD:
-		return ideal_step
-
-	var available_width := minf(_container.size.x, MAX_LAYOUT_WIDTH)
-	var needed := (count - 1) * ideal_step + TILE_WIDTH
-
-	if needed <= available_width:
-		return ideal_step
-
-	# Compress to fit within MAX_LAYOUT_WIDTH.
-	var step := (available_width - TILE_WIDTH) / float(count - 1)
-	return maxf(step, MIN_STEP)
 
 # =============================================================================
 # TILE REGISTRATION (hover signal wiring)
@@ -227,6 +217,7 @@ func _on_tile_mouse_exited(tile: Tile) -> void:
 
 ## Applies the push offset to all tiles based on the currently hovered tile.
 ## When animate=true, positions and scales are tweened smoothly.
+## Hovered tile rises 10px above its arc position.
 func _apply_hover_push(animate: bool) -> void:
 	var tiles := _get_tiles()
 	var count := tiles.size()
@@ -234,17 +225,18 @@ func _apply_hover_push(animate: bool) -> void:
 		return
 
 	var hover_idx := _hovered_tile.get_index()
-	if hover_idx < 0 or hover_idx >= _base_positions.size():
+	if hover_idx < 0 or hover_idx >= _base_transforms.size():
 		return
 
 	for i in count:
-		if i >= _base_positions.size():
-			break
 		var tile := tiles[i]
-		var base_pos := _base_positions[i]
+		var base_transform := _base_transforms.get(tile)
+		if not base_transform:
+			continue
 
 		if tile == _hovered_tile:
-			var lifted_pos := Vector2(base_pos.x, base_pos.y - HOVER_LIFT)
+			# Hovered tile: scale up AND rise 10px above its arc position
+			var lifted_pos := Vector2(base_transform.position.x, base_transform.position.y - HOVER_LIFT)
 			var target_scale := HOVER_SCALE
 			if animate:
 				_tween_tile(tile, lifted_pos, target_scale)
@@ -253,11 +245,11 @@ func _apply_hover_push(animate: bool) -> void:
 				tile.scale = target_scale
 			continue
 
-		# Push neighbors away. Amount falls off with distance.
+		# Push neighbors away in x-direction only (preserve arc y position)
 		var distance := i - hover_idx
 		var push := HOVER_PUSH / maxf(absf(float(distance)), 1.0)
 		var offset_x := signf(float(distance)) * push
-		var target_pos := Vector2(base_pos.x + offset_x, base_pos.y)
+		var target_pos := Vector2(base_transform.position.x + offset_x, base_transform.position.y)
 		var target_scale := Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
 
 		if animate:
@@ -267,25 +259,27 @@ func _apply_hover_push(animate: bool) -> void:
 			tile.scale = target_scale
 
 
-## Restores all tiles to their base positions and resting scale.
+## Restores all tiles to their base arc positions and resting scale.
 func _restore_all_tiles() -> void:
 	var tiles := _get_tiles()
 	for i in tiles.size():
-		if i >= _base_positions.size():
-			break
 		var tile := tiles[i]
+		var transform := _base_transforms.get(tile)
+		if not transform:
+			continue
 		tile.z_index = i
 		var target_scale := Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
-		_tween_tile(tile, _base_positions[i], target_scale)
+		_tween_tile(tile, transform.position, target_scale)
 
 
 ## Restores a single tile that lost hover (safety fallback).
 func _restore_single_tile(tile: Tile) -> void:
 	var idx := tile.get_index()
 	tile.z_index = idx
-	if idx >= 0 and idx < _base_positions.size():
+	var transform := _base_transforms.get(tile)
+	if transform:
 		var target_scale := Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
-		_tween_tile(tile, _base_positions[idx], target_scale)
+		_tween_tile(tile, transform.position, target_scale)
 
 # =============================================================================
 # TWEENING
@@ -309,6 +303,14 @@ func _kill_tween(tile: Tile) -> void:
 		if old and old.is_valid():
 			old.kill()
 		_tile_tweens.erase(tile)
+
+
+func _kill_reflow_tween(tile: Tile) -> void:
+	if _reflow_tweens.has(tile):
+		var old: Tween = _reflow_tweens[tile]
+		if old and old.is_valid():
+			old.kill()
+		_reflow_tweens.erase(tile)
 
 # =============================================================================
 # HELPERS
