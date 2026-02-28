@@ -120,9 +120,6 @@ func _on_round_ready(config: RoundConfig) -> void:
 	# Setup GameManager for this round
 	GameManager.setup_round(config)
 
-	# Configure hand size
-	HandManager.set_hand_size(config.hand_size)
-
 	# Ensure HandManager is ready, then refill hand
 	if not HandManager.is_initialized():
 		await HandManager.initialized
