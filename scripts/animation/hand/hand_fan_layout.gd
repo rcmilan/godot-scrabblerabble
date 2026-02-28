@@ -247,7 +247,7 @@ func _apply_hover_push(animate: bool) -> void:
 
 	for i in count:
 		var tile := tiles[i]
-		var base_transform := _base_transforms.get(tile)
+		var base_transform: TileArcTransform = _base_transforms.get(tile)
 		if not base_transform:
 			continue
 
@@ -281,7 +281,7 @@ func _restore_all_tiles() -> void:
 	var tiles := _get_tiles()
 	for i in tiles.size():
 		var tile := tiles[i]
-		var transform := _base_transforms.get(tile)
+		var transform: TileArcTransform = _base_transforms.get(tile)
 		if not transform:
 			continue
 		tile.z_index = i
@@ -293,7 +293,7 @@ func _restore_all_tiles() -> void:
 func _restore_single_tile(tile: Tile) -> void:
 	var idx := tile.get_index()
 	tile.z_index = idx
-	var transform := _base_transforms.get(tile)
+	var transform: TileArcTransform = _base_transforms.get(tile)
 	if transform:
 		var target_scale := Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
 		_tween_tile(tile, transform.position, target_scale)
