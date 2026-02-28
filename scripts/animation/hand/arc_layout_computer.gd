@@ -11,7 +11,7 @@ const TILE_WIDTH: float = 64.0
 @export var max_rotation_deg: float = 25.0
 @export var elevation_px: float = 40.0
 @export var ideal_step_px: float = 72.0
-@export var min_step: float = 20.0
+@export var min_step: float = 15.0
 
 
 ## Compute tile positions and rotations in parabolic arc layout.
