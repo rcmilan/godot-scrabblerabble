@@ -186,7 +186,7 @@ func _on_run_ended(victory: bool, total_score: int) -> void:
 
 func _on_return_to_title() -> void:
 	RunManager.reset()
-	get_tree().change_scene_to_file("res://Scenes/title_screen/TitleScreen.tscn")
+	get_tree().change_scene_to_file("res://scenes/title_screen/title_screen.tscn")
 
 
 # =============================================================================
