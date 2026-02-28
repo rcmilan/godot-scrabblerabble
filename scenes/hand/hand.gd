@@ -10,9 +10,6 @@ signal tile_added(tile: Tile)
 signal tile_removed(tile: Tile)
 signal hand_empty()
 
-# === Configuration (set by HandManager.set_hand_size) ===
-var max_hand_size: int = 10
-
 # === Dependencies ===
 var _selection: SelectionManager = null
 
@@ -44,10 +41,6 @@ func get_fan_layout() -> HandFanLayout:
 
 ## Adds a tile to the hand.
 func add_tile(tile: Tile) -> bool:
-	if get_tile_count() >= max_hand_size:
-		push_warning("[Hand] Cannot add tile - hand is full")
-		return false
-
 	tile_container.add_child(tile)
 	tile.location = Tile.TileLocation.IN_HAND
 	tile_added.emit(tile)
@@ -156,14 +149,16 @@ func is_empty() -> bool:
 	return get_tile_count() == 0
 
 
-## Returns true if the hand is at max capacity.
-func is_full() -> bool:
-	return get_tile_count() >= max_hand_size
-
-
-## Returns remaining space in hand.
-func get_available_space() -> int:
-	return max_hand_size - get_tile_count()
+## Reorders tiles in the hand based on a comparator callable.
+## The comparator should return true if tile_i should come after tile_j.
+func sort_tiles(comparator: Callable) -> void:
+	for i in range(get_child_count()):
+		for j in range(i + 1, get_child_count()):
+			var tile_i = get_child(i)
+			var tile_j = get_child(j)
+			if comparator.call(tile_i, tile_j):
+				move_child(tile_j, i)
+	_on_tile_order_changed()
 
 
 ## Returns a tile by index, or null if out of range.
