@@ -1,0 +1,190 @@
+================================================================================
+FAN HAND LAYOUT + UNLIMITED DRAW SYSTEM - CODE REVIEW SUMMARY
+================================================================================
+
+Review Date: 2026-02-28
+Branch: hand-rework
+Commits Reviewed: dedded7 through fda0534 (14 commits, 3 phases)
+Reviewer: Senior Code Reviewer (Claude)
+
+================================================================================
+OVERALL STATUS: NEEDS FIXES
+================================================================================
+
+The implementation is architecturally sound with excellent code quality, but
+two CRITICAL integration bugs prevent the system from functioning:
+
+  1. RunManager passes removed hand_size parameter (line 53)
+  2. HandFanLayout has signal cleanup race condition (lines 177-199)
+
+Once fixed, the system is APPROVED for merge. Estimated fix time: 30 minutes.
+
+================================================================================
+CRITICAL ISSUES (2)
+================================================================================
+
+CRITICAL #1: RunManager Initialization Broken
+────────────────────────────────────────────────────────────────────────────
+File:     autoload/run_manager.gd (lines 53, 69)
+Problem:  Phase 2 removed hand_size from Run and RunState.start_run()
+          signature, but RunManager wasn't updated.
+
+Line 53:  run_state.start_run(run.plays_per_round, run.hand_size, run.bag_config)
+          should be: run_state.start_run(run.plays_per_round, run.bag_config)
+
+Line 69:  print references run_state.hand_size which no longer exists
+
+Impact:   Game cannot start - TypeError on run initialization
+Fix Time: 2 minutes
+
+
+CRITICAL #2: Signal Cleanup Race Condition in HandFanLayout
+────────────────────────────────────────────────────────────────────────────
+File:     scripts/animation/hand/hand_fan_layout.gd (_unregister_tile method)
+Problem:  Signals disconnected AFTER validity check, so freed tiles never
+          get signal cleanup. Signals remain connected to invalid object.
+
+Line 181: if not is_instance_valid(tile): return  ← exits before disconnect
+Lines 193-199: Disconnect code never reached for freed tiles
+
+Impact:   Signal emissions from freed tiles, memory leaks, potential crashes
+          during round transitions when hand is cleared
+Fix Time: 5 minutes
+
+
+================================================================================
+IMPORTANT ISSUES (2)
+================================================================================
+
+IMPORTANT #1: Draw Button Doesn't Check Hand Full
+────────────────────────────────────────────────────────────────────────────
+File:     scenes/ui/main_hud/main_hud.gd (lines 233-237)
+Current:  draw_button.disabled = TileBag.is_empty()
+Should be: draw_button.disabled = TileBag.is_empty() or HandManager.is_hand_full()
+
+Impact:   Players can click draw when hand is full, button silently fails
+Fix Time: 1 minute
+
+
+IMPORTANT #2: Hand.is_full() Method Missing
+────────────────────────────────────────────────────────────────────────────
+File:     scenes/hand/hand.gd
+Problem:  HandManager.is_hand_full() calls _hand_ui.is_full() but Hand
+          component doesn't expose this method.
+
+Impact:   Runtime error when draw button state updates
+Fix Time: 2 minutes
+
+
+================================================================================
+ARCHITECTURE ASSESSMENT
+================================================================================
+
+EXCELLENT (No Issues):
+  Architecture design and pattern adherence is excellent throughout.
+  Phase 1 (arc layout), Phase 2 (hand size removal), and Phase 3
+  (unlimited draw) are well-separated with clear responsibilities.
+
+GOOD (Minor Suggestions):
+  - Edge case: >50 tiles may exceed container width
+  - Edge case: Selection change doesn't update hover scale
+  - Keyboard input lacks guard clause
+
+PATTERN ALIGNMENT:
+  Phase 1 arc layout follows immutable value object pattern (TileArcTransform)
+  ArcLayoutComputer is pure math, decoupled from UI
+  HandFanLayout properly applies layout with dependency injection
+  Signal flow correct through event bus
+  Follows coordinator pattern in GameplayController
+
+
+================================================================================
+CODE QUALITY
+================================================================================
+
+Documentation:    EXCELLENT - All classes documented, algorithms explained
+Naming:           EXCELLENT - Consistent PascalCase/UPPER_SNAKE_CASE/_lower_snake
+Type Safety:      EXCELLENT - All parameters fully typed, no implicit casts
+Error Handling:   GOOD - Assertions in computation layer, null checks present
+Memory Mgmt:      GOOD - Tween cleanup, signal disconnection attempted
+
+
+================================================================================
+INTEGRATION ASSESSMENT
+================================================================================
+
+Phase 1 → Phase 2:  GOOD - Arc layout persists correctly
+Phase 2 → Phase 3:  BROKEN - Blocked by Critical Issue #1
+Signal Flow:        GOOD (except for Critical Issue #2)
+Backward Compat:    ACCEPTABLE - Intentional breaking changes in domain
+
+
+================================================================================
+REGRESSION RISK
+================================================================================
+
+Current:   HIGH RISK (Critical issues prevent testing)
+After Fix: LOW RISK (Changes isolated to hand system)
+
+Unaffected Systems:
+  Board placement logic
+  Tile selection and movement
+  Word validation and scoring
+  Modifier system
+  Animation system (except draw batch)
+
+
+================================================================================
+RECOMMENDATIONS (PRIORITY ORDER)
+================================================================================
+
+IMMEDIATE (Must fix before merge):
+  1. Fix RunManager line 53: Remove hand_size parameter
+  2. Fix RunManager line 69: Remove run_state.hand_size reference
+  3. Fix HandFanLayout signal cleanup: Disconnect before validity check
+  4. Add Hand.is_full() method or fix HandManager.is_hand_full()
+  5. Fix MainHUD draw button check: Also check hand full
+
+BEFORE MERGE:
+  6. Test game startup and round transitions
+  7. Test hand at 1, 5, 10, 50 tiles
+  8. Test draw button state at each hand size
+  9. Verify signal cleanup on round boundary
+
+NICE TO HAVE:
+  10. Add assertion for >50 tiles in ArcLayoutComputer
+  11. Add selection-aware scale restoration in hover effects
+  12. Add keyboard guard in draw action handler
+
+
+================================================================================
+ESTIMATED FIX TIME
+================================================================================
+
+Critical Issues:     ~10 minutes
+Important Issues:    ~5 minutes
+Testing/Validation:  ~15 minutes
+────────────────────────────────
+Total:              ~30 minutes
+
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Architecture:  EXCELLENT
+Code Quality:  EXCELLENT
+Integration:   BROKEN (fixable)
+Documentation: EXCELLENT
+
+The three-phase decomposition is architecturally sound with excellent separation
+of concerns. Code quality standards are high. However, two integration bugs
+prevent the system from functioning. Once these are fixed (approximately 10
+minutes of work), the implementation is ready for approval.
+
+Recommended Action: CONDITIONAL APPROVAL
+- Fix critical issues (10 minutes)
+- Run test checklist (15 minutes)
+- Merge when all tests pass
+
+Full detailed review available in: REVIEW.md
