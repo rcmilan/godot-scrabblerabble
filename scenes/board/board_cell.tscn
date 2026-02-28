@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://c6h3ep2nj7tvx"]
 
-[ext_resource type="Script" uid="uid://dvkxwq7dw0724" path="res://scenes/Board/board_cell.gd" id="1_0my7h"]
-[ext_resource type="Texture2D" uid="uid://waorkaoff3cs" path="res://assets/blank_tile.png" id="1_6yrkg"]
+[ext_resource type="Script" path="res://scenes/board/board_cell.gd" id="1_0my7h"]
+[ext_resource type="Texture2D" path="res://assets/blank_tile.png" id="1_6yrkg"]
 
 [node name="BoardCell" type="Control"]
 custom_minimum_size = Vector2(64, 64)
