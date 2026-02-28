@@ -40,16 +40,16 @@ var _computer: ArcLayoutComputer = null
 
 ## Cached base transforms calculated by update_layout().
 ## Keyed by Tile → TileArcTransform. Used as anchor for hover effects.
-var _base_transforms: Dictionary = {}  # Tile -> TileArcTransform
+var _base_transforms: Dictionary[Tile, TileArcTransform] = {}
 
 ## One tween per tile — handles position + scale in parallel.
-var _tile_tweens: Dictionary = {}  # Tile -> Tween
+var _tile_tweens: Dictionary[Tile, Tween] = {}
 
 ## Reflow tweens for smooth position/rotation transitions when tiles are added/removed.
-var _reflow_tweens: Dictionary = {}  # Tile -> Tween
+var _reflow_tweens: Dictionary[Tile, Tween] = {}
 
 ## Stored callbacks for safe signal disconnection (prevents Callable recreation).
-var _tile_callbacks: Dictionary = {}  # Tile -> {entered, exited}
+var _tile_callbacks: Dictionary[Tile, Dictionary] = {}  # Tile -> {entered, exited}
 
 # =============================================================================
 # PUBLIC API
