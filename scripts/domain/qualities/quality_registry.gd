@@ -55,7 +55,6 @@ static func _ensure_initialized() -> void:
 	_initialized = true
 
 	# Register all built-in qualities
-	_factories[&"max_hand_size"] = func() -> RunQuality: return MaxHandSizeQuality.new()
 	_factories[&"time_attack"] = func() -> RunQuality: return TimeAttackQuality.new()
 	_factories[&"limited_time_with_increment"] = func() -> RunQuality: return LimitedTimeWithIncrementQuality.new()
 	_factories[&"max_score_in_n_rounds"] = func() -> RunQuality: return MaxScoreInNRoundsQuality.new()
