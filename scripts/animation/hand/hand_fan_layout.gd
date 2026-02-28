@@ -20,8 +20,8 @@ const HOVER_TWEEN_DURATION: float = 0.1
 ## Pixels the hovered tile rises above the arc.
 const HOVER_LIFT: float = 10.0
 
-## How many pixels immediate neighbors are pushed away on hover.
-## Falls off with distance: push = HOVER_PUSH / abs(distance).
+## Push force applied to neighbors during hover (in pixels per index distance).
+## Adjacent tiles (distance=1) pushed by 12px. Falloff: push = HOVER_PUSH / distance.
 const HOVER_PUSH: float = 12.0
 
 ## Duration of reflow tweens when tiles are added/removed.
@@ -47,6 +47,9 @@ var _tile_tweens: Dictionary = {}  # Tile -> Tween
 
 ## Reflow tweens for smooth position/rotation transitions when tiles are added/removed.
 var _reflow_tweens: Dictionary = {}  # Tile -> Tween
+
+## Stored callbacks for safe signal disconnection (prevents Callable recreation).
+var _tile_callbacks: Dictionary = {}  # Tile -> {entered, exited}
 
 # =============================================================================
 # PUBLIC API
@@ -96,7 +99,7 @@ func update_layout() -> void:
 		else:
 			# Existing tile: tween for smooth reflow
 			_kill_reflow_tween(tile)
-			var tween := _container.create_tween()
+			var tween := _container.create_tween().set_parallel(true)
 			tween.tween_property(tile, "position", transform.position, REFLOW_DURATION) \
 				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 			tween.tween_property(tile, "rotation", transform.rotation_rad, REFLOW_DURATION) \
@@ -124,6 +127,7 @@ func cleanup() -> void:
 	_base_transforms.clear()
 	_tile_tweens.clear()
 	_reflow_tweens.clear()
+	_tile_callbacks.clear()
 
 
 ## Triggers the hover push effect for the given tile as if it were mouse-hovered.
@@ -159,8 +163,15 @@ func _sync_managed_tiles(current_tiles: Array[Tile]) -> void:
 func _register_tile(tile: Tile) -> void:
 	_managed_tiles.append(tile)
 	tile.external_scale_management = true
-	tile.mouse_entered.connect(_on_tile_mouse_entered.bind(tile))
-	tile.mouse_exited.connect(_on_tile_mouse_exited.bind(tile))
+	var entered_cb := _on_tile_mouse_entered.bind(tile)
+	var exited_cb := _on_tile_mouse_exited.bind(tile)
+	tile.mouse_entered.connect(entered_cb)
+	tile.mouse_exited.connect(exited_cb)
+	# Store callbacks for safe disconnection (avoids Callable recreation)
+	if not _tile_callbacks.has(tile):
+		_tile_callbacks[tile] = {}
+	_tile_callbacks[tile]["entered"] = entered_cb
+	_tile_callbacks[tile]["exited"] = exited_cb
 
 
 func _unregister_tile(tile: Tile) -> void:
@@ -170,19 +181,22 @@ func _unregister_tile(tile: Tile) -> void:
 	if not is_instance_valid(tile):
 		if _hovered_tile == tile:
 			_hovered_tile = null
+		if _tile_callbacks.has(tile):
+			_tile_callbacks.erase(tile)
 		return
 
 	tile.external_scale_management = false
 	tile.scale = Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
 	tile.z_index = 0
 
-	var entered_cb := _on_tile_mouse_entered.bind(tile)
-	if tile.mouse_entered.is_connected(entered_cb):
-		tile.mouse_entered.disconnect(entered_cb)
-
-	var exited_cb := _on_tile_mouse_exited.bind(tile)
-	if tile.mouse_exited.is_connected(exited_cb):
-		tile.mouse_exited.disconnect(exited_cb)
+	# Use stored callbacks for safe disconnection (avoids Callable recreation)
+	if _tile_callbacks.has(tile):
+		var cbs = _tile_callbacks[tile]
+		if tile.mouse_entered.is_connected(cbs["entered"]):
+			tile.mouse_entered.disconnect(cbs["entered"])
+		if tile.mouse_exited.is_connected(cbs["exited"]):
+			tile.mouse_exited.disconnect(cbs["exited"])
+		_tile_callbacks.erase(tile)
 
 	if _hovered_tile == tile:
 		_hovered_tile = null
@@ -198,6 +212,9 @@ func _on_tile_mouse_entered(tile: Tile) -> void:
 	# Clean up previous hover in case mouse_exited was missed.
 	if _hovered_tile and _hovered_tile != tile and is_instance_valid(_hovered_tile):
 		_restore_single_tile(_hovered_tile)
+		# Kill all lingering tweens from previous hover
+		for t in _tile_tweens.keys():
+			_kill_tween(t)
 
 	_hovered_tile = tile
 	tile.z_index = HOVER_Z_INDEX
@@ -225,7 +242,7 @@ func _apply_hover_push(animate: bool) -> void:
 		return
 
 	var hover_idx := _hovered_tile.get_index()
-	if hover_idx < 0 or hover_idx >= _base_transforms.size():
+	if hover_idx < 0 or hover_idx >= count:
 		return
 
 	for i in count:

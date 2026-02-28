@@ -34,9 +34,10 @@ func compute(count: int, container_w: float, base_y: float) -> Array[TileArcTran
 		return []
 
 	if count == 1:
-		# Single tile: centered, no rotation, no elevation
+		# Single tile: centered, no rotation, but with elevation for consistency
 		var center_x = (container_w - TILE_WIDTH) / 2.0
-		return [TileArcTransform.new(Vector2(center_x, base_y), 0.0)]
+		var elevated_y = base_y - elevation_px
+		return [TileArcTransform.new(Vector2(center_x, elevated_y), 0.0)]
 
 	# Calculate step size (with compression for many tiles)
 	var step = _calculate_step(count, container_w)
