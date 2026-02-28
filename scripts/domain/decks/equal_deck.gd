@@ -19,4 +19,4 @@ func get_description() -> String:
 
 
 func create_distribution() -> BagDistribution:
-	return load("res://Data/BagDistribution/bag_equal.tres") as BagDistribution
+	return load("res://data/bag_distribution/bag_equal.tres") as BagDistribution
