@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BagDistribution" load_steps=2 format=3 uid="uid://bag_equal_dist_1"]
 
-[ext_resource type="Script" uid="uid://dmo2awwrmb1jw" path="res://Data/BagDistribution/bag_distribution.gd" id="1_q047y"]
+[ext_resource type="Script" uid="uid://dmo2awwrmb1jw" path="res://data/BagDistribution/bag_distribution.gd" id="1_q047y"]
 
 [resource]
 script = ExtResource("1_q047y")

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="LetterTileData" load_steps=3 format=3 uid="uid://ut6uj34vr35c"]
 
-[ext_resource type="Script" uid="uid://b4ytc5recc55s" path="res://Data/TileData/tile_data.gd" id="1_1icrp"]
-[ext_resource type="Texture2D" uid="uid://lei1ptykoegs" path="res://Assets/Tiles/letter_Y.png" id="2_t0ub8"]
+[ext_resource type="Script" uid="uid://b4ytc5recc55s" path="res://data/TileData/tile_data.gd" id="1_1icrp"]
+[ext_resource type="Texture2D" uid="uid://lei1ptykoegs" path="res://assets/Tiles/letter_Y.png" id="2_t0ub8"]
 
 [resource]
 script = ExtResource("1_1icrp")
