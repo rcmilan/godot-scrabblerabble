@@ -122,16 +122,16 @@ visible = false
 
 [node name="DrawButton" type="Button" parent="."]
 offset_left = 865.0
-offset_top = 498.0
+offset_top = 380.0
 offset_right = 965.0
-offset_bottom = 528.0
+offset_bottom = 410.0
 text = "Draw Tiles"
 
 [node name="PlayButton" type="Button" parent="."]
 offset_left = 865.0
-offset_top = 538.0
+offset_top = 420.0
 offset_right = 965.0
-offset_bottom = 578.0
+offset_bottom = 460.0
 text = "Play"
 
 [node name="KeyboardHintBar" parent="." instance=ExtResource("2_kbhintbar")]
