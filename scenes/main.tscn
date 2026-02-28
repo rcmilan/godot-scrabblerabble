@@ -8,9 +8,9 @@
 [ext_resource type="PackedScene" uid="uid://dvvvp3s5ego5p" path="res://scenes/ui/main_hud/main_hud.tscn" id="7_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/discard_pile/discard_pile.tscn" id="8_discard"]
 [ext_resource type="PackedScene" path="res://scenes/ui/discard_confirmation_dialog/discard_confirmation_dialog.tscn" id="9_dialog"]
-[ext_resource type="PackedScene" path="res://Scenes/shop/ShopOverlay.tscn" id="10_shop"]
-[ext_resource type="PackedScene" path="res://Scenes/ui/game_over_popup/GameOverPopup.tscn" id="11_gameover"]
-[ext_resource type="PackedScene" path="res://Scenes/ui/pause_menu/PauseMenu.tscn" id="12_pause"]
+[ext_resource type="PackedScene" path="res://scenes/shop/shop_overlay.tscn" id="10_shop"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_over_popup/game_over_popup.tscn" id="11_gameover"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu/pause_menu.tscn" id="12_pause"]
 [node name="Main" type="Control"]
 layout_mode = 3
 anchors_preset = 15
