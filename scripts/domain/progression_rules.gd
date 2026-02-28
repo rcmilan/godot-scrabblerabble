@@ -20,15 +20,13 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 	var board_size: Vector2i = _calculate_board_size(round_num)
 	var target: int = _calculate_target_score(round_num)
 	var plays: int = run_state.plays_per_round
-	var hand: int = run_state.hand_size
 
 	return RoundConfig.new(
 		round_num,
 		board_size.y,  # rows
 		board_size.x,  # columns
 		target,
-		plays,
-		hand
+		plays
 	)
 
 

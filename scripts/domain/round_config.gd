@@ -9,7 +9,6 @@ var board_rows: int = 6
 var board_columns: int = 6
 var target_score: int = 100
 var plays_per_round: int = 2
-var hand_size: int = 10
 
 
 func _init(
@@ -17,15 +16,13 @@ func _init(
 	p_rows: int = 6,
 	p_cols: int = 6,
 	p_target: int = 100,
-	p_plays: int = 2,
-	p_hand_size: int = 10
+	p_plays: int = 2
 ) -> void:
 	round_number = p_round
 	board_rows = p_rows
 	board_columns = p_cols
 	target_score = p_target
 	plays_per_round = p_plays
-	hand_size = p_hand_size
 
 
 func _to_string() -> String:
