@@ -429,7 +429,7 @@ static var _invert_material: ShaderMaterial = null
 
 static func _get_invert_material() -> ShaderMaterial:
 	if _invert_material == null:
-		var shader: Shader = load("res://Scenes/Tile/invert.gdshader")
+		var shader: Shader = load("res://scenes/tile/invert.gdshader")
 		_invert_material = ShaderMaterial.new()
 		_invert_material.shader = shader
 	return _invert_material

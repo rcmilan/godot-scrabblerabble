@@ -59,7 +59,7 @@ func initialize_run_from_builder(run: Run) -> void:
 	# Set up progression
 	var prog_config := run.progression_config
 	if prog_config == null:
-		prog_config = load("res://Data/Progression/progression_default.tres")
+		prog_config = load("res://data/progression/progression_default.tres")
 	progression_rules = ProgressionRules.new(prog_config)
 
 	# Connect quality lifecycle signals

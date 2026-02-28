@@ -20,7 +20,7 @@ func get_description() -> String:
 
 
 func create_distribution() -> BagDistribution:
-	return load("res://Data/BagDistribution/bag_default.tres") as BagDistribution
+	return load("res://data/bag_distribution/bag_default.tres") as BagDistribution
 
 
 func create_bundled_quality() -> RunQuality:

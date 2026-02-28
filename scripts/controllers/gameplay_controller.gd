@@ -81,7 +81,7 @@ func get_word_validator() -> WordValidator:
 	return _play.get_word_validator()
 func _ready() -> void:
 	_word_validator = WordValidator.new()
-	_word_validator.load_word_list("res://Data/Dictionaries/english_words.txt")
+	_word_validator.load_word_list("res://data/dictionaries/english_words.txt")
 
 	_word_finder = WordFinder.new()
 	_word_finder.set_validator(_word_validator)

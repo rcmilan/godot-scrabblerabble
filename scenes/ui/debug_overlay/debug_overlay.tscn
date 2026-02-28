@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3 uid="uid://dp8k3r3swjcte"]
+
+[ext_resource type="Script" path="res://scenes/ui/debug_overlay/debug_overlay.gd" id="1_debugoverlay"]
+
+[node name="DebugOverlay" type="CanvasLayer"]
+layer = 100
+visible = false
+script = ExtResource("1_debugoverlay")
+
+[node name="DebugPanel" type="Panel" parent="."]
+offset_left = 10.0
+offset_top = 200.0
+offset_right = 170.0
+offset_bottom = 450.0
+
+[node name="VBox" type="VBoxContainer" parent="DebugPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = -5.0
+
+[node name="TitleLabel" type="Label" parent="DebugPanel/VBox"]
+layout_mode = 2
+text = "Debug Tools"
+horizontal_alignment = 1
+
+[node name="Spacer1" type="Control" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="WordLabel" type="Label" parent="DebugPanel/VBox"]
+layout_mode = 2
+text = "Check Word:"
+
+[node name="WordInput" type="LineEdit" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+placeholder_text = "type a word"
+
+[node name="CheckButton" type="Button" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Check"
+
+[node name="Spacer2" type="Control" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 15)
+
+[node name="RemoveAllButton" type="Button" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Remove All"
+
+[node name="RedrawButton" type="Button" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Redraw Hand"
+
+[node name="PrintRackButton" type="Button" parent="DebugPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+text = "Print Rack"
