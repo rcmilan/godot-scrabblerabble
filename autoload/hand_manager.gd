@@ -194,7 +194,6 @@ func is_hand_full() -> bool:
 ## Sets references from Main scene. Only initialization path.
 func set_references(hand_ui: Node) -> void:
 	_hand_ui = hand_ui
-	_hand_ui.max_hand_size = STARTING_HAND_SIZE
 	_is_initialized = true
 	initialized.emit()
 	print("[HandManager] Initialized via set_references()")
