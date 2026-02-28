@@ -150,8 +150,9 @@ func is_empty() -> bool:
 
 
 ## Returns true if the hand is at maximum capacity.
+## With unlimited hand size, this always returns false.
 func is_full() -> bool:
-	return get_tile_count() >= HandManager.STARTING_HAND_SIZE
+	return false
 
 
 ## Reorders tiles in the hand based on a comparator callable.
