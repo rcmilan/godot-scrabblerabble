@@ -8,7 +8,7 @@ extends Node
 # RESOURCES
 # =============================================================================
 
-const TILE_SCENE_PATH: String = "res://Scenes/Tile/Tile.tscn"
+const TILE_SCENE_PATH: String = "res://scenes/tile/tile.tscn"
 const TILE_DATA_PATH: String = "res://Data/TileData/tiles/tile_%s.tres"
 
 var _tile_scene: PackedScene = null

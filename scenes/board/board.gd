@@ -23,7 +23,7 @@ signal cell_unhovered(cell: BoardCell)
 @export var debug_interval_frames: int = 30
 
 # === Resources ===
-const _cell_scene: PackedScene = preload("res://Scenes/Board/BoardCell.tscn")
+const _cell_scene: PackedScene = preload("res://scenes/board/board_cell.tscn")
 
 # === Internal State ===
 var _cells: Array[Array] = []  # 2D array: _cells[row][col]

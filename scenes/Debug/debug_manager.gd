@@ -6,7 +6,7 @@ extends RefCounted
 
 var _main_scene: Node = null
 var _log_fn: Callable
-var tile_scene: PackedScene = preload("res://Scenes/Tile/Tile.tscn")
+var tile_scene: PackedScene = preload("res://scenes/tile/tile.tscn")
 
 
 ## Sets up the debug manager with references.

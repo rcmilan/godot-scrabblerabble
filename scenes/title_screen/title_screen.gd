@@ -9,8 +9,8 @@ class_name TitleScreen
 # CONFIGURATION
 # =============================================================================
 
-## Path to the gameplay scene (Main.tscn)
-const GAMEPLAY_SCENE_PATH: String = "res://Scenes/Main.tscn"
+## Path to the gameplay scene (main.tscn)
+const GAMEPLAY_SCENE_PATH: String = "res://scenes/main.tscn"
 
 # =============================================================================
 # CONTROLLERS
