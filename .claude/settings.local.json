@@ -14,7 +14,9 @@
       "Bash(git rm:*)",
       "Bash(cd:*)",
       "Bash(cat:*)",
-      "Bash(py:*)"
+      "Bash(py:*)",
+      "Bash(read file:*)",
+      "Bash(bash:*)"
     ]
   }
 }
