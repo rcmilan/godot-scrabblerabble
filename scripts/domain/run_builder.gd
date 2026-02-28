@@ -10,7 +10,6 @@ class_name RunBuilder
 
 var _bag_config: BagDistribution = null
 var _deck: DeckDefinition = null
-var _hand_size: int = -1
 var _plays_per_round: int = -1
 var _progression_config: ProgressionConfig = null
 var _qualities: Array[RunQuality] = []
@@ -30,11 +29,6 @@ func set_bag(bag: BagDistribution) -> RunBuilder:
 ## Invariant    : deck takes precedence over set_bag() when both are called.
 func set_deck(deck: DeckDefinition) -> RunBuilder:
 	_deck = deck
-	return self
-
-
-func set_hand_size(size: int) -> RunBuilder:
-	_hand_size = size
 	return self
 
 
@@ -93,7 +87,6 @@ func build() -> Run:
 			push_error("[RunBuilder] Failed to load default progression config")
 		run.progression_config = default_prog
 
-	run.hand_size = _hand_size if _hand_size > 0 else run.progression_config.default_hand_size
 	run.plays_per_round = _plays_per_round if _plays_per_round > 0 else run.progression_config.default_plays_per_round
 
 	# Transfer qualities and reset all builder state so build() is safe to call again.
@@ -101,7 +94,6 @@ func build() -> Run:
 	run.qualities = _qualities.duplicate()
 	_bag_config = null
 	_deck = null
-	_hand_size = -1
 	_plays_per_round = -1
 	_progression_config = null
 	_qualities.clear()

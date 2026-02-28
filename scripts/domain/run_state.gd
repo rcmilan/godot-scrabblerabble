@@ -12,18 +12,16 @@ var round_scores: Array[int] = []
 
 # Configuration (set at run start, modifiable by shop effects)
 var plays_per_round: int = 2
-var hand_size: int = 10
 var bag_config: BagDistribution = null
 
 
-func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribution) -> void:
+func start_run(config_plays: int, config_bag: BagDistribution) -> void:
 	current_round = 0
 	total_score = 0
 	rounds_completed = 0
 	is_run_active = true
 	round_scores.clear()
 	plays_per_round = config_plays
-	hand_size = config_hand_size
 	bag_config = config_bag
 
 

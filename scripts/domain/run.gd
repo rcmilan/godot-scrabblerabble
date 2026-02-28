@@ -9,7 +9,6 @@ class_name Run
 # =============================================================================
 
 var bag_config: BagDistribution = null
-var hand_size: int = 10
 var plays_per_round: int = 2
 var progression_config: ProgressionConfig = null
 var qualities: Array[RunQuality] = []
@@ -42,7 +41,6 @@ func to_dict() -> Dictionary:
 		quality_dicts.append(quality.to_dict())
 
 	return {
-		"hand_size": hand_size,
 		"plays_per_round": plays_per_round,
 		"qualities": quality_dicts,
 	}
@@ -52,7 +50,6 @@ static func from_dict(data: Dictionary, bag: BagDistribution, progression: Progr
 	var run := Run.new()
 	run.bag_config = bag
 	run.progression_config = progression
-	run.hand_size = data.get("hand_size", 10)
 	run.plays_per_round = data.get("plays_per_round", 2)
 
 	var quality_dicts: Array = data.get("qualities", [])
