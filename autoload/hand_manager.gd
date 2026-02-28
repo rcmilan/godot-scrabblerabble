@@ -7,8 +7,9 @@ extends Node
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
-# Hand size default comes from ProgressionConfig.default_hand_size.
-# At runtime, set via set_hand_size() which syncs to the Hand UI.
+
+const STARTING_HAND_SIZE: int = 10
+const DRAW_BATCH_SIZE: int = 5
 
 # =============================================================================
 # SIGNALS
@@ -21,7 +22,6 @@ signal tile_ready(tile: Tile)
 # STATE
 # =============================================================================
 
-var hand_size: int = 10
 var _discard_pile: Array[Tile] = []
 
 # =============================================================================
@@ -88,7 +88,7 @@ func refill_hand() -> int:
 	if not _ensure_initialized():
 		return 0
 
-	var needed: int = hand_size - get_hand_size()
+	var needed: int = STARTING_HAND_SIZE - get_hand_size()
 	if needed <= 0:
 		return 0
 
@@ -98,6 +98,11 @@ func refill_hand() -> int:
 		EventBus.hand_refilled.emit(drawn)
 
 	return drawn
+
+
+## Draws a batch of tiles (DRAW_BATCH_SIZE).
+func draw_batch() -> int:
+	return draw_tiles(DRAW_BATCH_SIZE)
 
 
 # =============================================================================
@@ -182,13 +187,6 @@ func is_hand_full() -> bool:
 	return _hand_ui.is_full()
 
 
-## Sets the target hand size for refilling. Syncs to Hand UI.
-func set_hand_size(size: int) -> void:
-	hand_size = maxi(size, 1)
-	if _hand_ui and is_instance_valid(_hand_ui):
-		_hand_ui.max_hand_size = hand_size
-
-
 # =============================================================================
 # INITIALIZATION
 # =============================================================================
@@ -196,7 +194,7 @@ func set_hand_size(size: int) -> void:
 ## Sets references from Main scene. Only initialization path.
 func set_references(hand_ui: Node) -> void:
 	_hand_ui = hand_ui
-	_hand_ui.max_hand_size = hand_size
+	_hand_ui.max_hand_size = STARTING_HAND_SIZE
 	_is_initialized = true
 	initialized.emit()
 	print("[HandManager] Initialized via set_references()")
