@@ -80,7 +80,7 @@ func build() -> Run:
 	elif _bag_config:
 		run.bag_config = _bag_config
 	else:
-		var default_bag := load("res://Data/BagDistribution/bag_default.tres") as BagDistribution
+		var default_bag := load("res://data/bag_distribution/bag_default.tres") as BagDistribution
 		if default_bag == null:
 			push_error("[RunBuilder] Failed to load default bag distribution")
 		run.bag_config = default_bag
@@ -88,7 +88,7 @@ func build() -> Run:
 	if _progression_config:
 		run.progression_config = _progression_config
 	else:
-		var default_prog := load("res://Data/Progression/progression_default.tres") as ProgressionConfig
+		var default_prog := load("res://data/progression/progression_default.tres") as ProgressionConfig
 		if default_prog == null:
 			push_error("[RunBuilder] Failed to load default progression config")
 		run.progression_config = default_prog
