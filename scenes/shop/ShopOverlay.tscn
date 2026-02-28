@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scenes/shop/shop_overlay.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://scenes/shop/DebugRoundConfigPopup.tscn" id="2_debug_popup"]
+[ext_resource type="Script" path="res://Scenes/shop/shop_overlay.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://Scenes/shop/DebugRoundConfigPopup.tscn" id="2_debug_popup"]
 
 [node name="ShopOverlay" type="CanvasLayer"]
 layer = 5

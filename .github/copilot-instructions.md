@@ -373,36 +373,150 @@ Run from Godot Editor (F5) or build for mobile target. No external dependencies.
 
 ## Development Roadmap
 
-### ✅ Completed Phases
-- Phase 1: Tile Visual Configuration (LetterTileData system)
-- Phase 2: Architecture Foundation (EventBus + GameManager)
-- Phase 3: Debug System (Debug console + commands)
-- Phase 4: Tile Pool Management (TileBag + BagDistribution)
-- Phase 5: Selection System (SelectionManager, multi-select)
-- Phase 6: Discard System (confirmation, drop zone, refill)
-- Phase 7: Word Detection & Validation (find_formed_words algorithm)
-- Phase 8: Scoring System with multipliers (WordValidator service)
-- Phase 9: Animation System (draw, glide, shake, stomp, spin)
-- Phase 10: Run & Progression System (RoundConfig, ProgressionRules)
-- Phase 11: Roguelike Quality Modifiers (RunQuality, RunBuilder, modifier system)
-- Phase 12: Title Screen & Game Configuration (RunSetupPopup, MenuController)
-- Phase 13: Shop Phase Between Rounds (ShopOverlay, round transitions)
-- Phase 14: Game State Management (multi-round runs, victory/defeat conditions)
+### Completed
+- ✅ Phase 1: Tile Visual Configuration (LetterTileData system)
+- ✅ Phase 2: Architecture Foundation (EventBus + GameManager)
+- ✅ Phase 3: Debug System
+- ✅ Phase 4: Tile Pool Management (TileBag + BagDistribution)
+- ✅ Phase 5: Selection System (SelectionManager, multi-select)
+- ✅ Discard System (confirmation, drop zone, refill)
+- ✅ Phase 6: Word Validation & Real-Time Feedback (Substring matching, roguelite-first scoring)
 
-### 🔄 In Progress
-- Phase 15: UI Polish and Game Feel Refinement
-- Phase 16: Tile Modifiers System (EXTRA, MULTI, EXPO, RESET, LOCKED with composable behaviors, visual pipeline, play animations)
+### In Progress
+- 🔄 Phase 7: Scoring System with multipliers
 
-### 📋 Future Phases
-- Phase 17: Cell Multipliers on Board (visual + scoring)
-- Phase 18: Save/Load Game State
-- Phase 19: Multiple Starting Decks/Themes
-- Phase 20: Wild Card Tiles (blank tiles with custom letter assignment)
-- Phase 21: Additional Modifier Types and Behaviors
-- Phase 22: Achievement & Statistics System
-- Phase 23: Sound and Music
-- Phase 24: Mobile Touch Controls Refinement
-- Phase 25: Leaderboard System
+### Future
+- Phase 8: Turn Management
+- Phase 9: Multi-Turn & Round System
+- Phase 10: UI Polish & Game Feel
+
+---
+
+## Word Validation & Scoring System (Implemented)
+
+### Design Philosophy: Roguelite-First
+
+**Any tile placement is a valid play.** Valid dictionary words provide **bonus multiplier scoring**, not play gating. This is fundamentally different from Scrabble — the game rewards word knowledge but doesn't punish random placement.
+
+### Architecture Overview
+
+```
+Tile Placed/Removed → PlayStateManager (grid cache sync) →
+WordFinder.find_valid_words(grid) → Substring matching →
+Update cell highlights (green) → Update cached valid words →
+
+User presses Play (enabled whenever tiles on board) →
+Base score (always) + Word bonus (valid words only) →
+Lock tiles → Commit temp → permanent → Refill hand
+```
+
+### Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **PlayStateManager** | `scripts/logic/play_state_manager.gd` | Grid cache with temporary/permanent tile tracking, O(1) lookups |
+| **WordFinder** | `scripts/logic/word_finder.gd` | Substring matching — finds longest valid words within tile sequences |
+| **WordValidator** | `scripts/logic/word_validator.gd` | Dictionary hash lookup, scoring calculations |
+| **BoardCell** | `scenes/board/board_cell.gd` | Word highlight overlay (green, persistent until cleared) |
+| **GameplayController** | `scripts/controllers/gameplay_controller.gd` | Orchestrates real-time scanning, highlighting, and scoring |
+
+### PlayStateManager
+
+RefCounted grid cache that mirrors the Board's state for fast logic-side lookups.
+
+```gdscript
+# Dual-state tracking
+var _grid: Array[Array] = []           # [row][col] = Tile or null (combined view)
+var _temporary_tiles: Dictionary = {}  # {Vector2i: Tile} — this turn
+var _permanent_tiles: Dictionary = {}  # {Vector2i: Tile} — locked from previous turns
+
+# Key API
+func initialize_grid(rows, cols)        # Called once in setup()
+func place_temporary_tile(tile, pos)    # On tile placement
+func remove_temporary_tile(pos) -> Tile # On tile return to hand
+func commit_temporary_tiles() -> Array  # On play — temp → permanent
+func has_temporary_tiles() -> bool      # For play button state
+func get_grid() -> Array[Array]         # For word finder input
+```
+
+### WordFinder — Substring Matching Algorithm
+
+Unlike Scrabble (whole sequence = word), WordFinder finds **valid substrings** within contiguous tile sequences.
+
+```
+Sequence "ACATHE":
+  Substrings checked: AC, ACA, ACAT, ..., CA, CAT, CATH, ..., AT, ATH, THE, HE
+  Valid matches: CAT, AT, THE, HE
+  Greedy longest-first non-overlapping: CAT, THE (selected)
+```
+
+**Algorithm:**
+1. Extract contiguous tile sequences (horizontal rows, vertical columns)
+2. For each sequence, enumerate all substrings of length >= 2
+3. Check each against dictionary via `WordValidator.is_valid_word()` (O(1) hash)
+4. Sort valid matches by length descending
+5. Greedily select non-overlapping matches (longest first)
+
+**Performance:** O(n²) per sequence where n = sequence length. Negligible for boards ≤ 15.
+
+```gdscript
+# Returns Array of WordFinder.FoundWord
+var words = _word_finder.find_valid_words(grid)
+
+# Get highlight positions
+var positions = _word_finder.get_valid_word_positions(words)
+```
+
+### Scoring Model
+
+```
+Total Score = Base Score + Word Bonus
+
+Base Score:  Always awarded. Sum of (tile_points × cell_letter_multiplier) × word_multiplier
+Word Bonus:  Only for valid dictionary words. Sum of letter point values per valid word.
+```
+
+**Example:** Place "CAT" on board → Base = 3+1+1 = 5 (always) + Word bonus = 5 (CAT is valid) = 10 total.
+**Example:** Place "XZQ" on board → Base = 8+10+10 = 28 (always) + Word bonus = 0 (no valid words) = 28 total.
+
+### Real-Time Feedback Flow
+
+```gdscript
+# GameplayController — called after every tile placement/removal
+func _run_realtime_word_scan():
+    _clear_word_highlights()
+    var grid = _play_state_manager.get_grid()
+    _current_valid_words = _word_finder.find_valid_words(grid)
+    var positions = _word_finder.get_valid_word_positions(_current_valid_words)
+    _apply_word_highlights(positions)  # Green overlay on valid word cells
+```
+
+### BoardCell Highlight States
+
+| State | Color | Triggered By | Behavior |
+|-------|-------|-------------|----------|
+| Valid hover | Green (0.45α) | Cursor over empty cell with selection | Transient — clears on mouse exit |
+| Invalid hover | Red (0.65α) | Cursor over occupied cell with selection | Transient — clears on mouse exit |
+| Word highlight | Green (0.35α) | Real-time word scan finds valid word | Persistent — stays until board state changes |
+
+Word highlights take priority over hover clear — `clear_hover()` restores word highlight color if active.
+
+### Key Design Decisions
+
+**Why any play is valid?**
+- Roguelite-first design — don't punish exploration
+- Words are bonuses, not gates
+- Future: roguelite modifiers can change scoring rules
+
+**Why substring matching (not whole-sequence)?**
+- More rewarding — find hidden words in random placements
+- Longest non-overlapping avoids double-counting (CATS = one word, not CAT+AT+CATS)
+- Future: roguelite modifiers may allow composed word scoring
+
+**Why greedy longest-first?**
+- Intuitive scoring — longer words should count over shorter overlapping ones
+- Simple algorithm with clear behavior
+- Future: alternative strategies (highest-score-first) easy to swap in
 
 **Architecture Philosophy:**
 - Each phase builds on previous phases

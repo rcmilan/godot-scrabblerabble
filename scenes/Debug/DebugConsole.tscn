@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b7137nxmc3c7y"]
 
-[ext_resource type="Script" uid="uid://crmfa5kuigi0k" path="res://scenes/debug/debug_console.gd" id="1_rjebi"]
+[ext_resource type="Script" uid="uid://crmfa5kuigi0k" path="res://Scenes/Debug/debug_console.gd" id="1_rjebi"]
 
 [node name="DebugConsole" type="CanvasLayer"]
 layer = 100

@@ -10,7 +10,7 @@ class_name TitleScreen
 # =============================================================================
 
 ## Path to the gameplay scene (Main.tscn)
-const GAMEPLAY_SCENE_PATH: String = "res://scenes/Main.tscn"
+const GAMEPLAY_SCENE_PATH: String = "res://Scenes/Main.tscn"
 
 # =============================================================================
 # CONTROLLERS
@@ -39,7 +39,7 @@ func _ready() -> void:
 
 
 func _setup_menu_controller() -> void:
-	"""Create and configure the menu controller."""
+	## Create and configure the menu controller.
 	_menu_controller = MenuController.new()
 	add_child(_menu_controller)
 
@@ -56,7 +56,7 @@ func _setup_menu_controller() -> void:
 
 
 func _setup_ui() -> void:
-	"""Configure UI elements."""
+	## Configure UI elements.
 	_title_label.text = "Scrabblerabble"
 
 	# Connect options popup
@@ -71,19 +71,19 @@ func _setup_ui() -> void:
 # =============================================================================
 
 func _on_new_game_requested() -> void:
-	"""Show run setup popup for quality selection."""
+	## Show run setup popup for quality selection.
 	_menu_controller.deactivate()
 	_run_setup_popup.show_popup()
 
 
 func _on_options_requested() -> void:
-	"""Show options popup."""
+	## Show options popup.
 	_menu_controller.deactivate()
 	_options_popup.show_popup()
 
 
 func _on_exit_requested() -> void:
-	"""Exit the game."""
+	## Exit the game.
 	print("[TitleScreen] Exiting game...")
 	get_tree().quit()
 
@@ -92,7 +92,7 @@ func _on_exit_requested() -> void:
 # =============================================================================
 
 func _on_run_confirmed(run: Run) -> void:
-	"""Start a new game with the configured run."""
+	## Start a new game with the configured run.
 	print("[TitleScreen] Starting run with %d qualities..." % run.qualities.size())
 
 	RunManager.initialize_run_from_builder(run)
@@ -101,7 +101,7 @@ func _on_run_confirmed(run: Run) -> void:
 
 
 func _on_run_setup_cancelled() -> void:
-	"""Re-activate menu when run setup is cancelled."""
+	## Re-activate menu when run setup is cancelled.
 	_menu_controller.activate()
 
 # =============================================================================
@@ -109,5 +109,5 @@ func _on_run_setup_cancelled() -> void:
 # =============================================================================
 
 func _on_options_closed() -> void:
-	"""Re-activate menu when options popup closes."""
+	## Re-activate menu when options popup closes.
 	_menu_controller.activate()

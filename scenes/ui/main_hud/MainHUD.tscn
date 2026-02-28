@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dvvvp3s5ego5p"]
 
-[ext_resource type="Script" uid="uid://ovu3bkok7cl3" path="res://scenes/ui/main_hud/main_hud.gd" id="1_mainhud"]
+[ext_resource type="Script" uid="uid://ovu3bkok7cl3" path="res://Scenes/ui/main_hud/main_hud.gd" id="1_mainhud"]
 
 [node name="MainHUD" type="CanvasLayer"]
 layer = 0

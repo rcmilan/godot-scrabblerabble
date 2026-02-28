@@ -62,6 +62,15 @@ var _play: PlayHandler = null
 
 var _tracker: SignalTracker = SignalTracker.new()
 
+var _word_validator: WordValidator = null
+var _play_state_manager: PlayStateManager = null
+var _word_finder: WordFinder = null
+
+## Cached validation results from the last real-time scan.
+var _current_valid_words: Array = []
+## Positions currently highlighted as part of valid words.
+var _highlighted_positions: Array[Vector2i] = []
+
 
 # =============================================================================
 # LIFECYCLE
@@ -70,6 +79,14 @@ var _tracker: SignalTracker = SignalTracker.new()
 ## Returns the word validator instance for external scoring.
 func get_word_validator() -> WordValidator:
 	return _play.get_word_validator()
+func _ready() -> void:
+	_word_validator = WordValidator.new()
+	_word_validator.load_word_list("res://Data/Dictionaries/english_words.txt")
+
+	_word_finder = WordFinder.new()
+	_word_finder.set_validator(_word_validator)
+
+	_play_state_manager = PlayStateManager.new()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -110,6 +127,7 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 
 	_play = PlayHandler.new()
 	_play.setup(board, _selection)
+	_play.play_completed.connect(_on_play_completed_internal)
 	_play.play_completed.connect(func(tiles, words): play_completed.emit(tiles, words))
 	_play.draw_blocked_changed.connect(
 		func(blocked): main_hud.set_draw_button_blocked(blocked)
@@ -119,6 +137,10 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 			main_hud.set_play_button_enabled(enabled)
 			main_hud.set_play_button_mode(mode)
 	)
+
+	# Initialize grid cache to match board dimensions
+	if board and _play_state_manager:
+		_play_state_manager.initialize_grid(board.rows, board.columns)
 
 
 ## Activates the controller and connects all signals.
@@ -181,6 +203,18 @@ func register_tile(tile: Tile) -> void:
 		tile.tile_drag_ended.connect(_on_tile_drag_ended)
 
 
+## Returns a board tile to hand, syncing all state. For use by debug commands.
+func debug_return_tile_to_hand(tile: Tile) -> void:
+	if tile == null or tile.current_cell == null:
+		return
+
+	var cell_pos: Vector2i = tile.current_cell.grid_position
+	_play_state_manager.remove_tile_at(cell_pos)
+	_placement.return_tile_to_hand(tile)
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
+
+
 # =============================================================================
 # TILE SELECTION HANDLERS
 # =============================================================================
@@ -224,7 +258,14 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 		TileAnimator.animate_shake(tile)
 		return
 
+	# PSM: remove tile from grid cache before returning to hand
+	var cell_pos: Vector2i = tile.current_cell.grid_position
+	_play_state_manager.remove_tile_at(cell_pos)
+
 	_placement.return_tile_to_hand(tile)
+
+	# Re-scan words after removal
+	_run_realtime_word_scan()
 	_update_interaction_state()
 	tile_returned_to_hand.emit(tile)
 	_play.update_play_button_state()
@@ -260,6 +301,18 @@ func _on_tile_drag_started(tile: Tile) -> void:
 		return
 
 	_drag_mgr.start_drag(tile, valid_tiles)
+	
+	# Remove board tiles from PSM grid temporarily during drag
+	for t in valid_tiles:
+		if t.location == Tile.TileLocation.ON_BOARD and t.current_cell:
+			_play_state_manager.remove_temporary_tile(t.current_cell.grid_position)
+
+	# Re-scan words - automatically updates highlights for affected rows/columns only
+	# Unaffected words in other rows/columns keep their highlights
+	if _any_tiles_on_board(valid_tiles):
+		_run_realtime_word_scan()
+		_play.update_play_button_state()
+
 	if valid_tiles.size() > 1:
 		print("[Gameplay] Multi-drag started with %d tiles" % valid_tiles.size())
 
@@ -298,8 +351,60 @@ func _handle_drag_release(tile: Tile) -> void:
 		dragged_tiles.size()
 	])
 
+	# Fast path: Check if tiles are being dropped back on their original cells (no-op)
+	if _is_dropping_on_same_cells(dragged_tiles, cell):
+		_handle_same_cell_drop(dragged_tiles)
+		_drag_mgr.end_drag(true)
+		return
+
+	# Handle single-tile swap (drop on occupied cell)
+	if dragged_tiles.size() == 1 and cell != null and cell.is_occupied():
+		var tile_to_place: Tile = dragged_tiles[0]
+		var tile_on_cell: Tile = cell.tile
+		
+		if not tile_on_cell.is_locked:
+			_drag_mgr.restore_tiles_to_parents()
+			
+			# PSM: remove both tiles before swap
+			if tile_to_place.current_cell:
+				_play_state_manager.remove_tile_at(tile_to_place.current_cell.grid_position)
+			if tile_on_cell.current_cell:
+				_play_state_manager.remove_tile_at(tile_on_cell.current_cell.grid_position)
+			
+			_placement.swap_tiles(tile_to_place, tile_on_cell, cell)
+			_selection.deselect_all()
+			
+			# PSM: add swapped tiles back to grid
+			if tile_to_place.current_cell:
+				_play_state_manager.place_temporary_tile(tile_to_place, tile_to_place.current_cell.grid_position)
+			if tile_on_cell.current_cell:
+				_play_state_manager.place_temporary_tile(tile_on_cell, tile_on_cell.current_cell.grid_position)
+			
+			_run_realtime_word_scan()
+			_update_interaction_state()
+			_play.update_play_button_state()
+			_drag_mgr.end_drag(true)
+			return
+		else:
+			print("[Gameplay] Cannot swap with locked tile: %s" % tile_on_cell.name)
+			# Fall through to invalid drop handling
+
 	# Unified drop handling for single and multi-tile
 	var success := _drop.handle_tile_drop(cell, dragged_tiles)
+
+	if success:
+		# PSM: sync newly placed tiles into grid cache
+		for t in dragged_tiles:
+			if t.current_cell:
+				_play_state_manager.place_temporary_tile(t, t.current_cell.grid_position)
+	else:
+		# PSM: restore board tiles that were removed at drag start
+		for t in dragged_tiles:
+			if t.location == Tile.TileLocation.ON_BOARD and t.current_cell:
+				_play_state_manager.place_temporary_tile(t, t.current_cell.grid_position)
+
+	# Re-scan words after any drop outcome
+	_run_realtime_word_scan()
 	_update_interaction_state()
 	_play.update_play_button_state()
 	_drag_mgr.end_drag(success)
@@ -317,11 +422,20 @@ func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell) -> void:
 			print("[Gameplay] Cannot place %d tiles starting at %s" % [movable.size(), cell.name])
 			return
 		for i in movable.size():
+			# PSM: remove from old position if tile is moving between board cells
+			if movable[i].current_cell:
+				_play_state_manager.remove_tile_at(movable[i].current_cell.grid_position)
 			_placement.place_tile_on_cell_silent(movable[i], cells[i])
+			_play_state_manager.place_temporary_tile(movable[i], cells[i].grid_position)
 		print("[Gameplay] Placed %d tiles starting at %s" % [movable.size(), cell.name])
 	else:
+		# PSM: remove from old position if tile is moving between board cells
+		if movable[0].current_cell:
+			_play_state_manager.remove_tile_at(movable[0].current_cell.grid_position)
 		_placement.place_tile_on_cell(movable[0], cell)
+		_play_state_manager.place_temporary_tile(movable[0], cell.grid_position)
 	_selection.deselect_all()
+	_run_realtime_word_scan()
 	_update_interaction_state()
 	_play.update_play_button_state()
 	tile_placement_completed.emit(movable[0], cell)
@@ -343,7 +457,37 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 		_update_interaction_state()
 		return
 
-	if cell.is_occupied():
+	# Handle tile swap for single-tile selection
+	if movable.size() == 1 and cell.is_occupied():
+		var tile_to_place: Tile = movable[0]
+		var tile_on_cell: Tile = cell.tile
+		
+		if tile_on_cell.is_locked:
+			print("[Gameplay] Cannot swap with locked tile: %s" % tile_on_cell.name)
+			return
+		
+		# PSM: remove both tiles before swap
+		if tile_to_place.current_cell:
+			_play_state_manager.remove_tile_at(tile_to_place.current_cell.grid_position)
+		if tile_on_cell.current_cell:
+			_play_state_manager.remove_tile_at(tile_on_cell.current_cell.grid_position)
+		
+		_placement.swap_tiles(tile_to_place, tile_on_cell, cell)
+		_selection.deselect_all()
+		
+		# PSM: add swapped tiles back to grid
+		if tile_to_place.current_cell:
+			_play_state_manager.place_temporary_tile(tile_to_place, tile_to_place.current_cell.grid_position)
+		if tile_on_cell.current_cell:
+			_play_state_manager.place_temporary_tile(tile_on_cell, tile_on_cell.current_cell.grid_position)
+		
+		_run_realtime_word_scan()
+		_update_interaction_state()
+		_play.update_play_button_state()
+		return
+
+	# Multi-tile placement requires unoccupied cells
+	if movable.size() > 1 and cell.is_occupied():
 		print("[Gameplay] Cell occupied: %s" % cell.name)
 		return
 
@@ -366,16 +510,117 @@ func _on_cell_hovered(cell: BoardCell) -> void:
 			for c in cells:
 				c.show_valid_hover()
 	else:
+		# Single-tile: Show valid for empty cells or swappable tiles
 		if cell.is_occupied():
-			cell.show_invalid_hover()
+			if cell.tile.is_locked:
+				cell.show_invalid_hover()  # Cannot swap with locked tile
+			else:
+				cell.show_valid_hover()     # Can swap with unlocked tile
 		else:
-			cell.show_valid_hover()
+			cell.show_valid_hover()         # Can place on empty cell
 
 
 func _on_cell_unhovered(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 	cell.clear_hover()
+	cell.clear_hover()
+
+## Checks if any tiles in the array are currently on the board.
+func _any_tiles_on_board(tiles: Array[Tile]) -> bool:
+	for tile in tiles:
+		if tile.location == Tile.TileLocation.ON_BOARD:
+			return true
+	return false
+
+
+
+# =============================================================================
+# CELL HELPERS
+# =============================================================================
+
+func _return_to_original_cell(tile: Tile) -> void:
+	if tile.current_cell == null:
+		push_error("[Gameplay] Board tile has no current_cell reference!")
+		return
+
+	# Verify cell binding is restored (should have been done by restore_tiles_to_parents)
+	if not tile.has_active_cell_binding():
+		push_warning("[Gameplay] Cell binding not active, restoring...")
+		tile.restore_cell_binding()
+
+	# Restore tile to PSM grid at original position
+	_play_state_manager.place_temporary_tile(tile, tile.current_cell.grid_position)
+
+	tile.position = Vector2.ZERO
+	tile.modulate = Color.WHITE
+	print("[Gameplay] Tile %s returned to cell: %s" % [tile.name, tile.current_cell.name])
+
+
+## Checks if tiles are being dropped back on their original cells (no-op drag).
+func _is_dropping_on_same_cells(tiles: Array[Tile], drop_cell: BoardCell) -> bool:
+	if drop_cell == null:
+		return false
+	
+	# Check if all tiles are board tiles being dropped on their original cells
+	for i in tiles.size():
+		var tile: Tile = tiles[i]
+		
+		# Must be a board tile
+		if tile.location != Tile.TileLocation.ON_BOARD:
+			return false
+		
+		# Must have original cell reference
+		if tile.current_cell == null:
+			return false
+		
+		# Calculate expected cell for this tile in the drop sequence
+		var expected_cell: BoardCell
+		if tiles.size() == 1:
+			expected_cell = drop_cell
+		else:
+			# Multi-tile: calculate offset from drop_cell
+			var lead_tile: Tile = _drag_mgr.lead_tile
+			var lead_index: int = tiles.find(lead_tile)
+			if lead_index == -1:
+				lead_index = 0
+			var offset: int = i - lead_index
+			var target_pos: Vector2i = drop_cell.grid_position + Vector2i(offset, 0)
+			expected_cell = board.get_cell_at_grid_position(target_pos.x, target_pos.y)
+			
+			if expected_cell == null:
+				return false
+		
+		# Check if tile is being dropped on its original cell
+		if tile.current_cell != expected_cell:
+			return false
+	
+	return true
+
+
+## Handles same-cell drop by restoring PSM state and rescanning highlights.
+func _handle_same_cell_drop(tiles: Array[Tile]) -> void:
+	print("[Gameplay] Same-cell drop detected - restoring state for %d tile(s)" % tiles.size())
+	
+	# Restore tiles to parents (they're already in the right place visually)
+	_drag_mgr.restore_tiles_to_parents()
+	
+	# Restore PSM state for all tiles
+	for tile in tiles:
+		if tile.location == Tile.TileLocation.ON_BOARD and tile.current_cell:
+			_return_to_original_cell(tile)
+	
+	# Re-scan to restore word highlights
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
+	
+	_update_interaction_state()
+	_clear_all_cell_hovers()
+
+
+func _clear_all_cell_hovers() -> void:
+	for cell in board.get_all_cells():
+		cell.clear_hover()
 
 
 # =============================================================================
@@ -499,7 +744,63 @@ func _on_play_requested() -> void:
 		return
 
 	_play.on_play_requested()
-	_update_interaction_state()
+
+
+## Called when PlayHandler completes a play. Syncs PSM and clears highlights.
+func _on_play_completed_internal(tiles: Array[Tile], _words: Array) -> void:
+	# Commit temporary → permanent in grid cache
+	_play_state_manager.commit_temporary_tiles()
+
+	# Clear word highlights (locked tiles don't re-highlight)
+	_clear_word_highlights()
+	_current_valid_words.clear()
+
+	print("[Gameplay] PSM committed %d tiles, highlights cleared" % tiles.size())
+
+
+# =============================================================================
+# REAL-TIME WORD SCANNING
+# =============================================================================
+
+## Runs word finder on the current board state and updates cell highlights.
+## Called after every tile placement or removal.
+func _run_realtime_word_scan() -> void:
+	# Clear previous highlights
+	_clear_word_highlights()
+
+	if not _play_state_manager.has_temporary_tiles():
+		_current_valid_words.clear()
+		return
+
+	# Run word finder on the combined grid (temp + permanent)
+	var grid: Array[Array] = _play_state_manager.get_grid()
+	_current_valid_words = _word_finder.find_valid_words(grid)
+
+	# Highlight cells that are part of valid words
+	var valid_positions: Array[Vector2i] = _word_finder.get_valid_word_positions(_current_valid_words)
+	_apply_word_highlights(valid_positions)
+
+	if _current_valid_words.size() > 0:
+		for fw in _current_valid_words:
+			print("[Gameplay] Word found: '%s' (%s)" % [fw.word, fw.direction])
+
+
+## Applies green highlight to cells at the given positions.
+func _apply_word_highlights(positions: Array[Vector2i]) -> void:
+	_highlighted_positions = positions
+	for pos in positions:
+		var cell: BoardCell = board.get_cell(pos.y, pos.x)
+		if cell:
+			cell.show_word_highlight()
+
+
+## Clears all word highlights from the board.
+func _clear_word_highlights() -> void:
+	for pos in _highlighted_positions:
+		var cell: BoardCell = board.get_cell(pos.y, pos.x)
+		if cell:
+			cell.clear_word_highlight()
+	_highlighted_positions.clear()
 
 
 # =============================================================================
