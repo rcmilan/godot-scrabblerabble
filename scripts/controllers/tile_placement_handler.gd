@@ -78,6 +78,7 @@ func place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
 		tile.get_parent().remove_child(tile)
 	cell.tile_anchor.add_child(tile)
 	tile.position = Vector2.ZERO
+	tile.rotation = 0.0
 
 	# Use atomic state management to ensure tile-cell binding consistency
 	tile.attach_to_cell(cell)
@@ -173,6 +174,7 @@ func return_to_original_cell(tile: Tile) -> void:
 		tile.restore_cell_binding()
 
 	tile.position = Vector2.ZERO
+	tile.rotation = 0.0
 	tile._update_visual()
 	print("[Gameplay] Tile %s returned to cell: %s" % [tile.name, tile.current_cell.name])
 
@@ -259,11 +261,13 @@ func _swap_hand_and_board_tiles(hand_tile: Tile, board_tile: Tile, board_cell: B
 	board_tile.get_parent().remove_child(board_tile)
 	hand.add_tile(board_tile)
 	board_tile.position = Vector2.ZERO
-	
+	board_tile.rotation = 0.0
+
 	# Move hand tile to board
 	hand.remove_tile(hand_tile)
 	board_cell.tile_anchor.add_child(hand_tile)
 	hand_tile.position = Vector2.ZERO
+	hand_tile.rotation = 0.0
 	hand_tile.attach_to_cell(board_cell)
 	hand_tile.location = Tile.TileLocation.ON_BOARD
 	
