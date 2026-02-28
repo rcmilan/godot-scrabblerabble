@@ -149,6 +149,11 @@ func is_empty() -> bool:
 	return get_tile_count() == 0
 
 
+## Returns true if the hand is at maximum capacity.
+func is_full() -> bool:
+	return get_tile_count() >= HandManager.STARTING_HAND_SIZE
+
+
 ## Reorders tiles in the hand based on a comparator callable.
 ## The comparator should return true if tile_i should come after tile_j.
 func sort_tiles(comparator: Callable) -> void:

@@ -178,25 +178,25 @@ func _unregister_tile(tile: Tile) -> void:
 	_managed_tiles.erase(tile)
 	_kill_tween(tile)
 
+	# Disconnect signals FIRST (safe even for invalid tiles)
+	if _tile_callbacks.has(tile):
+		var cbs = _tile_callbacks[tile]
+		# Only try to disconnect if tile is still valid
+		if is_instance_valid(tile):
+			if tile.mouse_entered.is_connected(cbs["entered"]):
+				tile.mouse_entered.disconnect(cbs["entered"])
+			if tile.mouse_exited.is_connected(cbs["exited"]):
+				tile.mouse_exited.disconnect(cbs["exited"])
+		_tile_callbacks.erase(tile)
+
 	if not is_instance_valid(tile):
 		if _hovered_tile == tile:
 			_hovered_tile = null
-		if _tile_callbacks.has(tile):
-			_tile_callbacks.erase(tile)
 		return
 
 	tile.external_scale_management = false
 	tile.scale = Tile.SELECTED_SCALE if tile.is_selected else Tile.NORMAL_SCALE
 	tile.z_index = 0
-
-	# Use stored callbacks for safe disconnection (avoids Callable recreation)
-	if _tile_callbacks.has(tile):
-		var cbs = _tile_callbacks[tile]
-		if tile.mouse_entered.is_connected(cbs["entered"]):
-			tile.mouse_entered.disconnect(cbs["entered"])
-		if tile.mouse_exited.is_connected(cbs["exited"]):
-			tile.mouse_exited.disconnect(cbs["exited"])
-		_tile_callbacks.erase(tile)
 
 	if _hovered_tile == tile:
 		_hovered_tile = null

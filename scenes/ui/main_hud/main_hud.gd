@@ -234,7 +234,7 @@ func _update_draw_button(_hand_count: int) -> void:
 	if _draw_button_blocked:
 		draw_button.disabled = true
 		return
-	draw_button.disabled = TileBag.is_empty()
+	draw_button.disabled = TileBag.is_empty() or HandManager.is_hand_full()
 
 
 # === Public API ===

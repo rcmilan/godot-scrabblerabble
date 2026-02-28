@@ -50,7 +50,7 @@ func initialize_run_from_builder(run: Run) -> void:
 
 	# Set up RunState from the Run config
 	run_state = RunState.new()
-	run_state.start_run(run.plays_per_round, run.hand_size, run.bag_config)
+	run_state.start_run(run.plays_per_round, run.bag_config)
 
 	# Apply quality modifications to run state
 	for quality in run.qualities:
@@ -65,8 +65,8 @@ func initialize_run_from_builder(run: Run) -> void:
 	# Connect quality lifecycle signals
 	_connect_quality_signals()
 
-	print("[RunManager] Run initialized from builder - Plays/round: %d | Hand: %d | Qualities: %d" % [
-		run_state.plays_per_round, run_state.hand_size, run.qualities.size()
+	print("[RunManager] Run initialized from builder - Plays/round: %d | Qualities: %d" % [
+		run_state.plays_per_round, run.qualities.size()
 	])
 
 
