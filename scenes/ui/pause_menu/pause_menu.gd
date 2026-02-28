@@ -11,6 +11,12 @@ signal resume_requested
 signal return_to_title_requested
 
 # =============================================================================
+# STATE
+# =============================================================================
+
+var _guard: ModalInputGuard
+
+# =============================================================================
 # NODE REFERENCES
 # =============================================================================
 
@@ -25,18 +31,14 @@ signal return_to_title_requested
 func _ready() -> void:
 	_resume_button.pressed.connect(_on_resume_pressed)
 	_return_button.pressed.connect(_on_return_pressed)
+	_guard = ModalInputGuard.new().setup(self).add_close_action(KeyAction.PAUSE_GAME)
+	_guard.close_requested.connect(_on_resume_pressed)
 	hide()
 
 
 func _input(event: InputEvent) -> void:
-	if not visible:
+	if _guard.handle(event):
 		return
-	if event.is_action_pressed("pause_game"):
-		_on_resume_pressed()
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_accept"):
-		# Let the focused button handle Enter/Space
-		get_viewport().set_input_as_handled()
 
 # =============================================================================
 # PUBLIC API

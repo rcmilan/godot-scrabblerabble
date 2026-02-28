@@ -19,6 +19,7 @@ signal draw_requested
 @onready var play_button: Button = $PlayButton
 @onready var timer_label: Label = $TimerLabel
 @onready var timer_increment_label: Label = $TimerIncrementLabel
+@onready var _hint_bar: KeyboardHintBar = $KeyboardHintBar
 
 # === Timer State ===
 var _timer_connections: Array[Dictionary] = []
@@ -246,3 +247,13 @@ func set_play_button_enabled(enabled: bool) -> void:
 
 func set_play_button_mode(is_end_round: bool) -> void:
 	play_button.text = "End Round" if is_end_round else "Play"
+
+
+func show_hint_bar() -> void:
+	if _hint_bar:
+		_hint_bar.show()
+
+
+func hide_hint_bar() -> void:
+	if _hint_bar:
+		_hint_bar.hide()

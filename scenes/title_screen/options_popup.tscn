@@ -28,10 +28,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -200.0
-offset_right = 200.0
-offset_bottom = 200.0
+offset_left = -250.0
+offset_top = -260.0
+offset_right = 250.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -57,31 +57,31 @@ text = "OPTIONS"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="SettingsContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TabContainer" type="TabContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="Display" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="GraphicsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="GraphicsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Display"]
 layout_mode = 2
 text = "Graphics"
 
-[node name="FullscreenCheck" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="FullscreenCheck" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Display"]
 layout_mode = 2
 text = "Fullscreen (Mocked)"
 
-[node name="VsyncCheck" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="VsyncCheck" type="CheckBox" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Display"]
 layout_mode = 2
 text = "V-Sync (Mocked)"
 
-[node name="VolumeLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="VolumeLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Display"]
 layout_mode = 2
 text = "Audio"
 
-[node name="VolumeSlider" type="HSlider" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="VolumeSlider" type="HSlider" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Display"]
 layout_mode = 2
 min_value = 0.0
 max_value = 100.0
@@ -89,13 +89,32 @@ value = 80.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="VolumeValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/SettingsContainer"]
+[node name="VolumeValueLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Display"]
 layout_mode = 2
 text = "Volume: 80%"
 horizontal_alignment = 1
 
-[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="Controls" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer"]
 layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResetButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Controls"]
+layout_mode = 2
+text = "Reset to Defaults"
+
+[node name="ResetCancelButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Controls"]
+layout_mode = 2
+visible = false
+text = "Cancel"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Controls"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionList" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TabContainer/Controls/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
 [node name="CloseButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

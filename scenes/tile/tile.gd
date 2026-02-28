@@ -55,6 +55,7 @@ var is_selected: bool = false
 var allow_hover_feedback: bool = true
 var selection_order: int = -1  # -1 = not selected
 var external_scale_management: bool = false  # When true, fan layout controls scale
+var _is_cursor_highlighted: bool = false  # Set by FocusCursor when navigating hand
 
 # === Drag State (delegated to TileDragHelper) ===
 var _drag: TileDragHelper = null
@@ -444,7 +445,7 @@ func _get_modifier_visual() -> Dictionary:
 ## This is the single source of truth for modifier appearance.
 func _apply_modifier_visual() -> void:
 	var visual: Dictionary = _get_modifier_visual()
-	modulate = visual.tint
+	modulate = visual.tint * Color(1.1, 1.1, 1.1) if _is_cursor_highlighted else visual.tint
 	_apply_invert(visual.invert)
 	if visual.has("badges"):
 		_update_badges(visual.badges)
@@ -474,6 +475,13 @@ func _update_badges(badges: Array) -> void:
 		label.add_theme_constant_override("outline_size", 3)
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge_container.add_child(label)
+
+
+## Sets cursor highlight (FocusCursor navigating over this tile in hand).
+## Postcondition: hover brightness applied when value is true. Border is unaffected.
+func set_cursor_highlighted(value: bool) -> void:
+	_is_cursor_highlighted = value
+	_update_visual()
 
 
 func _update_visual() -> void:

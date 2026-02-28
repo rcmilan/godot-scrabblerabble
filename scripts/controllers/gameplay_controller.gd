@@ -30,6 +30,7 @@ enum InteractionMode {
 var _interaction_mode: InteractionMode = InteractionMode.IDLE
 var _selected_tile: Tile = null
 var _is_active: bool = false
+var _cursor: FocusCursor = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -93,26 +94,35 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _is_active:
 		return
 
-	if event.is_action_pressed("pause_game"):
+	if event.is_action_pressed(KeyAction.PAUSE_GAME):
 		pause_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_pressed("toggle_multi_select"):
+	if event.is_action_pressed(KeyAction.TOGGLE_MULTI):
 		_selection.toggle_mode()
 
-	if event.is_action_pressed("discard_tiles"):
+	if event.is_action_pressed(KeyAction.DISCARD_TILES):
 		_request_discard()
+
+	if event.is_action_pressed(KeyAction.PLAY_HAND):
+		_on_play_requested()
+		get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed(KeyAction.DRAW_TILES):
+		_on_draw_requested()
+		get_viewport().set_input_as_handled()
 
 
 ## Sets up the controller with required scene references and creates handlers.
-func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dialog: CanvasLayer, p_hud: CanvasLayer, p_selection: SelectionManager) -> void:
+func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dialog: CanvasLayer, p_hud: CanvasLayer, p_selection: SelectionManager, p_cursor: FocusCursor = null) -> void:
 	board = p_board
 	hand = p_hand
 	discard_pile = p_discard_pile
 	discard_dialog = p_discard_dialog
 	main_hud = p_hud
 	_selection = p_selection
+	_cursor = p_cursor
 
 	# Create DragManager as local child
 	_drag_mgr = DragManager.new()
@@ -185,6 +195,11 @@ func _connect_signals() -> void:
 	_tracker.track(_drag_mgr.drag_release_requested, _handle_drag_release)
 	_tracker.track(EventBus.hand_count_changed, _on_tile_supply_changed)
 	_tracker.track(EventBus.bag_count_changed, _on_tile_supply_changed)
+
+	if _cursor:
+		_tracker.track(_cursor.cursor_confirmed, _on_cursor_confirmed)
+		_tracker.track(_cursor.cursor_cancelled, _on_cursor_cancelled)
+		_tracker.track(_cursor.cursor_moved,     _on_cursor_moved)
 
 
 # =============================================================================
@@ -269,6 +284,65 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 	_update_interaction_state()
 	tile_returned_to_hand.emit(tile)
 	_play.update_play_button_state()
+
+
+func _on_cursor_confirmed(pos: CursorPosition) -> void:
+	if not _is_active:
+		return
+
+	if pos.is_hand():
+		var tile: Tile = hand.get_tile_at(pos.hand_index)
+		if tile == null:
+			return
+		_on_tile_selected(tile)
+		if _selection.has_selection() and _cursor:
+			_cursor.set_held_tile(tile)
+
+	elif pos.is_board():
+		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
+		if cell == null:
+			return
+		if _selection.has_selection():
+			var movable: Array[Tile] = _selection.get_selected_tiles().filter(
+				func(t: Tile) -> bool: return not t.is_locked
+			)
+			if not movable.is_empty() and not cell.is_occupied():
+				_place_tiles_on_cell(movable, cell, true)
+				if _cursor:
+					_cursor.clear_held_tile()
+			elif cell.is_occupied():
+				TileAnimator.animate_shake(movable[0])
+		elif cell.is_occupied():
+			var board_tile: Tile = cell.tile
+			if not board_tile.is_locked:
+				_placement.return_tile_to_hand(board_tile)
+				_selection.select_tile(board_tile)
+				if _cursor:
+					_cursor.set_held_tile(board_tile)
+				_update_interaction_state()
+				tile_returned_to_hand.emit(board_tile)
+			else:
+				TileAnimator.animate_shake(board_tile)
+
+
+func _on_cursor_cancelled(_pos: CursorPosition) -> void:
+	if not _is_active:
+		return
+	_selection.deselect_all()
+	if _cursor:
+		_cursor.clear_held_tile()
+	_update_interaction_state()
+	_play.update_play_button_state()
+
+
+func _on_cursor_moved(pos: CursorPosition) -> void:
+	if not _is_active:
+		return
+	_placement.clear_all_cell_hovers()
+	if pos.is_board():
+		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
+		if cell:
+			_on_cell_hovered(cell)
 
 
 ## Builds the list of tiles to drag. Ensures lead tile is always included.
@@ -415,24 +489,33 @@ func _handle_drag_release(tile: Tile) -> void:
 # =============================================================================
 
 ## Places one or more movable tiles starting at the target cell.
-func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell) -> void:
+func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = false) -> void:
 	if movable.size() > 1:
 		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
 		if cells.is_empty():
 			print("[Gameplay] Cannot place %d tiles starting at %s" % [movable.size(), cell.name])
 			return
+		# PSM: remove from old positions if tiles are moving between board cells
 		for i in movable.size():
-			# PSM: remove from old position if tile is moving between board cells
 			if movable[i].current_cell:
 				_play_state_manager.remove_tile_at(movable[i].current_cell.grid_position)
-			_placement.place_tile_on_cell_silent(movable[i], cells[i])
+		if animated:
+			_placement.place_tiles_on_cells_animated(movable, cells)
+		else:
+			for i in movable.size():
+				_placement.place_tile_on_cell_silent(movable[i], cells[i])
+		# PSM: add new placements
+		for i in movable.size():
 			_play_state_manager.place_temporary_tile(movable[i], cells[i].grid_position)
 		print("[Gameplay] Placed %d tiles starting at %s" % [movable.size(), cell.name])
 	else:
 		# PSM: remove from old position if tile is moving between board cells
 		if movable[0].current_cell:
 			_play_state_manager.remove_tile_at(movable[0].current_cell.grid_position)
-		_placement.place_tile_on_cell(movable[0], cell)
+		if animated:
+			_placement.place_tile_on_cell_animated(movable[0], cell)
+		else:
+			_placement.place_tile_on_cell(movable[0], cell)
 		_play_state_manager.place_temporary_tile(movable[0], cell.grid_position)
 	_selection.deselect_all()
 	_run_realtime_word_scan()

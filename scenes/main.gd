@@ -16,6 +16,7 @@ var _gameplay_controller: GameplayController = null
 # =============================================================================
 
 var _selection_manager: SelectionManager = null
+var _focus_cursor: FocusCursor = null
 
 # =============================================================================
 # NODE REFERENCES
@@ -37,6 +38,7 @@ var _selection_manager: SelectionManager = null
 # =============================================================================
 
 func _ready() -> void:
+	KeybindingConfig.load_and_apply()
 	_setup_selection_manager()
 	HandManager.set_references(hand)
 	HandManager.tile_ready.connect(register_tile)
@@ -56,9 +58,16 @@ func _setup_selection_manager() -> void:
 
 
 func _setup_controllers() -> void:
+	var cursor_scene := preload("res://scenes/ui/focus_cursor/FocusCursor.tscn")
+	_focus_cursor = cursor_scene.instantiate() as FocusCursor
+	_focus_cursor.name = "FocusCursor"
+	add_child(_focus_cursor)
+	_focus_cursor.setup(board, hand)
+
 	_gameplay_controller = GameplayController.new()
+	_gameplay_controller.name = "GameplayController"
 	add_child(_gameplay_controller)
-	_gameplay_controller.setup(board, hand, discard_pile, discard_dialog, main_hud, _selection_manager)
+	_gameplay_controller.setup(board, hand, discard_pile, discard_dialog, main_hud, _selection_manager, _focus_cursor)
 	_gameplay_controller.play_completed.connect(_on_play_completed)
 	_gameplay_controller.pause_requested.connect(_on_pause_requested)
 
@@ -93,6 +102,7 @@ func _start_run() -> void:
 func _on_round_ready(config: RoundConfig) -> void:
 	# Deactivate controller during setup
 	_gameplay_controller.deactivate()
+	_focus_cursor.deactivate()
 
 	# Cancel any in-flight animations from the previous round before freeing tiles
 	TileAnimator.cancel_all()
@@ -120,6 +130,7 @@ func _on_round_ready(config: RoundConfig) -> void:
 
 	# Activate gameplay and show UI
 	_gameplay_controller.activate()
+	_focus_cursor.activate()
 	_show_gameplay_ui()
 
 	print("[Main] Round %d ready - %dx%d board" % [
@@ -157,6 +168,7 @@ func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
 
 func _on_shop_requested(round_number: int) -> void:
 	_gameplay_controller.deactivate()
+	_focus_cursor.deactivate()
 	_hide_gameplay_ui()
 
 	# Peek at next round config for display
@@ -177,6 +189,8 @@ func _on_shop_continue() -> void:
 
 func _on_run_ended(victory: bool, total_score: int) -> void:
 	_gameplay_controller.deactivate()
+	_focus_cursor.deactivate()
+	main_hud.hide_hint_bar()
 	if victory:
 		game_over_popup.show_victory(total_score)
 	else:
@@ -199,6 +213,7 @@ func _on_pause_requested() -> void:
 
 func _pause_game() -> void:
 	_gameplay_controller.deactivate()
+	_focus_cursor.deactivate()
 	GameManager.pause_game()
 	pause_menu.show_pause_menu()
 
@@ -206,6 +221,7 @@ func _pause_game() -> void:
 func _resume_game() -> void:
 	GameManager.resume_game()
 	_gameplay_controller.activate()
+	_focus_cursor.activate()
 
 
 # =============================================================================
@@ -216,6 +232,7 @@ func _show_gameplay_ui() -> void:
 	board.show()
 	hand.show()
 	main_hud.show()
+	main_hud.show_hint_bar()
 	shop_overlay.hide()
 	game_over_popup.hide()
 
@@ -223,6 +240,7 @@ func _show_gameplay_ui() -> void:
 func _hide_gameplay_ui() -> void:
 	board.hide()
 	hand.hide()
+	main_hud.hide_hint_bar()
 
 
 # =============================================================================
@@ -239,8 +257,10 @@ func register_tile(tile: Tile) -> void:
 ## Pauses gameplay (e.g., for menus or dialogs).
 func pause_gameplay() -> void:
 	_gameplay_controller.deactivate()
+	_focus_cursor.deactivate()
 
 
 ## Resumes gameplay.
 func resume_gameplay() -> void:
 	_gameplay_controller.activate()
+	_focus_cursor.activate()
