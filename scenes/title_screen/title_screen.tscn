@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://ba7kv2r3xm8pl"]
 
-[ext_resource type="Script" path="res://Scenes/title_screen/title_screen.gd" id="1_title"]
-[ext_resource type="PackedScene" uid="uid://c4m8xqw1vxj5r" path="res://Scenes/title_screen/OptionsPopup.tscn" id="2_options"]
-[ext_resource type="PackedScene" path="res://Scenes/title_screen/RunSetupPopup.tscn" id="3_run_setup"]
+[ext_resource type="Script" path="res://scenes/title_screen/title_screen.gd" id="1_title"]
+[ext_resource type="PackedScene" uid="uid://c4m8xqw1vxj5r" path="res://scenes/title_screen/OptionsPopup.tscn" id="2_options"]
+[ext_resource type="PackedScene" path="res://scenes/title_screen/RunSetupPopup.tscn" id="3_run_setup"]
 
 [node name="TitleScreen" type="Control"]
 layout_mode = 3
