@@ -810,7 +810,7 @@ func _on_draw_requested() -> void:
 	if not _is_active:
 		return
 
-	var drawn: int = HandManager.refill_hand()
+	var drawn: int = HandManager.draw_batch()
 	print("[Gameplay] Draw requested: refilled %d tiles" % drawn)
 
 
