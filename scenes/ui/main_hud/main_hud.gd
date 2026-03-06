@@ -5,7 +5,6 @@ extends CanvasLayer
 
 # === Signals ===
 signal play_requested
-signal draw_requested
 
 # === Node References ===
 @onready var round_label: Label = $RoundLabel
@@ -15,7 +14,6 @@ signal draw_requested
 @onready var deck_label: Label = $DeckLabel
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
-@onready var draw_button: Button = $DrawButton
 @onready var play_button: Button = $PlayButton
 @onready var timer_label: Label = $TimerLabel
 @onready var timer_increment_label: Label = $TimerIncrementLabel
@@ -48,7 +46,6 @@ func _connect_signals() -> void:
 
 
 func _setup_buttons() -> void:
-	draw_button.pressed.connect(_on_draw_button_pressed)
 	play_button.pressed.connect(_on_play_button_pressed)
 	play_button.disabled = true
 
@@ -72,12 +69,10 @@ func _on_score_updated(total: int, _delta: int) -> void:
 
 func _on_hand_count_changed(count: int) -> void:
 	_update_hand(count)
-	_update_draw_button(count)
 
 
 func _on_bag_count_changed(count: int) -> void:
 	_update_deck(count)
-	_update_draw_button(HandManager.get_hand_size())
 
 
 func _on_discard_count_changed(count: int) -> void:
@@ -209,34 +204,8 @@ func _format_time(seconds: float) -> String:
 
 # === Button Handlers ===
 
-func _on_draw_button_pressed() -> void:
-	draw_requested.emit()
-
-
 func _on_play_button_pressed() -> void:
 	play_requested.emit()
-
-
-# === Draw Button State ===
-
-var _draw_button_blocked: bool = false
-
-
-func set_draw_button_blocked(blocked: bool) -> void:
-	_draw_button_blocked = blocked
-	if blocked:
-		draw_button.disabled = true
-	else:
-		_update_draw_button(HandManager.get_hand_size())
-
-
-func _update_draw_button(hand_count: int) -> void:
-	if _draw_button_blocked:
-		draw_button.disabled = true
-		return
-	var hand_full: bool = hand_count >= HandManager.hand_size
-	var bag_empty: bool = TileBag.is_empty()
-	draw_button.disabled = hand_full or bag_empty
 
 
 # === Public API ===

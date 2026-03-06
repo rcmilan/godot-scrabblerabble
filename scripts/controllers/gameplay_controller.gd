@@ -109,10 +109,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_play_requested()
 		get_viewport().set_input_as_handled()
 
-	if event.is_action_pressed(KeyAction.DRAW_TILES):
-		_on_draw_requested()
-		get_viewport().set_input_as_handled()
-
 
 ## Sets up the controller with required scene references and creates handlers.
 func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dialog: CanvasLayer, p_hud: CanvasLayer, p_selection: SelectionManager, p_cursor: FocusCursor = null) -> void:
@@ -139,9 +135,6 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	_play.setup(board, _selection)
 	_play.play_completed.connect(_on_play_completed_internal)
 	_play.play_completed.connect(func(tiles, words): play_completed.emit(tiles, words))
-	_play.draw_blocked_changed.connect(
-		func(blocked): main_hud.set_draw_button_blocked(blocked)
-	)
 	_play.play_button_changed.connect(
 		func(enabled, mode):
 			main_hud.set_play_button_enabled(enabled)
@@ -189,7 +182,6 @@ func _connect_signals() -> void:
 		_tracker.track(discard_pile.peek_requested, _on_discard_pile_peek_requested)
 
 	if main_hud:
-		_tracker.track(main_hud.draw_requested, _on_draw_requested)
 		_tracker.track(main_hud.play_requested, _on_play_requested)
 
 	_tracker.track(_drag_mgr.drag_release_requested, _handle_drag_release)
@@ -800,18 +792,6 @@ func _get_discard_pile_center() -> Vector2:
 	if discard_pile:
 		return discard_pile.global_position + (discard_pile.size / 2.0)
 	return Vector2.ZERO
-
-
-# =============================================================================
-# DRAW HANDLER
-# =============================================================================
-
-func _on_draw_requested() -> void:
-	if not _is_active:
-		return
-
-	var drawn: int = HandManager.refill_hand()
-	print("[Gameplay] Draw requested: refilled %d tiles" % drawn)
 
 
 func _on_tile_supply_changed(_count: int) -> void:
