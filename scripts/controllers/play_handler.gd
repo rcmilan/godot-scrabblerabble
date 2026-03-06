@@ -10,7 +10,6 @@ extends RefCounted
 # =============================================================================
 
 signal play_completed(tiles: Array[Tile], words: Array)
-signal draw_blocked_changed(blocked: bool)
 signal play_button_changed(enabled: bool, end_round_mode: bool)
 
 # =============================================================================
@@ -80,9 +79,6 @@ func on_play_requested() -> void:
 		if tile.locked_border:
 			tile.locked_border.visible = false
 
-	# Block draw button during play animations
-	draw_blocked_changed.emit(true)
-
 	var animation_count: int = 0
 	if not stomp_tiles.is_empty():
 		TileAnimator.animate_stomp_batch(stomp_tiles)
@@ -95,14 +91,16 @@ func on_play_requested() -> void:
 	for i in animation_count:
 		await TileAnimator.animation_completed
 
-	draw_blocked_changed.emit(false)
-
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
 		tile.consume_modifiers()
 
 	EventBus.tiles_played.emit(unplayed_tiles, words)
 	play_completed.emit(unplayed_tiles, words)
+
+	# Auto-refill hand after a brief delay so player sees the result
+	await board.get_tree().create_timer(0.5).timeout
+	HandManager.refill_hand()
 
 	update_play_button_state()
 	print("[Gameplay] Play accepted: %d tiles locked, %d words found" % [

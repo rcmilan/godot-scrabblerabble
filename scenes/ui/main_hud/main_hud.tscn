@@ -120,13 +120,6 @@ theme_override_colors/font_color = Color(0.3, 1, 0.3, 1)
 text = "+15s"
 visible = false
 
-[node name="DrawButton" type="Button" parent="."]
-offset_left = 865.0
-offset_top = 498.0
-offset_right = 965.0
-offset_bottom = 528.0
-text = "Draw Tiles"
-
 [node name="PlayButton" type="Button" parent="."]
 offset_left = 865.0
 offset_top = 538.0

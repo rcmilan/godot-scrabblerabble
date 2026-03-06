@@ -7,7 +7,6 @@ class_name KeyboardHintBar
 
 var HINTS: Array[Dictionary] = [
 	{ action = KeyAction.PLAY_HAND,     label = "Play"    },
-	{ action = KeyAction.DRAW_TILES,    label = "Draw"    },
 	{ action = KeyAction.DISCARD_TILES, label = "Discard" },
 	{ action = KeyAction.TOGGLE_MULTI,  label = "Multi"   },
 	{ action = KeyAction.SWITCH_ZONE,   label = "Zone"    },
