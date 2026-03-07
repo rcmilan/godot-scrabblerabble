@@ -988,21 +988,25 @@ func _set_hand_tiles_hover_enabled(enabled: bool) -> void:
 func _on_orientation_toggled(new_state: RunOrientationState) -> void:
 	_orientation_state = new_state
 
-	# Update cursor's orientation reference
-	if _cursor:
-		_cursor.set_orientation_state(new_state)
+	_cursor.set_orientation_state(new_state)
 
-	# Update icon visual
 	if _orientation_button:
 		_orientation_button.set_orientation_state(new_state)
+		# Play stomp animation on button for feedback
+		var button_node = _orientation_button as Node
+		if button_node:
+			# Create a simple tween for visual feedback
+			var tween = create_tween()
+			tween.set_trans(Tween.TRANS_BACK)
+			tween.set_ease(Tween.EASE_OUT)
+			tween.tween_property(_orientation_button, "scale", Vector2(1.2, 1.2), 0.1)
+			tween.tween_property(_orientation_button, "scale", Vector2(1.0, 1.0), 0.1)
 
-	# If currently typing, recreate session with new orientation
-	if _cursor:
-		var current_session := _cursor.get_typing_session()
-		if current_session != null and not current_session.is_exhausted():
-			var new_session := BoardTypingSession.create_with_orientation(
-				board,
-				current_session.cursor_pos,
-				new_state.orientation
-			)
-			_cursor.set_typing_session(new_session)
+	var current_session := _cursor.get_typing_session()
+	if current_session != null and not current_session.is_exhausted():
+		var new_session := BoardTypingSession.create_with_orientation(
+			_board,
+			current_session.cursor_pos,
+			new_state.orientation
+		)
+		_cursor.set_typing_session(new_session)
