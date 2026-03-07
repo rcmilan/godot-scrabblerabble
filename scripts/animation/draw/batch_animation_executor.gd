@@ -7,6 +7,12 @@ class_name BatchAnimationExecutor
 
 ## Animates a batch of tiles using the provided strategy.
 func execute(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void:
+	# Block if any tile is already animating
+	for tile in tiles:
+		if tile.is_animating():
+			print("[BatchAnimationExecutor] Animation blocked: %s already animating" % tile.name)
+			return
+
 	_context.is_animating = true
 	_context.emit_animation_started(tiles)
 
