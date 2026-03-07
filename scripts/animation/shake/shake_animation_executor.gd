@@ -7,6 +7,10 @@ class_name ShakeAnimationExecutor
 
 ## Animates a shake effect on a single tile.
 func execute(tile: Tile, strategy: ShakeTileAnimation) -> void:
+	if tile.is_animating():
+		print("[ShakeAnimationExecutor] Animation blocked: %s already animating" % tile.name)
+		return
+
 	# Cancel any existing animation on this tile
 	_context.cancel_tile_animation(tile)
 
