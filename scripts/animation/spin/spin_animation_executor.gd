@@ -7,6 +7,12 @@ class_name SpinAnimationExecutor
 
 ## Animates a batch of tiles with a spin effect.
 func execute(tiles: Array[Tile], strategy: SpinTileAnimation) -> void:
+	# Block if any tile is already animating
+	for tile in tiles:
+		if tile.is_animating():
+			print("[SpinAnimationExecutor] Animation blocked: %s already animating" % tile.name)
+			return
+
 	_context.is_animating = true
 	_context.emit_animation_started(tiles)
 
