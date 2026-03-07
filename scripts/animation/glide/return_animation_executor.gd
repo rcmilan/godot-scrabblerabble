@@ -7,6 +7,10 @@ class_name ReturnAnimationExecutor
 
 ## Animates a single tile returning from board to hand.
 func execute_single(tile: Tile, hand: Node, cell: Node, strategy: TileAnimationStrategy) -> void:
+	if tile.is_animating():
+		print("[ReturnAnimationExecutor] Animation blocked: %s already animating" % tile.name)
+		return
+
 	_context.is_animating = true
 	var tiles_array: Array[Tile] = [tile]
 	_context.emit_animation_started(tiles_array)
