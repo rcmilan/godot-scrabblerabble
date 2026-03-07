@@ -214,10 +214,16 @@ func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
 	# Letter/backspace input when typing on board
-	if _typing_session != null and event is InputEventKey and event.is_pressed() and not event.is_echo():
-		if _handle_typing_key(event):
-			get_viewport().set_input_as_handled()
-			return
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		# Auto-start typing session on board if a letter is pressed
+		if _state.position.is_board() and _typing_session == null:
+			var unicode := event.unicode
+			if (unicode >= 65 and unicode <= 90) or (unicode >= 97 and unicode <= 122):
+				_start_typing_at(_state.position.board_coords)
+		if _typing_session != null:
+			if _handle_typing_key(event):
+				get_viewport().set_input_as_handled()
+				return
 	if event.is_action_pressed(KeyAction.NAVIGATE_LEFT):
 		_navigate(Vector2i.LEFT)
 		get_viewport().set_input_as_handled()
