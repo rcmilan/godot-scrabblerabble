@@ -74,6 +74,7 @@ func set_orientation_state(new_state: RunOrientationState) -> void:
 		return
 	_orientation_state = new_state
 	if _typing_session != null:
+		print("[Cursor] Recreating typing session with new orientation at %s" % _typing_session.cursor_pos)
 		_typing_session = BoardTypingSession.create_with_orientation(_board, _typing_session.cursor_pos, new_state.orientation)
 		_update_typing_cursor_visual()
 
@@ -238,6 +239,7 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_TAB:
 			if _state.position.is_board():
 				var new_state := _orientation_state.toggled()
+				print("[Cursor] TAB: orientation → %s" % ("horizontal" if new_state.is_horizontal() else "vertical"))
 				set_orientation_state(new_state)
 				orientation_toggled.emit(new_state)
 			get_viewport().set_input_as_handled()
@@ -312,7 +314,7 @@ func _navigate_board(direction: Vector2i) -> void:
 	)
 	_state = _state.with_board_coords(coords)
 	if _typing_session != null:
-		_typing_session = BoardTypingSession.create(_board, coords)
+		_typing_session = BoardTypingSession.create_with_orientation(_board, coords, get_orientation())
 		_update_typing_cursor_visual()
 	cursor_moved.emit(_state.position)
 	_update_ghost_display()
@@ -375,13 +377,17 @@ func _handle_typing_key(event: InputEventKey) -> bool:
 
 
 func _start_typing_at(coords: Vector2i) -> void:
-	_typing_session = BoardTypingSession.create(_board, coords)
+	var orientation := get_orientation()
+	var orient_label := "H" if orientation == Vector2i(1, 0) else "V"
+	print("[Cursor] Typing session started at %s [%s]" % [coords, orient_label])
+	_typing_session = BoardTypingSession.create_with_orientation(_board, coords, orientation)
 	_update_typing_cursor_visual()
 
 
 func _end_typing_session() -> void:
 	if _typing_session == null:
 		return
+	print("[Cursor] Typing session ended")
 	_clear_typing_cursor_visual()
 	_typing_session = null
 

@@ -368,11 +368,15 @@ func _on_cursor_letter_typed(letter: String) -> void:
 
 	var tile := hand.find_tile_by_letter(letter)
 	if tile == null:
+		print("[Typing] No '%s' tile in hand" % letter)
 		return
 
 	var cell := session.get_cursor_cell()
 	if cell == null:
+		print("[Typing] Cursor cell is null (session exhausted?)")
 		return
+
+	print("[Typing] '%s' → cell %s" % [letter, cell.grid_position])
 
 	var swapped: Tile = null
 	if cell.is_occupied() and not cell.tile.is_locked:
@@ -399,12 +403,14 @@ func _on_cursor_backspace_pressed() -> void:
 
 	var entry := session.last_placement()
 	if entry.is_empty():
+		print("[Typing] Backspace: nothing to undo")
 		return
 
 	var tile_placed: Tile = entry.tile_placed
 	var tile_swapped: Tile = entry.tile_swapped
 	var pos: Vector2i = entry.pos
 
+	print("[Typing] Backspace: returned '%s' from cell %s" % [tile_placed.letter, pos])
 	_play_state_manager.remove_tile_at(pos)
 	_placement.return_tile_to_hand(tile_placed)
 
@@ -987,6 +993,7 @@ func _set_hand_tiles_hover_enabled(enabled: bool) -> void:
 
 func _on_orientation_toggled(new_state: RunOrientationState) -> void:
 	_orientation_state = new_state
+	print("[Gameplay] Orientation toggled → %s" % ("horizontal" if new_state.is_horizontal() else "vertical"))
 
 	_cursor.set_orientation_state(new_state)
 
