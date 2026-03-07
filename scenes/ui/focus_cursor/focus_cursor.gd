@@ -209,6 +209,11 @@ func _update_ghost_display() -> void:
 func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
+	# Letter/backspace input when typing on board
+	if _typing_session != null and event is InputEventKey and event.is_pressed() and not event.is_echo():
+		if _handle_typing_key(event):
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed(KeyAction.NAVIGATE_LEFT):
 		_navigate(Vector2i.LEFT)
 		get_viewport().set_input_as_handled()
@@ -310,6 +315,17 @@ func _cancel() -> void:
 # =============================================================================
 # TYPING SESSION
 # =============================================================================
+
+func _handle_typing_key(event: InputEventKey) -> bool:
+	if event.keycode == KEY_BACKSPACE:
+		backspace_pressed.emit()
+		return true
+	var unicode := event.unicode
+	if (unicode >= 65 and unicode <= 90) or (unicode >= 97 and unicode <= 122):
+		letter_typed.emit(char(unicode).to_upper())
+		return true
+	return false
+
 
 func _start_typing_at(coords: Vector2i) -> void:
 	_typing_session = BoardTypingSession.create(_board, coords)
