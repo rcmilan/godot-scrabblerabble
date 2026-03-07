@@ -74,6 +74,7 @@ func activate() -> void:
 ## confirm_action before modals see it. Main.deactivate_for_modal() enforces this.
 func deactivate() -> void:
 	_is_active = false
+	_end_typing_session()
 	_clear_hand_tile_highlight()
 	clear_held_tile()
 	_cursor_rect.hide()
@@ -142,9 +143,12 @@ func _update_cursor_rect() -> void:
 		_cursor_rect.hide()
 		_update_hand_tile_highlight()
 		return
-	# BOARD zone: use cursor rect, ensure hand tile is not highlighted
+	# BOARD zone: ensure hand tile is not highlighted
 	if _highlighted_hand_tile:
 		_clear_hand_tile_highlight()
+	if _typing_session != null:
+		_cursor_rect.hide()
+		return
 	var cell := _board.get_cell(
 		_state.position.board_coords.y,
 		_state.position.board_coords.x
@@ -272,6 +276,9 @@ func _navigate_board(direction: Vector2i) -> void:
 		clampi(_state.position.board_coords.y + direction.y, 0, _board.rows - 1)
 	)
 	_state = _state.with_board_coords(coords)
+	if _typing_session != null:
+		_typing_session = BoardTypingSession.create(_board, coords)
+		_update_typing_cursor_visual()
 	cursor_moved.emit(_state.position)
 	_update_ghost_display()
 
@@ -286,11 +293,13 @@ func _switch_to_board_zone() -> void:
 			0, _board.columns - 1
 		)
 	_state = _state.with_board_coords(Vector2i(col, _board.rows - 1))
+	_start_typing_at(_state.position.board_coords)
 	cursor_moved.emit(_state.position)
 	_update_ghost_display()
 
 
 func _switch_to_hand_zone() -> void:
+	_end_typing_session()
 	var count := _hand.get_tile_count()
 	var index := 0
 	if count > 0:
@@ -304,10 +313,13 @@ func _switch_to_hand_zone() -> void:
 
 
 func _confirm() -> void:
+	if _typing_session != null:
+		_end_typing_session()
 	cursor_confirmed.emit(_state.position)
 
 
 func _cancel() -> void:
+	_end_typing_session()
 	cursor_cancelled.emit(_state.position)
 	if _state.position.is_board():
 		_switch_to_hand_zone()
