@@ -12,6 +12,8 @@ class_name FocusCursor
 signal cursor_confirmed(pos: CursorPosition)
 signal cursor_cancelled(pos: CursorPosition)
 signal cursor_moved(pos: CursorPosition)
+signal letter_typed(letter: String)
+signal backspace_pressed
 
 # =============================================================================
 # CONSTANTS
@@ -27,6 +29,7 @@ const Zone := CursorPosition.Zone
 var _state: CursorState = null  ## Initialised in activate().
 var _is_active: bool = false
 var _highlighted_hand_tile: Tile = null
+var _typing_session: BoardTypingSession = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -101,6 +104,26 @@ func get_current_cell() -> BoardCell:
 	if _state == null or not _state.position.is_board() or _board == null:
 		return null
 	return _board.get_cell(_state.position.board_coords.y, _state.position.board_coords.x)
+
+
+func move_to_board_cell(coords: Vector2i) -> void:
+	_clear_hand_tile_highlight()
+	_state = _state.with_board_coords(coords)
+	_start_typing_at(coords)
+	cursor_moved.emit(_state.position)
+
+
+func get_typing_session() -> BoardTypingSession:
+	return _typing_session
+
+
+func set_typing_session(session: BoardTypingSession) -> void:
+	_typing_session = session
+	if _typing_session == null or _typing_session.is_exhausted():
+		_end_typing_session()
+		return
+	_state = _state.with_board_coords(_typing_session.cursor_pos)
+	_update_typing_cursor_visual()
 
 # =============================================================================
 # VISUAL UPDATE
@@ -283,3 +306,34 @@ func _cancel() -> void:
 	cursor_cancelled.emit(_state.position)
 	if _state.position.is_board():
 		_switch_to_hand_zone()
+
+# =============================================================================
+# TYPING SESSION
+# =============================================================================
+
+func _start_typing_at(coords: Vector2i) -> void:
+	_typing_session = BoardTypingSession.create(_board, coords)
+	_update_typing_cursor_visual()
+
+
+func _end_typing_session() -> void:
+	if _typing_session == null:
+		return
+	_clear_typing_cursor_visual()
+	_typing_session = null
+
+
+func _update_typing_cursor_visual() -> void:
+	_clear_typing_cursor_visual()
+	if _typing_session == null or _typing_session.is_exhausted():
+		return
+	var cell := _typing_session.get_cursor_cell()
+	if cell:
+		cell.show_typing_cursor()
+
+
+func _clear_typing_cursor_visual() -> void:
+	if _board == null:
+		return
+	for c in _board.get_all_cells():
+		c.clear_typing_cursor()
