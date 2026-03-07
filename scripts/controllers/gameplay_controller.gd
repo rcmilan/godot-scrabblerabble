@@ -198,6 +198,8 @@ func _connect_signals() -> void:
 		_tracker.track(_cursor.cursor_confirmed, _on_cursor_confirmed)
 		_tracker.track(_cursor.cursor_cancelled, _on_cursor_cancelled)
 		_tracker.track(_cursor.cursor_moved,     _on_cursor_moved)
+		_tracker.track(_cursor.letter_typed, _on_cursor_letter_typed)
+		_tracker.track(_cursor.backspace_pressed, _on_cursor_backspace_pressed)
 
 
 # =============================================================================
@@ -344,6 +346,74 @@ func _on_cursor_moved(pos: CursorPosition) -> void:
 		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
 		if cell:
 			_on_cell_hovered(cell)
+
+
+# =============================================================================
+# CURSOR TYPING HANDLERS
+# =============================================================================
+
+func _on_cursor_letter_typed(letter: String) -> void:
+	if not _is_active or _cursor == null:
+		return
+	var session := _cursor.get_typing_session()
+	if session == null:
+		return
+
+	var tile := hand.find_tile_by_letter(letter)
+	if tile == null:
+		return
+
+	var cell := session.get_cursor_cell()
+	if cell == null:
+		return
+
+	var swapped: Tile = null
+	if cell.is_occupied() and not cell.tile.is_locked:
+		swapped = cell.tile
+		_play_state_manager.remove_tile_at(cell.grid_position)
+		_placement.return_tile_to_hand(swapped, true)
+
+	_placement.place_tile_on_cell(tile, cell)
+	_play_state_manager.place_temporary_tile(tile, cell.grid_position)
+
+	var new_session := session.with_placement(tile, swapped).advance()
+	_cursor.set_typing_session(new_session)
+
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
+
+
+func _on_cursor_backspace_pressed() -> void:
+	if not _is_active or _cursor == null:
+		return
+	var session := _cursor.get_typing_session()
+	if session == null:
+		return
+
+	var entry := session.last_placement()
+	if entry.is_empty():
+		return
+
+	var tile_placed: Tile = entry.tile_placed
+	var tile_swapped: Tile = entry.tile_swapped
+	var pos: Vector2i = entry.pos
+
+	_play_state_manager.remove_tile_at(pos)
+	_placement.return_tile_to_hand(tile_placed)
+
+	if tile_swapped and tile_swapped.location == Tile.TileLocation.IN_HAND:
+		var cell := board.get_cell(pos.y, pos.x)
+		if cell and not cell.is_occupied():
+			hand.remove_tile(tile_swapped)
+			cell.tile_anchor.add_child(tile_swapped)
+			tile_swapped.position = Vector2.ZERO
+			tile_swapped.attach_to_cell(cell)
+			_play_state_manager.place_temporary_tile(tile_swapped, pos)
+
+	_cursor.set_typing_session(session.retreat())
+
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
 
 
 ## Builds the list of tiles to drag. Ensures lead tile is always included.
