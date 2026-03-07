@@ -555,7 +555,7 @@ func _handle_drag_release(tile: Tile) -> void:
 # =============================================================================
 
 ## Places one or more movable tiles starting at the target cell.
-func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = false) -> void:
+func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = true) -> void:
 	if movable.size() > 1:
 		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
 		if cells.is_empty():
