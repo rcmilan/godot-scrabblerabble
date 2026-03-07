@@ -31,6 +31,8 @@ var _interaction_mode: InteractionMode = InteractionMode.IDLE
 var _selected_tile: Tile = null
 var _is_active: bool = false
 var _cursor: FocusCursor = null
+var _orientation_state: RunOrientationState = null
+var _orientation_button: OrientationIconButton = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -145,6 +147,15 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	if board and _play_state_manager:
 		_play_state_manager.initialize_grid(board.rows, board.columns)
 
+	# Initialize orientation state and button
+	_orientation_state = RunOrientationState.horizontal()
+	if _cursor:
+		_cursor.set_orientation_state(_orientation_state)
+	_orientation_button = _board.setup_orientation_button()
+	if _orientation_button:
+		_orientation_button.set_orientation_state(_orientation_state)
+		_orientation_button.orientation_toggled.connect(_on_orientation_toggled)
+
 
 ## Activates the controller and connects all signals.
 func activate() -> void:
@@ -194,6 +205,7 @@ func _connect_signals() -> void:
 		_tracker.track(_cursor.cursor_moved,     _on_cursor_moved)
 		_tracker.track(_cursor.letter_typed, _on_cursor_letter_typed)
 		_tracker.track(_cursor.backspace_pressed, _on_cursor_backspace_pressed)
+		_tracker.track(_cursor.orientation_toggled, _on_orientation_toggled)
 
 
 # =============================================================================
@@ -967,3 +979,30 @@ func _set_hand_tiles_hover_enabled(enabled: bool) -> void:
 	if hand:
 		for tile in hand.get_tiles():
 			tile.allow_hover_feedback = enabled
+
+
+# =============================================================================
+# CURSOR TYPING HANDLERS - ORIENTATION
+# =============================================================================
+
+func _on_orientation_toggled(new_state: RunOrientationState) -> void:
+	_orientation_state = new_state
+
+	# Update cursor's orientation reference
+	if _cursor:
+		_cursor.set_orientation_state(new_state)
+
+	# Update icon visual
+	if _orientation_button:
+		_orientation_button.set_orientation_state(new_state)
+
+	# If currently typing, recreate session with new orientation
+	if _cursor:
+		var current_session := _cursor.get_typing_session()
+		if current_session != null and not current_session.is_exhausted():
+			var new_session := BoardTypingSession.create_with_orientation(
+				board,
+				current_session.cursor_pos,
+				new_state.orientation
+			)
+			_cursor.set_typing_session(new_session)
