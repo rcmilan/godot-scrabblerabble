@@ -9,7 +9,7 @@ var HINTS: Array[Dictionary] = [
 	{ action = KeyAction.PLAY_HAND,     label = "Play"    },
 	{ action = KeyAction.DISCARD_TILES, label = "Discard" },
 	{ action = KeyAction.TOGGLE_MULTI,  label = "Multi"   },
-	{ action = KeyAction.SWITCH_ZONE,   label = "Zone"    },
+	{ action = KeyAction.SWITCH_ZONE,   label = "Orient"  },
 	{ action = KeyAction.PAUSE_GAME,    label = "Pause"   },
 ]
 

@@ -14,6 +14,7 @@ const COLOR_VALID_HOVER: Color = Color(0, 1, 0, 0.45)
 const COLOR_INVALID_HOVER: Color = Color(1, 0, 0, 0.65)
 const COLOR_SPECIAL_MULTIPLIER: Color = Color(1, 0.84, 0, 0.3)  # Gold for special cells
 const COLOR_WORD_HIGHLIGHT: Color = Color(0.2, 0.9, 0.3, 0.35)  # Green for valid word member
+const COLOR_TYPING_CURSOR: Color = Color(0.3, 0.6, 1.0, 0.55)  # Blue for typing cursor
 
 # === Node References ===
 @onready var visual: TextureRect = $ContentLayer/CenterContainer/Sprite2D
@@ -24,6 +25,7 @@ const COLOR_WORD_HIGHLIGHT: Color = Color(0.2, 0.9, 0.3, 0.35)  # Green for vali
 var tile: Tile = null
 var grid_position: Vector2i = Vector2i.ZERO
 var _word_highlight_active: bool = false  # True when cell is part of a valid word
+var _typing_cursor_active: bool = false
 
 # === Cell Type (multiplier logic implemented; special cells not yet assigned in level design) ===
 enum CellType {
@@ -96,7 +98,9 @@ func show_invalid_hover() -> void:
 
 ## Clears the hover indicator.
 func clear_hover() -> void:
-	# If word highlight is active, restore it instead of hiding
+	if _typing_cursor_active:
+		_show_overlay(COLOR_TYPING_CURSOR)
+		return
 	if _word_highlight_active:
 		_show_overlay(COLOR_WORD_HIGHLIGHT)
 		return
@@ -112,6 +116,19 @@ func show_word_highlight() -> void:
 ## Clears the valid-word highlight.
 func clear_word_highlight() -> void:
 	_word_highlight_active = false
+	hover_overlay.visible = false
+
+
+func show_typing_cursor() -> void:
+	_typing_cursor_active = true
+	_show_overlay(COLOR_TYPING_CURSOR)
+
+
+func clear_typing_cursor() -> void:
+	_typing_cursor_active = false
+	if _word_highlight_active:
+		_show_overlay(COLOR_WORD_HIGHLIGHT)
+		return
 	hover_overlay.visible = false
 
 

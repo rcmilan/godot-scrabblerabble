@@ -31,6 +31,8 @@ var _interaction_mode: InteractionMode = InteractionMode.IDLE
 var _selected_tile: Tile = null
 var _is_active: bool = false
 var _cursor: FocusCursor = null
+var _orientation_state: RunOrientationState = null
+var _orientation_button: OrientationIconButton = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -145,6 +147,15 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	if board and _play_state_manager:
 		_play_state_manager.initialize_grid(board.rows, board.columns)
 
+	# Initialize orientation state and button
+	_orientation_state = RunOrientationState.horizontal()
+	if _cursor:
+		_cursor.set_orientation_state(_orientation_state)
+	_orientation_button = board.setup_orientation_button()
+	if _orientation_button:
+		_orientation_button.set_orientation_state(_orientation_state)
+		_orientation_button.orientation_toggled.connect(_on_orientation_toggled)
+
 
 ## Activates the controller and connects all signals.
 func activate() -> void:
@@ -192,6 +203,9 @@ func _connect_signals() -> void:
 		_tracker.track(_cursor.cursor_confirmed, _on_cursor_confirmed)
 		_tracker.track(_cursor.cursor_cancelled, _on_cursor_cancelled)
 		_tracker.track(_cursor.cursor_moved,     _on_cursor_moved)
+		_tracker.track(_cursor.letter_typed, _on_cursor_letter_typed)
+		_tracker.track(_cursor.backspace_pressed, _on_cursor_backspace_pressed)
+		_tracker.track(_cursor.orientation_toggled, _on_orientation_toggled)
 
 
 # =============================================================================
@@ -240,6 +254,8 @@ func _on_tile_selected(tile: Tile) -> void:
 				print("[Gameplay] Board tile at cell: %s" % tile.current_cell.name)
 		Tile.TileLocation.IN_HAND:
 			_selection.select_tile(tile)
+			if _cursor and _cursor.get_typing_session() != null:
+				_cursor.set_typing_session(null)
 			_update_interaction_state()
 
 
@@ -315,6 +331,8 @@ func _on_cursor_confirmed(pos: CursorPosition) -> void:
 				tile_returned_to_hand.emit(board_tile)
 			else:
 				TileAnimator.animate_shake(board_tile)
+		else:
+			_on_play_requested()
 
 
 func _on_cursor_cancelled(_pos: CursorPosition) -> void:
@@ -335,6 +353,80 @@ func _on_cursor_moved(pos: CursorPosition) -> void:
 		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
 		if cell:
 			_on_cell_hovered(cell)
+
+
+# =============================================================================
+# CURSOR TYPING HANDLERS
+# =============================================================================
+
+func _on_cursor_letter_typed(letter: String) -> void:
+	if not _is_active or _cursor == null:
+		return
+	var session := _cursor.get_typing_session()
+	if session == null:
+		return
+
+	var tile := hand.find_tile_by_letter(letter)
+	if tile == null:
+		print("[Typing] No '%s' tile in hand" % letter)
+		return
+
+	var cell := session.get_cursor_cell()
+	if cell == null:
+		print("[Typing] Cursor cell is null (session exhausted?)")
+		return
+
+	print("[Typing] '%s' → cell %s" % [letter, cell.grid_position])
+
+	var swapped: Tile = null
+	if cell.is_occupied() and not cell.tile.is_locked:
+		swapped = cell.tile
+		_play_state_manager.remove_tile_at(cell.grid_position)
+		_placement.return_tile_to_hand(swapped, true)
+
+	_placement.place_tile_on_cell_animated(tile, cell)
+	_play_state_manager.place_temporary_tile(tile, cell.grid_position)
+
+	var new_session := session.with_placement(tile, swapped).advance()
+	_cursor.set_typing_session(new_session)
+
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
+
+
+func _on_cursor_backspace_pressed() -> void:
+	if not _is_active or _cursor == null:
+		return
+	var session := _cursor.get_typing_session()
+	if session == null:
+		return
+
+	var entry := session.last_placement()
+	if entry.is_empty():
+		print("[Typing] Backspace: nothing to undo")
+		return
+
+	var tile_placed: Tile = entry.tile_placed
+	var tile_swapped: Tile = entry.tile_swapped
+	var pos: Vector2i = entry.pos
+
+	print("[Typing] Backspace: returned '%s' from cell %s" % [tile_placed.letter, pos])
+	_play_state_manager.remove_tile_at(pos)
+	_placement.return_tile_to_hand(tile_placed)
+
+	if tile_swapped and tile_swapped.location == Tile.TileLocation.IN_HAND:
+		var cell := board.get_cell(pos.y, pos.x)
+		if cell and not cell.is_occupied():
+			hand.remove_tile(tile_swapped)
+			cell.tile_anchor.add_child(tile_swapped)
+			tile_swapped.position = Vector2.ZERO
+			tile_swapped.attach_to_cell(cell)
+			_play_state_manager.place_temporary_tile(tile_swapped, pos)
+
+	_cursor.set_typing_session(session.retreat())
+
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
 
 
 ## Builds the list of tiles to drag. Ensures lead tile is always included.
@@ -481,7 +573,7 @@ func _handle_drag_release(tile: Tile) -> void:
 # =============================================================================
 
 ## Places one or more movable tiles starting at the target cell.
-func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = false) -> void:
+func _place_tiles_on_cell(movable: Array[Tile], cell: BoardCell, animated: bool = true) -> void:
 	if movable.size() > 1:
 		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, movable.size())
 		if cells.is_empty():
@@ -520,9 +612,14 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 
+	# Move cursor to cell on empty cell click when no hand selection active
+	if not cell.is_occupied() and not _selection.has_selection():
+		if _cursor:
+			_cursor.move_to_board_cell(cell.grid_position)
+		return
+
 	var selected: Array[Tile] = _selection.get_selected_tiles()
 	if selected.is_empty():
-		print("[Gameplay] No tile selected")
 		return
 
 	var movable: Array[Tile] = selected.filter(func(t): return not t.is_locked)
@@ -888,3 +985,35 @@ func _set_hand_tiles_hover_enabled(enabled: bool) -> void:
 	if hand:
 		for tile in hand.get_tiles():
 			tile.allow_hover_feedback = enabled
+
+
+# =============================================================================
+# CURSOR TYPING HANDLERS - ORIENTATION
+# =============================================================================
+
+func _on_orientation_toggled(new_state: RunOrientationState) -> void:
+	_orientation_state = new_state
+	print("[Gameplay] Orientation toggled → %s" % ("horizontal" if new_state.is_horizontal() else "vertical"))
+
+	_cursor.set_orientation_state(new_state)
+
+	if _orientation_button:
+		_orientation_button.set_orientation_state(new_state)
+		# Play stomp animation on button for feedback
+		var button_node = _orientation_button as Node
+		if button_node:
+			# Create a simple tween for visual feedback
+			var tween = create_tween()
+			tween.set_trans(Tween.TRANS_BACK)
+			tween.set_ease(Tween.EASE_OUT)
+			tween.tween_property(_orientation_button, "scale", Vector2(1.2, 1.2), 0.1)
+			tween.tween_property(_orientation_button, "scale", Vector2(1.0, 1.0), 0.1)
+
+	var current_session := _cursor.get_typing_session()
+	if current_session != null and not current_session.is_exhausted():
+		var new_session := BoardTypingSession.create_with_orientation(
+			board,
+			current_session.cursor_pos,
+			new_state.orientation
+		)
+		_cursor.set_typing_session(new_session)

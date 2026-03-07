@@ -62,7 +62,8 @@ func _setup_controllers() -> void:
 	_focus_cursor = cursor_scene.instantiate() as FocusCursor
 	_focus_cursor.name = "FocusCursor"
 	add_child(_focus_cursor)
-	_focus_cursor.setup(board, hand)
+	var default_orientation := RunOrientationState.horizontal()
+	_focus_cursor.setup(board, hand, default_orientation)
 
 	_gameplay_controller = GameplayController.new()
 	_gameplay_controller.name = "GameplayController"

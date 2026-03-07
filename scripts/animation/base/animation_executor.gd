@@ -45,8 +45,9 @@ func _create_batch_completion_callback(
 	total_tiles: int
 ) -> Callable:
 	return func():
-		strategy.on_animation_complete(tile)
-		_context.emit_single_tile_animated(tile)
+		if is_instance_valid(tile):
+			strategy.on_animation_complete(tile)
+			_context.emit_single_tile_animated(tile)
 		_unregister_tween(tile)
 		completed_count_ref[0] += 1
 
@@ -62,8 +63,9 @@ func _create_single_completion_callback(
 ) -> Callable:
 	var tiles_array: Array[Tile] = [tile]
 	return func():
-		strategy.on_animation_complete(tile)
-		_context.emit_single_tile_animated(tile)
+		if is_instance_valid(tile):
+			strategy.on_animation_complete(tile)
+			_context.emit_single_tile_animated(tile)
 		_unregister_tween(tile)
 		_context.is_animating = _context.active_tweens.size() > 0
 		_context.emit_animation_completed(tiles_array)

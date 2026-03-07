@@ -7,6 +7,12 @@ class_name StompAnimationExecutor
 
 ## Animates a batch of tiles with a stomp effect.
 func execute(tiles: Array[Tile], strategy: StompTileAnimation) -> void:
+	# Block if any tile is already animating
+	for tile in tiles:
+		if tile.is_animating():
+			print("[StompAnimationExecutor] Animation blocked: %s already animating" % tile.name)
+			return
+
 	_context.is_animating = true
 	_context.emit_animation_started(tiles)
 

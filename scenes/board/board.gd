@@ -1,6 +1,8 @@
 extends Control
 class_name Board
 
+var _orientation_button: OrientationIconButton = null
+
 ## Board component responsible for managing the game grid.
 ## Dynamically generates cells based on configurable rows/columns.
 ## Provides methods to query cells by position and coordinates.
@@ -35,6 +37,33 @@ var _debug_frame_counter: int = 0
 
 func _ready() -> void:
 	_initialize_grid()
+
+
+func setup_orientation_button() -> OrientationIconButton:
+	if _orientation_button == null:
+		_orientation_button = OrientationIconButton.new()
+		add_child(_orientation_button)
+	_update_orientation_button_position.call_deferred()
+	return _orientation_button
+
+
+func _update_orientation_button_position() -> void:
+	if _orientation_button == null:
+		return
+	var cell := get_cell(0, 0)
+	if cell == null:
+		return
+	var cell_rect := cell.get_rect()
+	var cell_x := grid.position.x + cell_rect.position.x
+	var cell_y := grid.position.y + cell_rect.position.y
+	_orientation_button.position = Vector2(cell_x - 32 - 4, cell_y)
+	print("[Board] OrientationButton positioned at %s (grid=%s, cell_rect=%s)" % [
+		_orientation_button.position, grid.position, cell_rect.position
+	])
+
+
+func get_orientation_button() -> OrientationIconButton:
+	return _orientation_button
 
 
 func _process(_delta: float) -> void:
@@ -137,6 +166,7 @@ func _initialize_grid() -> void:
 		_cells.append(row)
 
 	_update_grid_size()
+	_update_orientation_button_position.call_deferred()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
 

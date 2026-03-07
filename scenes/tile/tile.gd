@@ -61,6 +61,9 @@ var _is_cursor_highlighted: bool = false  # Set by FocusCursor when navigating h
 var _drag: TileDragHelper = null
 var _original_z_index: int = 0
 
+# === Animation state tracking ===
+var _is_animating: bool = false
+
 # === Pending initialization (applied in _ready) ===
 var _pending_texture: Texture2D = null
 
@@ -84,6 +87,10 @@ func _ready() -> void:
 		_pending_texture = null
 
 	_update_visual()
+
+	# Connect to animation lifecycle signals
+	TileAnimator.animation_started.connect(_on_tile_animator_animation_started)
+	TileAnimator.animation_completed.connect(_on_tile_animator_animation_completed)
 
 
 func _process(_delta: float) -> void:
@@ -538,3 +545,17 @@ func _on_mouse_entered() -> void:
 func _on_mouse_exited() -> void:
 	if allow_hover_feedback:
 		_update_visual()
+
+
+func _on_tile_animator_animation_started(tiles: Array[Tile]) -> void:
+	if self in tiles:
+		_is_animating = true
+
+
+func _on_tile_animator_animation_completed(tiles: Array[Tile]) -> void:
+	if self in tiles:
+		_is_animating = false
+
+
+func is_animating() -> bool:
+	return _is_animating
