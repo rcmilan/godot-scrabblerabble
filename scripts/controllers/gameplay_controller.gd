@@ -368,7 +368,7 @@ func _on_cursor_letter_typed(letter: String) -> void:
 		_play_state_manager.remove_tile_at(cell.grid_position)
 		_placement.return_tile_to_hand(swapped, true)
 
-	_placement.place_tile_on_cell(tile, cell)
+	_placement.place_tile_on_cell_animated(tile, cell)
 	_play_state_manager.place_temporary_tile(tile, cell.grid_position)
 
 	var new_session := session.with_placement(tile, swapped).advance()
