@@ -14,6 +14,7 @@ signal cursor_cancelled(pos: CursorPosition)
 signal cursor_moved(pos: CursorPosition)
 signal letter_typed(letter: String)
 signal backspace_pressed
+signal orientation_toggled(new_state: RunOrientationState)
 
 # =============================================================================
 # CONSTANTS
@@ -30,6 +31,7 @@ var _state: CursorState = null  ## Initialised in activate().
 var _is_active: bool = false
 var _highlighted_hand_tile: Tile = null
 var _typing_session: BoardTypingSession = null
+var _orientation_state: RunOrientationState = null
 
 # =============================================================================
 # DEPENDENCIES (injected via setup)
@@ -55,9 +57,25 @@ func _ready() -> void:
 
 
 ## Precondition: board and hand are valid non-null references.
-func setup(board: Board, hand: Hand) -> void:
+func setup(board: Board, hand: Hand, orientation_state: RunOrientationState) -> void:
 	_board = board
 	_hand = hand
+	_orientation_state = orientation_state
+
+
+func get_orientation() -> Vector2i:
+	if _orientation_state == null:
+		return Vector2i(1, 0)  # Default to horizontal
+	return _orientation_state.orientation
+
+
+func set_orientation_state(new_state: RunOrientationState) -> void:
+	if new_state == null or new_state == _orientation_state:
+		return
+	_orientation_state = new_state
+	if _typing_session != null:
+		_typing_session = BoardTypingSession.create_with_orientation(_board, _typing_session.cursor_pos, new_state.orientation)
+		_update_typing_cursor_visual()
 
 
 ## Postcondition: cursor becomes visible and processes input.
@@ -66,6 +84,8 @@ func activate() -> void:
 	_state = CursorState.at_hand(0)
 	set_process_input(true)
 	_update_hand_tile_highlight()
+	if _orientation_state == null:
+		_orientation_state = RunOrientationState.horizontal()
 
 
 ## Postcondition: cursor hides, stops processing input, held tile restored.
@@ -213,6 +233,15 @@ func _update_ghost_display() -> void:
 func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
+	# TAB to toggle orientation (board zone only)
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		if event.keycode == KEY_TAB:
+			if _state.position.is_board():
+				var new_state := _orientation_state.toggled()
+				set_orientation_state(new_state)
+				orientation_toggled.emit(new_state)
+			get_viewport().set_input_as_handled()
+			return
 	# Letter/backspace input when typing on board
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		# Auto-start typing session on board if a letter is pressed
