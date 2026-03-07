@@ -151,7 +151,7 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	_orientation_state = RunOrientationState.horizontal()
 	if _cursor:
 		_cursor.set_orientation_state(_orientation_state)
-	_orientation_button = _board.setup_orientation_button()
+	_orientation_button = board.setup_orientation_button()
 	if _orientation_button:
 		_orientation_button.set_orientation_state(_orientation_state)
 		_orientation_button.orientation_toggled.connect(_on_orientation_toggled)
