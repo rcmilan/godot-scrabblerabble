@@ -5,6 +5,7 @@ extends RefCounted
 ## Tracks cursor position, orientation, and placement history for undo.
 
 const _HORIZONTAL := Vector2i(1, 0)
+const _VERTICAL := Vector2i(0, 1)
 
 var board: Board
 var cursor_pos: Vector2i
@@ -13,10 +14,14 @@ var history: Array[Dictionary]  # [{pos, tile_placed, tile_swapped}]
 
 
 static func create(p_board: Board, start_pos: Vector2i) -> BoardTypingSession:
+	return create_with_orientation(p_board, start_pos, _HORIZONTAL)
+
+
+static func create_with_orientation(p_board: Board, start_pos: Vector2i, orientation: Vector2i) -> BoardTypingSession:
 	var s := BoardTypingSession.new()
 	s.board = p_board
 	s.cursor_pos = start_pos
-	s.orientation = _HORIZONTAL
+	s.orientation = orientation
 	s.history = []
 	return s
 
@@ -86,6 +91,8 @@ func _next_valid_pos(from: Vector2i) -> Vector2i:
 func _wrap_pos(pos: Vector2i) -> Vector2i:
 	if orientation == _HORIZONTAL and pos.x >= board.columns:
 		return Vector2i(0, pos.y + 1)
+	elif orientation == _VERTICAL and pos.y >= board.rows:
+		return Vector2i(pos.x + 1, 0)
 	return pos
 
 
