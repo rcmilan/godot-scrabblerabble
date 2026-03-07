@@ -44,7 +44,8 @@ func setup_orientation_button() -> OrientationIconButton:
 		_orientation_button = OrientationIconButton.new()
 		add_child(_orientation_button)
 		_orientation_button.position = Vector2(0, 0)
-		_orientation_button.size = Vector2(32, 32)
+		_orientation_button.size = Vector2(64, 64)
+		_orientation_button.scale = Vector2(0.5, 0.5)  # Scale to 50% (32x32 display)
 	return _orientation_button
 
 
