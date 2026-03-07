@@ -217,7 +217,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		# Auto-start typing session on board if a letter is pressed
 		if _state.position.is_board() and _typing_session == null:
-			var unicode := event.unicode
+			var unicode: int = event.unicode
 			if (unicode >= 65 and unicode <= 90) or (unicode >= 97 and unicode <= 122):
 				_start_typing_at(_state.position.board_coords)
 		if _typing_session != null:
