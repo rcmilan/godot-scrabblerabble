@@ -234,14 +234,13 @@ func _update_ghost_display() -> void:
 func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
-	# TAB to toggle orientation (board zone only)
+	# TAB to toggle orientation (works in hand or board zone)
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		if event.keycode == KEY_TAB:
-			if _state.position.is_board():
-				var new_state := _orientation_state.toggled()
-				print("[Cursor] TAB: orientation → %s" % ("horizontal" if new_state.is_horizontal() else "vertical"))
-				set_orientation_state(new_state)
-				orientation_toggled.emit(new_state)
+			var new_state := _orientation_state.toggled()
+			print("[Cursor] TAB: orientation → %s" % ("horizontal" if new_state.is_horizontal() else "vertical"))
+			set_orientation_state(new_state)
+			orientation_toggled.emit(new_state)
 			get_viewport().set_input_as_handled()
 			return
 	# Letter/backspace input when typing on board
