@@ -66,6 +66,7 @@ var _tracker: SignalTracker = SignalTracker.new()
 var _word_validator: WordValidator = null
 var _play_state_manager: PlayStateManager = null
 var _word_finder: WordFinder = null
+var _typing_session: BoardTypingSession = null
 
 ## Cached validation results from the last real-time scan.
 var _current_valid_words: Array = []
@@ -97,6 +98,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(KeyAction.PAUSE_GAME):
 		pause_requested.emit()
 		get_viewport().set_input_as_handled()
+		return
+
+	if _is_typing():
+		_handle_typing_input(event)
 		return
 
 	if event.is_action_pressed(KeyAction.TOGGLE_MULTI):
@@ -161,6 +166,7 @@ func deactivate() -> void:
 	if not _is_active:
 		return
 	_is_active = false
+	_end_typing()
 	_tracker.disconnect_all()
 	_selection.deselect_all()
 	print("[GameplayController] Deactivated")
@@ -229,6 +235,9 @@ func debug_return_tile_to_hand(tile: Tile) -> void:
 func _on_tile_selected(tile: Tile) -> void:
 	if not _is_active:
 		return
+
+	if _is_typing() and tile.location == Tile.TileLocation.IN_HAND:
+		_end_typing()
 
 	print("[Gameplay] Tile selected: %s" % tile.name)
 
@@ -520,9 +529,17 @@ func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
 		return
 
+	# Enter typing mode on empty cell click when no hand selection active
+	if not cell.is_occupied() and not _selection.has_selection():
+		_start_typing(cell)
+		return
+
+	# Exit typing mode if clicking while typing
+	if _is_typing():
+		_end_typing()
+
 	var selected: Array[Tile] = _selection.get_selected_tiles()
 	if selected.is_empty():
-		print("[Gameplay] No tile selected")
 		return
 
 	var movable: Array[Tile] = selected.filter(func(t): return not t.is_locked)
@@ -864,6 +881,140 @@ func _clear_word_highlights() -> void:
 		if cell:
 			cell.clear_word_highlight()
 	_highlighted_positions.clear()
+
+
+# =============================================================================
+# TYPING MODE
+# =============================================================================
+
+func _is_typing() -> bool:
+	return _typing_session != null
+
+
+func _start_typing(cell: BoardCell) -> void:
+	_selection.deselect_all()
+	_typing_session = BoardTypingSession.create(board, cell.grid_position)
+	_update_typing_cursor()
+	print("[Gameplay] Typing mode started at %s" % cell.name)
+
+
+func _end_typing() -> void:
+	if _typing_session == null:
+		return
+	_clear_typing_cursor()
+	_typing_session = null
+	print("[Gameplay] Typing mode ended")
+
+
+func _update_typing_cursor() -> void:
+	_clear_typing_cursor()
+	if _typing_session == null or _typing_session.is_exhausted():
+		return
+	var cell := _typing_session.get_cursor_cell()
+	if cell:
+		cell.show_typing_cursor()
+
+
+func _clear_typing_cursor() -> void:
+	for c in board.get_all_cells():
+		c.clear_typing_cursor()
+
+
+func _handle_typing_input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.is_pressed() or event.is_echo():
+		# Background click exits typing mode
+		if event is InputEventMouseButton and event.is_pressed() and event.button_index == MOUSE_BUTTON_LEFT:
+			_end_typing()
+			get_viewport().set_input_as_handled()
+		return
+
+	var handled := true
+	match event.keycode:
+		KEY_ESCAPE:
+			_end_typing()
+		KEY_BACKSPACE:
+			_handle_typing_backspace()
+		KEY_LEFT:
+			_handle_typing_arrow(Vector2i(-1, 0))
+		KEY_RIGHT:
+			_handle_typing_arrow(Vector2i(1, 0))
+		KEY_UP:
+			_handle_typing_arrow(Vector2i(0, -1))
+		KEY_DOWN:
+			_handle_typing_arrow(Vector2i(0, 1))
+		_:
+			handled = _try_typing_letter(event.unicode)
+
+	if handled:
+		get_viewport().set_input_as_handled()
+
+
+func _try_typing_letter(unicode: int) -> bool:
+	if unicode < 65 or (unicode > 90 and unicode < 97) or unicode > 122:
+		return false
+	_handle_typing_letter(char(unicode))
+	return true
+
+
+func _handle_typing_letter(letter: String) -> void:
+	var tile := hand.find_tile_by_letter(letter.to_upper())
+	if tile == null:
+		return
+
+	var cell := _typing_session.get_cursor_cell()
+	if cell == null:
+		return
+
+	var swapped: Tile = null
+	if cell.is_occupied() and not cell.tile.is_locked:
+		swapped = cell.tile
+		_play_state_manager.remove_tile_at(cell.grid_position)
+		_placement.return_tile_to_hand(swapped, true)
+
+	_placement.place_tile_on_cell(tile, cell)
+	_play_state_manager.place_temporary_tile(tile, cell.grid_position)
+
+	_typing_session = _typing_session.with_placement(tile, swapped).advance()
+
+	if _typing_session.is_exhausted():
+		_end_typing()
+	else:
+		_update_typing_cursor()
+
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
+
+
+func _handle_typing_backspace() -> void:
+	var entry := _typing_session.last_placement()
+	if entry.is_empty():
+		return
+
+	var tile_placed: Tile = entry.tile_placed
+	var tile_swapped: Tile = entry.tile_swapped
+	var pos: Vector2i = entry.pos
+
+	_play_state_manager.remove_tile_at(pos)
+	_placement.return_tile_to_hand(tile_placed)
+
+	if tile_swapped and tile_swapped.location == Tile.TileLocation.IN_HAND:
+		var cell := board.get_cell(pos.y, pos.x)
+		if cell and not cell.is_occupied():
+			hand.remove_tile(tile_swapped)
+			cell.tile_anchor.add_child(tile_swapped)
+			tile_swapped.position = Vector2.ZERO
+			tile_swapped.attach_to_cell(cell)
+			_play_state_manager.place_temporary_tile(tile_swapped, pos)
+
+	_typing_session = _typing_session.retreat()
+	_update_typing_cursor()
+	_run_realtime_word_scan()
+	_play.update_play_button_state()
+
+
+func _handle_typing_arrow(direction: Vector2i) -> void:
+	_typing_session = _typing_session.move(direction)
+	_update_typing_cursor()
 
 
 # =============================================================================
