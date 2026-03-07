@@ -1005,7 +1005,7 @@ func _on_orientation_toggled(new_state: RunOrientationState) -> void:
 	var current_session := _cursor.get_typing_session()
 	if current_session != null and not current_session.is_exhausted():
 		var new_session := BoardTypingSession.create_with_orientation(
-			_board,
+			board,
 			current_session.cursor_pos,
 			new_state.orientation
 		)
