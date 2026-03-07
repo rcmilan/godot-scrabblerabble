@@ -14,6 +14,10 @@ var _orientation_state: RunOrientationState = null
 
 
 func _ready() -> void:
+	ignore_texture_size = true
+	stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	custom_minimum_size = Vector2(32, 32)
+	size = Vector2(32, 32)
 	pressed.connect(_on_pressed)
 	_set_orientation(RunOrientationState.horizontal())
 

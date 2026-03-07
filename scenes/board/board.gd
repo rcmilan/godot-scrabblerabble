@@ -43,10 +43,20 @@ func setup_orientation_button() -> OrientationIconButton:
 	if _orientation_button == null:
 		_orientation_button = OrientationIconButton.new()
 		add_child(_orientation_button)
-		_orientation_button.position = Vector2(0, 0)
-		_orientation_button.size = Vector2(64, 64)
-		_orientation_button.scale = Vector2(0.5, 0.5)  # Scale to 50% (32x32 display)
+	_update_orientation_button_position()
 	return _orientation_button
+
+
+func _update_orientation_button_position() -> void:
+	if _orientation_button == null:
+		return
+	var cell := get_cell(0, 0)
+	if cell == null:
+		return
+	var cell_rect := cell.get_rect()
+	var cell_x := grid.position.x + cell_rect.position.x
+	var cell_y := grid.position.y + cell_rect.position.y
+	_orientation_button.position = Vector2(cell_x - 32 - 4, cell_y)
 
 
 func get_orientation_button() -> OrientationIconButton:
@@ -153,6 +163,7 @@ func _initialize_grid() -> void:
 		_cells.append(row)
 
 	_update_grid_size()
+	_update_orientation_button_position()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
 
