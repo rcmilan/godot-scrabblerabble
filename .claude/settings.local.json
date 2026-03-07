@@ -22,7 +22,8 @@
       "Bash(git:*)",
       "Bash(/tmp/review_checklist.txt:*)",
       "Read(//tmp/**)",
-      "Bash(/tmp/spec_verification.txt:*)"
+      "Bash(/tmp/spec_verification.txt:*)",
+      "Bash(find .:*)"
     ]
   }
 }
