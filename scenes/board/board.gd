@@ -230,3 +230,10 @@ func _on_cell_hovered(cell: BoardCell) -> void:
 
 func _on_cell_unhovered(cell: BoardCell) -> void:
 	cell_unhovered.emit(cell)
+
+
+## Clears hover state on all board cells.
+func clear_all_cell_hovers() -> void:
+	for row in _cells:
+		for cell in row:
+			cell.clear_hover()

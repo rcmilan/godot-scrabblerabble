@@ -88,7 +88,7 @@ func proceed_from_shop() -> void:
 	_advance_to_next_round()
 
 
-## Returns the active Run object (null if using legacy initialize_run).
+## Returns the active Run object (null if not initialized).
 func get_active_run() -> Run:
 	return _active_run
 
