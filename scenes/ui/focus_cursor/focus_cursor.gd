@@ -102,23 +102,12 @@ func deactivate() -> void:
 	set_process_input(false)
 
 
-## Postcondition: held_tile set; cursor highlight removed, tile faded to 50% alpha.
-func set_held_tile(tile: Tile) -> void:
-	_clear_hand_tile_highlight()
-	_state = _state.with_held_tile(tile)
-	if tile:
-		tile.self_modulate.a = 0.5
-	_update_ghost_display()
+func set_held_tile(_tile: Tile) -> void:
+	pass
 
 
-## Postcondition: held_tile cleared; tile alpha restored to 1.0.
 func clear_held_tile() -> void:
-	if _state == null:
-		return
-	if _state.held_tile:
-		_state.held_tile.self_modulate.a = 1.0
-	_state = _state.cleared_tile()
-	_update_ghost_display()
+	pass
 
 
 ## Returns the BoardCell at board_coords, or null if zone is HAND.
@@ -206,26 +195,11 @@ func _clear_hand_tile_highlight() -> void:
 
 
 func _update_cursor_tint() -> void:
-	if _state.position.is_board() and _state.held_tile != null:
-		var cell := _board.get_cell(
-			_state.position.board_coords.y,
-			_state.position.board_coords.x
-		)
-		if cell and cell.is_occupied():
-			_cursor_rect.modulate = Color(1.0, 0.3, 0.3)
-			return
 	_cursor_rect.modulate = Color.WHITE
 
 
 func _update_ghost_display() -> void:
-	if _state == null:
-		_ghost_label.hide()
-		return
-	if _state.held_tile != null and _state.position.is_board():
-		_ghost_label.text = _state.held_tile.letter
-		_ghost_label.show()
-	else:
-		_ghost_label.hide()
+	_ghost_label.hide()
 
 # =============================================================================
 # INPUT HANDLING
@@ -316,7 +290,6 @@ func _navigate_board(direction: Vector2i) -> void:
 		_typing_session = BoardTypingSession.create_with_orientation(_board, coords, get_orientation())
 		_update_typing_cursor_visual()
 	cursor_moved.emit(_state.position)
-	_update_ghost_display()
 
 
 func _switch_to_board_zone() -> void:
@@ -331,7 +304,6 @@ func _switch_to_board_zone() -> void:
 	_state = _state.with_board_coords(Vector2i(col, _board.rows - 1))
 	_start_typing_at(_state.position.board_coords)
 	cursor_moved.emit(_state.position)
-	_update_ghost_display()
 
 
 func _switch_to_hand_zone() -> void:
@@ -345,7 +317,6 @@ func _switch_to_hand_zone() -> void:
 		)
 	_state = _state.with_hand_index(index)
 	cursor_moved.emit(_state.position)
-	_update_ghost_display()
 
 
 func _confirm() -> void:
@@ -368,6 +339,9 @@ func _handle_typing_key(event: InputEventKey) -> bool:
 	if event.keycode == KEY_BACKSPACE:
 		backspace_pressed.emit()
 		return true
+	# Let game actions fall through (e.g. Z = discard, L = draw)
+	if event.is_action(KeyAction.DISCARD_TILES) or event.is_action(KeyAction.DRAW_TILES):
+		return false
 	var unicode := event.unicode
 	if (unicode >= 65 and unicode <= 90) or (unicode >= 97 and unicode <= 122):
 		letter_typed.emit(char(unicode).to_upper())
