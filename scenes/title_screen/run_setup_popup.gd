@@ -71,13 +71,14 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	# Enter confirms focused control (CheckBox/OptionButton toggle, Button press)
+	# Enter confirms focused control (CheckBox toggle, Button is handled by Godot)
 	if event.is_action_pressed(&"ui_accept"):
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is CheckBox:
 			focused.button_pressed = not focused.button_pressed
 			get_viewport().set_input_as_handled()
 			return
+		# Let Button handle ui_accept via Godot's default behavior (don't block)
 
 	# Close on cancel (guard handles this via close_requested signal)
 	if _guard.handle(event):
