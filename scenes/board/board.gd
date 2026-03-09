@@ -43,7 +43,7 @@ func setup_orientation_button() -> OrientationIconButton:
 	if _orientation_button == null:
 		_orientation_button = OrientationIconButton.new()
 		add_child(_orientation_button)
-	_update_orientation_button_position.call_deferred()
+	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	return _orientation_button
 
 
@@ -166,7 +166,7 @@ func _initialize_grid() -> void:
 		_cells.append(row)
 
 	_update_grid_size()
-	_update_orientation_button_position.call_deferred()
+	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
 
