@@ -43,7 +43,7 @@ func setup_orientation_button() -> OrientationIconButton:
 	if _orientation_button == null:
 		_orientation_button = OrientationIconButton.new()
 		add_child(_orientation_button)
-	_update_orientation_button_position.call_deferred()
+	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	return _orientation_button
 
 
@@ -166,7 +166,7 @@ func _initialize_grid() -> void:
 		_cells.append(row)
 
 	_update_grid_size()
-	_update_orientation_button_position.call_deferred()
+	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
 
@@ -230,3 +230,10 @@ func _on_cell_hovered(cell: BoardCell) -> void:
 
 func _on_cell_unhovered(cell: BoardCell) -> void:
 	cell_unhovered.emit(cell)
+
+
+## Clears hover state on all board cells.
+func clear_all_cell_hovers() -> void:
+	for row in _cells:
+		for cell in row:
+			cell.clear_hover()

@@ -15,7 +15,7 @@ signal cancelled()
 # NODE REFERENCES
 # =============================================================================
 
-@onready var _quality_list: HBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/QualityList
+@onready var _quality_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/QualityList
 @onready var _start_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/StartButton
 @onready var _back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/BackButton
 @onready var _content_vbox: VBoxContainer = $Panel/MarginContainer/VBoxContainer
@@ -70,6 +70,15 @@ func _input(event: InputEvent) -> void:
 			Input.parse_input_event(fake)
 			get_viewport().set_input_as_handled()
 			return
+
+	# Enter confirms focused control (CheckBox toggle, Button is handled by Godot)
+	if event.is_action_pressed(&"ui_accept"):
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused is CheckBox:
+			focused.button_pressed = not focused.button_pressed
+			get_viewport().set_input_as_handled()
+			return
+		# Let Button handle ui_accept via Godot's default behavior (don't block)
 
 	# Close on cancel (guard handles this via close_requested signal)
 	if _guard.handle(event):
@@ -151,21 +160,9 @@ func _get_selected_deck() -> DeckDefinition:
 
 
 func _populate_quality_list() -> void:
-	# Clear existing children
 	for child in _quality_list.get_children():
 		child.queue_free()
 	_quality_checkboxes.clear()
-
-	# Create two columns
-	var left_column := VBoxContainer.new()
-	left_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_column.add_theme_constant_override("separation", 12)
-	_quality_list.add_child(left_column)
-
-	var right_column := VBoxContainer.new()
-	right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_column.add_theme_constant_override("separation", 12)
-	_quality_list.add_child(right_column)
 
 	var ids := QualityRegistry.get_all_quality_ids()
 	for i in ids.size():
@@ -188,8 +185,7 @@ func _populate_quality_list() -> void:
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		container.add_child(desc_label)
 
-		var column := left_column if i % 2 == 0 else right_column
-		column.add_child(container)
+		_quality_list.add_child(container)
 		_quality_checkboxes[id] = checkbox
 
 

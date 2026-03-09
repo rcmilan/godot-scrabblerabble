@@ -89,7 +89,7 @@ func activate() -> void:
 		_orientation_state = RunOrientationState.horizontal()
 
 
-## Postcondition: cursor hides, stops processing input, held tile restored.
+## Postcondition: cursor hides, stops processing input.
 ## INVARIANT: caller MUST call deactivate() before showing any modal.
 ## FocusCursor uses _input (not _unhandled_input), so while active it intercepts
 ## confirm_action before modals see it. Main.deactivate_for_modal() enforces this.
@@ -97,28 +97,8 @@ func deactivate() -> void:
 	_is_active = false
 	_end_typing_session()
 	_clear_hand_tile_highlight()
-	clear_held_tile()
 	_cursor_rect.hide()
 	set_process_input(false)
-
-
-## Postcondition: held_tile set; cursor highlight removed, tile faded to 50% alpha.
-func set_held_tile(tile: Tile) -> void:
-	_clear_hand_tile_highlight()
-	_state = _state.with_held_tile(tile)
-	if tile:
-		tile.self_modulate.a = 0.5
-	_update_ghost_display()
-
-
-## Postcondition: held_tile cleared; tile alpha restored to 1.0.
-func clear_held_tile() -> void:
-	if _state == null:
-		return
-	if _state.held_tile:
-		_state.held_tile.self_modulate.a = 1.0
-	_state = _state.cleared_tile()
-	_update_ghost_display()
 
 
 ## Returns the BoardCell at board_coords, or null if zone is HAND.
@@ -180,7 +160,7 @@ func _update_cursor_rect() -> void:
 	_cursor_rect.show()
 	_cursor_rect.position = cell.get_global_rect().position - global_position
 	_cursor_rect.size     = cell.get_global_rect().size
-	_update_cursor_tint()
+	_cursor_rect.modulate = Color.WHITE
 
 
 func _update_hand_tile_highlight() -> void:
@@ -205,35 +185,17 @@ func _clear_hand_tile_highlight() -> void:
 	_highlighted_hand_tile = null
 
 
-func _update_cursor_tint() -> void:
-	if _state.position.is_board() and _state.held_tile != null:
-		var cell := _board.get_cell(
-			_state.position.board_coords.y,
-			_state.position.board_coords.x
-		)
-		if cell and cell.is_occupied():
-			_cursor_rect.modulate = Color(1.0, 0.3, 0.3)
-			return
-	_cursor_rect.modulate = Color.WHITE
-
-
-func _update_ghost_display() -> void:
-	if _state == null:
-		_ghost_label.hide()
-		return
-	if _state.held_tile != null and _state.position.is_board():
-		_ghost_label.text = _state.held_tile.letter
-		_ghost_label.show()
-	else:
-		_ghost_label.hide()
-
 # =============================================================================
 # INPUT HANDLING
 # =============================================================================
 
 func _input(event: InputEvent) -> void:
 	if not _is_active:
+		if event is InputEventKey and event.is_pressed() and not event.is_echo():
+			print("[Cursor] _input SKIPPED (inactive), key=%s" % event.as_text())
 		return
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		print("[Cursor] _input received key=%s, zone=%s, typing=%s" % [event.as_text(), "hand" if _state.position.is_hand() else "board", _typing_session != null])
 	# TAB to toggle orientation (works in hand or board zone)
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		if event.keycode == KEY_TAB:
@@ -316,7 +278,6 @@ func _navigate_board(direction: Vector2i) -> void:
 		_typing_session = BoardTypingSession.create_with_orientation(_board, coords, get_orientation())
 		_update_typing_cursor_visual()
 	cursor_moved.emit(_state.position)
-	_update_ghost_display()
 
 
 func _switch_to_board_zone() -> void:
@@ -331,7 +292,6 @@ func _switch_to_board_zone() -> void:
 	_state = _state.with_board_coords(Vector2i(col, _board.rows - 1))
 	_start_typing_at(_state.position.board_coords)
 	cursor_moved.emit(_state.position)
-	_update_ghost_display()
 
 
 func _switch_to_hand_zone() -> void:
@@ -345,7 +305,6 @@ func _switch_to_hand_zone() -> void:
 		)
 	_state = _state.with_hand_index(index)
 	cursor_moved.emit(_state.position)
-	_update_ghost_display()
 
 
 func _confirm() -> void:

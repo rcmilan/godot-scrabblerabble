@@ -4,6 +4,7 @@ class_name DragManager
 ## DragManager: Coordinates multi-tile drag operations.
 ## Handles visual positioning of all dragged tiles during drag.
 ## Separates drag logic from individual tile behavior.
+## Internal state tracked via DragSnapshot value object.
 
 # =============================================================================
 # SIGNALS
@@ -104,7 +105,7 @@ func end_drag(success: bool) -> void:
 
 	print("[DragManager] Ended drag (success: %s)" % success)
 
-	# Caller (DropHandler/GameplayController) handles placement or restoration
+	# Caller (DropExecutor/GameplayController) handles placement or restoration
 	_cleanup_drag_state()
 
 
@@ -175,6 +176,22 @@ func get_original_parent(tile: Tile) -> Node:
 ## Gets the original position of a tile.
 func get_original_position(tile: Tile) -> Vector2:
 	return _original_positions.get(tile, Vector2.ZERO)
+
+
+## Returns a DragSnapshot snapshot of the current drag operation.
+func get_drag_state() -> DragSnapshot:
+	if not is_dragging:
+		return DragSnapshot.inactive()
+
+	var tile_ids: Array[int] = []
+	var orig_pos: Dictionary = {}
+	for tile in dragged_tiles:
+		var tid: int = tile.get_instance_id()
+		tile_ids.append(tid)
+		orig_pos[tid] = _original_positions.get(tile, Vector2.ZERO)
+
+	var lead_id: int = lead_tile.get_instance_id() if lead_tile else -1
+	return DragSnapshot.active(lead_id, tile_ids, orig_pos)
 
 
 # =============================================================================

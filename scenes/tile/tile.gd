@@ -28,15 +28,24 @@ enum TileLocation {
 	IN_DISCARD   # Discarded
 }
 
+# === Domain State ===
+var _state: TileState = null
+var _event_bus: DomainEventBus = null
+
 # === Tile Data (from LetterTileData resource) ===
 var tile_data: LetterTileData = null
-var letter: String = ""
-var base_points: int = 0
 
-var is_locked: bool = false        # Cannot be moved once placed (synced from LOCKED modifier)
+# === Passthroughs (backward compat, read from _state) ===
+var letter: String:
+	get: return _state.get_letter() if _state else ""
+var base_points: int:
+	get: return _state.get_base_points() if _state else 0
+var is_locked: bool:
+	get: return _state.is_locked() if _state else false
+var modifiers: Dictionary:
+	get: return _state.get_modifiers().to_dictionary() if _state else {}
 
-# === Composable Modifiers ===
-var modifiers: Dictionary = {}     # Keyed by ModifierTypes.Type → ModifierInstance
+# === Composable Modifiers (visual) ===
 var _spark_effect: TileSparkEffect = null
 
 const EXPO_SPARK_COLORS: Dictionary = {
@@ -77,6 +86,10 @@ var _pending_texture: Texture2D = null
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	# Initialize default state if not yet set (e.g. before initialize() is called)
+	if _state == null:
+		_state = TileState.create("", 0)
+
 	_drag = TileDragHelper.new()
 	_drag.drag_threshold_reached.connect(_on_drag_threshold_reached)
 	_drag.drag_ended.connect(_on_drag_ended)
@@ -109,6 +122,26 @@ func _gui_input(event: InputEvent) -> void:
 
 # === Public API ===
 
+## Set the DomainEventBus for this tile.
+func set_event_bus(event_bus: DomainEventBus) -> void:
+	_event_bus = event_bus
+
+
+## Get the current domain state.
+func get_state() -> TileState:
+	return _state
+
+
+## Update the tile's domain state. Publishes TileStateChanged event.
+func update_state(new_state: TileState) -> void:
+	var old_state: TileState = _state
+	_state = new_state
+	if _event_bus:
+		var event := TileStateChanged.new(get_instance_id(), old_state, new_state)
+		_event_bus.publish_tile_state_changed(event)
+	_on_state_changed(old_state, new_state)
+
+
 ## Initialize tile with data from a LetterTileData resource.
 func initialize(data: LetterTileData) -> void:
 	if data == null:
@@ -125,11 +158,10 @@ func initialize(data: LetterTileData) -> void:
 		return
 
 	tile_data = data
-	letter = clean_letter
-	base_points = data.base_points
+	_state = TileState.create(clean_letter, data.base_points)
 
 	# Set unique name using instance ID to avoid Godot auto-renaming duplicates
-	name = "Tile_%s_%d" % [letter, get_instance_id()]
+	name = "Tile_%s_%d" % [clean_letter, get_instance_id()]
 
 	# Apply texture now if node is ready, otherwise store for _ready()
 	if data.texture:
@@ -138,9 +170,9 @@ func initialize(data: LetterTileData) -> void:
 		else:
 			_pending_texture = data.texture
 	else:
-		push_warning("[Tile] Letter '%s' is missing texture" % letter)
+		push_warning("[Tile] Letter '%s' is missing texture" % clean_letter)
 
-	print("[Tile] Initialized: %s (%d pts)" % [letter, base_points])
+	print("[Tile] Initialized: %s (%d pts)" % [clean_letter, data.base_points])
 
 
 ## Set the selected state of this tile.
@@ -243,82 +275,55 @@ func move_to_discard() -> void:
 
 
 # =============================================================================
-# MODIFIER MANAGEMENT
+# MODIFIER MANAGEMENT (delegates to TileState, keeps backward compat)
 # =============================================================================
 
 ## Adds a modifier to this tile (one per type).
 func add_modifier(modifier: ModifierInstance) -> void:
-	modifiers[modifier.type] = modifier
-	if modifier.type == ModifierTypes.Type.EXPO:
-		_add_spark_effect(modifier.tier)
-	if modifier.type == ModifierTypes.Type.LOCKED:
-		is_locked = true
-	_update_modifier_visual()
+	update_state(_state.with_modifier(modifier))
 	EventBus.modifier_applied.emit(self, modifier)
 
 
 ## Removes a modifier by type.
 func remove_modifier(type: ModifierTypes.Type) -> void:
-	modifiers.erase(type)
-	if type == ModifierTypes.Type.EXPO:
-		_remove_spark_effect()
-	if type == ModifierTypes.Type.LOCKED:
-		is_locked = false
-	_update_modifier_visual()
+	update_state(_state.without_modifier(type))
 
 
 ## Clears all modifiers.
 func clear_modifiers() -> void:
-	modifiers.clear()
-	_remove_spark_effect()
-	is_locked = false
-	_update_modifier_visual()
+	update_state(_state.with_modifiers(ModifierCollection.empty()))
 
 
 ## Removes CONSUMABLE modifiers only (called after a play).
 func consume_modifiers() -> void:
-	var consumed: Array[int] = []
-	for type in modifiers.keys():
-		var mod: ModifierInstance = modifiers[type]
-		if mod.lifetime == ModifierTypes.Lifetime.CONSUMABLE:
-			consumed.append(type)
-	for type in consumed:
-		modifiers.erase(type)
-		if type == ModifierTypes.Type.EXPO:
-			_remove_spark_effect()
-		if type == ModifierTypes.Type.LOCKED:
-			is_locked = false
-		EventBus.modifier_consumed.emit(self, type)
-	if not consumed.is_empty():
-		_update_modifier_visual()
+	var old_mods: ModifierCollection = _state.get_modifiers()
+	var new_state: TileState = _state.with_consumed_modifiers()
+	if old_mods.size() != new_state.get_modifiers().size():
+		# Emit consumed events for each removed modifier
+		for mod in old_mods.get_all():
+			if mod.lifetime == ModifierTypes.Lifetime.CONSUMABLE:
+				EventBus.modifier_consumed.emit(self, mod.type)
+		update_state(new_state)
 
 
 ## Removes CONSUMABLE and PER_ROUND modifiers (called at round end).
 func clear_round_modifiers() -> void:
-	var to_remove: Array[int] = []
-	for type in modifiers.keys():
-		var mod: ModifierInstance = modifiers[type]
-		if mod.lifetime != ModifierTypes.Lifetime.PERMANENT:
-			to_remove.append(type)
-	for type in to_remove:
-		modifiers.erase(type)
-		if type == ModifierTypes.Type.EXPO:
-			_remove_spark_effect()
-		if type == ModifierTypes.Type.LOCKED:
-			is_locked = false
-	if not to_remove.is_empty():
-		_update_modifier_visual()
+	update_state(_state.with_cleared_round_modifiers())
 
 
 ## Checks if the tile has a specific modifier type.
 func has_modifier(type: ModifierTypes.Type) -> bool:
-	return modifiers.has(type)
+	return _state.has_modifier(type)
+
+
+## Returns the ModifierCollection from the current state.
+func get_modifiers() -> ModifierCollection:
+	return _state.get_modifiers()
 
 
 ## Derives the tile's primary modifier type from the visual pipeline (invert/tint).
 func get_primary_modifier_type() -> ModifierTypes.Type:
 	var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(modifiers)
-	# Derive type from visual — if invert, it's RESET; else match tint
 	if visual.invert:
 		return ModifierTypes.Type.RESET
 	for type in modifiers.keys():
@@ -336,8 +341,7 @@ func get_primary_modifier_type() -> ModifierTypes.Type:
 func reset() -> void:
 	detach_from_cell()
 	is_selected = false
-	is_locked = false
-	modifiers.clear()
+	_state = TileState.create(_state.get_letter(), _state.get_base_points())
 	_remove_spark_effect()
 	location = TileLocation.IN_BAG
 	selection_order = -1
@@ -369,6 +373,39 @@ func force_end_drag() -> void:
 	allow_hover_feedback = true
 	_apply_modifier_visual()
 	z_index = 0
+
+
+## Sets locked state through the modifier system.
+## Backward-compatible: any code calling set_locked(true) now adds a LOCKED modifier.
+func set_locked(value: bool) -> void:
+	if value and not has_modifier(ModifierTypes.Type.LOCKED):
+		var locked_mod: ModifierInstance = ModifierRegistry.create_modifier(
+			ModifierTypes.Type.LOCKED,
+			ModifierTypes.Tier.BRONZE,
+			ModifierTypes.Lifetime.PER_ROUND
+		)
+		add_modifier(locked_mod)
+	elif not value and has_modifier(ModifierTypes.Type.LOCKED):
+		remove_modifier(ModifierTypes.Type.LOCKED)
+
+
+# === Private: State Change Handler ===
+
+## Reacts to domain state changes — updates visuals based on modifier diff.
+func _on_state_changed(old_state: TileState, new_state: TileState) -> void:
+	var old_mods: ModifierCollection = old_state.get_modifiers()
+	var new_mods: ModifierCollection = new_state.get_modifiers()
+
+	# Handle EXPO spark effect add/remove
+	var had_expo: bool = old_mods.has(ModifierTypes.Type.EXPO)
+	var has_expo: bool = new_mods.has(ModifierTypes.Type.EXPO)
+	if has_expo and not had_expo:
+		var expo_mod: ModifierInstance = new_mods.get_modifier(ModifierTypes.Type.EXPO)
+		_add_spark_effect(expo_mod.tier)
+	elif had_expo and not has_expo:
+		_remove_spark_effect()
+
+	_update_modifier_visual()
 
 
 # === Private: Input Handling ===
@@ -491,6 +528,16 @@ func set_cursor_highlighted(value: bool) -> void:
 	_update_visual()
 
 
+## Unified highlight update from a TileHighlightState value object.
+## Replaces the dual cursor/selection highlight logic with a single entry point.
+func update_highlight(highlight: TileHighlightState) -> void:
+	_is_cursor_highlighted = highlight.is_cursor_hovered()
+	is_selected = highlight.is_selected()
+	selection_order = highlight.get_selection_order()
+	_update_visual()
+	_animate_selection_scale()
+
+
 func _update_visual() -> void:
 	if border:
 		border.visible = is_selected
@@ -518,20 +565,6 @@ func _update_modifier_visual() -> void:
 	if locked_border:
 		locked_border.visible = is_locked
 	_apply_modifier_visual()
-
-
-## Sets locked state through the modifier system.
-## Backward-compatible: any code calling set_locked(true) now adds a LOCKED modifier.
-func set_locked(value: bool) -> void:
-	if value and not has_modifier(ModifierTypes.Type.LOCKED):
-		var locked_mod: ModifierInstance = ModifierRegistry.create_modifier(
-			ModifierTypes.Type.LOCKED,
-			ModifierTypes.Tier.BRONZE,
-			ModifierTypes.Lifetime.PER_ROUND
-		)
-		add_modifier(locked_mod)
-	elif not value and has_modifier(ModifierTypes.Type.LOCKED):
-		remove_modifier(ModifierTypes.Type.LOCKED)
 
 
 # === Signal Handlers (connected in scene) ===

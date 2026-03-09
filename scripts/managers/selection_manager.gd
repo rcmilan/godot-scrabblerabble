@@ -3,6 +3,7 @@ class_name SelectionManager
 
 ## SelectionManager: Central source of truth for tile selection state and mode.
 ## Manages single/multi-select modes and maintains ordered selection.
+## Internal state managed via immutable SelectionState value object.
 ## Created as a local node by Main and injected into consumers via setup().
 
 # =============================================================================
@@ -13,162 +14,164 @@ signal mode_changed(is_multi: bool)
 signal selection_changed(selected_tiles: Array)
 
 # =============================================================================
-# ENUMS
+# ENUMS (backward compat aliases)
 # =============================================================================
 
 enum SelectionMode {
-	SINGLE,  # Clicking a tile deselects all others first
-	MULTI    # Clicking toggles tile selection, order preserved
+	SINGLE,
+	MULTI
 }
 
 # =============================================================================
 # STATE
 # =============================================================================
 
-var mode: SelectionMode = SelectionMode.MULTI
-var _selected_tiles: Array[Tile] = []
+var _state: SelectionState = SelectionState.empty()
+var _tile_lookup: Dictionary = {}  # int (instance_id) → Tile
+
+## Backward-compat: mode as public readable property
+var mode: SelectionMode:
+	get: return SelectionMode.SINGLE if _state.get_mode() == SelectionState.Mode.SINGLE else SelectionMode.MULTI
 
 # =============================================================================
 # MODE MANAGEMENT
 # =============================================================================
 
-## Toggles between single and multi-select modes.
 func toggle_mode() -> void:
-	if mode == SelectionMode.SINGLE:
-		set_mode(SelectionMode.MULTI)
-	else:
-		set_mode(SelectionMode.SINGLE)
-
-
-## Sets the selection mode explicitly.
-func set_mode(new_mode: SelectionMode) -> void:
-	if mode == new_mode:
-		return
-
-	var was_multi: bool = mode == SelectionMode.MULTI
-	mode = new_mode
-
-	# Leaving multi-select mode deselects all tiles
-	if was_multi and mode == SelectionMode.SINGLE:
-		deselect_all()
-
+	var new_state: SelectionState = _state.with_toggled_mode()
+	_apply_state(new_state)
 	mode_changed.emit(is_multi_select_enabled())
-	print("[SelectionManager] Mode changed to: %s" % SelectionMode.keys()[mode])
 
 
-## Returns true if multi-select mode is enabled.
+func set_mode(new_mode: SelectionMode) -> void:
+	var target: SelectionState.Mode = SelectionState.Mode.SINGLE if new_mode == SelectionMode.SINGLE else SelectionState.Mode.MULTI
+	var new_state: SelectionState = _state.with_mode(target)
+	if new_state == _state:
+		return
+	_apply_state(new_state)
+	mode_changed.emit(is_multi_select_enabled())
+
+
 func is_multi_select_enabled() -> bool:
-	return mode == SelectionMode.MULTI
+	return _state.is_multi()
 
 # =============================================================================
 # SELECTION OPERATIONS
 # =============================================================================
 
-## Selects a tile (mode-aware behavior).
 func select_tile(tile: Tile) -> void:
 	if tile == null:
 		return
 
-	match mode:
-		SelectionMode.SINGLE:
+	_tile_lookup[tile.get_instance_id()] = tile
+
+	match _state.get_mode():
+		SelectionState.Mode.SINGLE:
 			_select_single(tile)
-		SelectionMode.MULTI:
+		SelectionState.Mode.MULTI:
 			_toggle_multi(tile)
 
 
-## Deselects a specific tile.
 func deselect_tile(tile: Tile) -> void:
-	if tile == null or tile not in _selected_tiles:
+	if tile == null:
+		return
+	var tid: int = tile.get_instance_id()
+	if not _state.has(tid):
 		return
 
-	_selected_tiles.erase(tile)
+	var new_state: SelectionState = _state.with_deselected(tid)
 	tile.set_selected(false)
 	tile.set_selection_order(-1)
-
-	# Update order for remaining tiles
-	_update_selection_orders()
-
+	_apply_state(new_state)
+	_sync_tile_orders()
 	selection_changed.emit(get_selected_tiles())
 
 
-## Deselects all tiles.
 func deselect_all() -> void:
-	for tile in _selected_tiles:
-		tile.set_selected(false)
-		tile.set_selection_order(-1)
+	for tid in _state.get_tile_ids():
+		var tile: Tile = _tile_lookup.get(tid)
+		if tile and is_instance_valid(tile):
+			tile.set_selected(false)
+			tile.set_selection_order(-1)
 
-	_selected_tiles.clear()
+	_apply_state(_state.with_all_deselected())
 	selection_changed.emit([])
 
 
-## Returns the currently selected tiles in selection order.
 func get_selected_tiles() -> Array[Tile]:
-	# Filter out any tiles that may have been freed
 	var valid_tiles: Array[Tile] = []
-	for tile in _selected_tiles:
-		if is_instance_valid(tile):
+	for tid in _state.get_tile_ids():
+		var tile: Tile = _tile_lookup.get(tid)
+		if tile and is_instance_valid(tile):
 			valid_tiles.append(tile)
-
-	if valid_tiles.size() != _selected_tiles.size():
-		_selected_tiles = valid_tiles
-
-	return _selected_tiles.duplicate()
+	return valid_tiles
 
 
-## Returns the number of selected tiles.
 func get_selection_count() -> int:
 	return get_selected_tiles().size()
 
 
-## Returns the selection order of a tile (-1 if not selected).
 func get_tile_order(tile: Tile) -> int:
 	if tile == null:
 		return -1
-	return _selected_tiles.find(tile)
+	return _state.get_order(tile.get_instance_id())
 
 
-## Returns true if there are any selected tiles.
 func has_selection() -> bool:
-	return not get_selected_tiles().is_empty()
+	return not _state.is_empty()
+
+
+## Returns the current SelectionState value object.
+func get_state() -> SelectionState:
+	return _state
 
 # =============================================================================
 # PRIVATE HELPERS
 # =============================================================================
 
 func _select_single(tile: Tile) -> void:
-	# If already selected, deselect it
-	if tile in _selected_tiles:
+	var tid: int = tile.get_instance_id()
+	if _state.has(tid):
 		deselect_tile(tile)
 		return
 
-	# Deselect all others first
-	for t in _selected_tiles:
-		t.set_selected(false)
-		t.set_selection_order(-1)
+	# Deselect all others
+	for old_tid in _state.get_tile_ids():
+		var old_tile: Tile = _tile_lookup.get(old_tid)
+		if old_tile and is_instance_valid(old_tile):
+			old_tile.set_selected(false)
+			old_tile.set_selection_order(-1)
 
-	_selected_tiles.clear()
+	var empty_ids: Array[int] = []
+	var new_state: SelectionState = SelectionState.new(_state.get_mode(), empty_ids)
+	new_state = new_state.with_selected(tid)
 
-	# Select the new tile
-	_selected_tiles.append(tile)
 	tile.set_selected(true)
 	tile.set_selection_order(0)
 
+	_apply_state(new_state)
 	selection_changed.emit(get_selected_tiles())
 
 
 func _toggle_multi(tile: Tile) -> void:
-	if tile in _selected_tiles:
-		# Deselect this tile
+	var tid: int = tile.get_instance_id()
+	if _state.has(tid):
 		deselect_tile(tile)
 	else:
-		# Add to selection
-		_selected_tiles.append(tile)
+		var new_state: SelectionState = _state.with_selected(tid)
 		tile.set_selected(true)
-		tile.set_selection_order(_selected_tiles.size() - 1)
-
+		tile.set_selection_order(new_state.size() - 1)
+		_apply_state(new_state)
 		selection_changed.emit(get_selected_tiles())
 
 
-func _update_selection_orders() -> void:
-	for i in _selected_tiles.size():
-		_selected_tiles[i].set_selection_order(i)
+func _apply_state(new_state: SelectionState) -> void:
+	_state = new_state
+
+
+func _sync_tile_orders() -> void:
+	var ids: Array[int] = _state.get_tile_ids()
+	for i in ids.size():
+		var tile: Tile = _tile_lookup.get(ids[i])
+		if tile and is_instance_valid(tile):
+			tile.set_selection_order(i)
