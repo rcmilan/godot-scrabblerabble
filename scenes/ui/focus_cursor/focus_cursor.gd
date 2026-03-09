@@ -89,7 +89,7 @@ func activate() -> void:
 		_orientation_state = RunOrientationState.horizontal()
 
 
-## Postcondition: cursor hides, stops processing input, held tile restored.
+## Postcondition: cursor hides, stops processing input.
 ## INVARIANT: caller MUST call deactivate() before showing any modal.
 ## FocusCursor uses _input (not _unhandled_input), so while active it intercepts
 ## confirm_action before modals see it. Main.deactivate_for_modal() enforces this.
@@ -97,17 +97,8 @@ func deactivate() -> void:
 	_is_active = false
 	_end_typing_session()
 	_clear_hand_tile_highlight()
-	clear_held_tile()
 	_cursor_rect.hide()
 	set_process_input(false)
-
-
-func set_held_tile(_tile: Tile) -> void:
-	pass
-
-
-func clear_held_tile() -> void:
-	pass
 
 
 ## Returns the BoardCell at board_coords, or null if zone is HAND.
@@ -169,7 +160,7 @@ func _update_cursor_rect() -> void:
 	_cursor_rect.show()
 	_cursor_rect.position = cell.get_global_rect().position - global_position
 	_cursor_rect.size     = cell.get_global_rect().size
-	_update_cursor_tint()
+	_cursor_rect.modulate = Color.WHITE
 
 
 func _update_hand_tile_highlight() -> void:
@@ -193,13 +184,6 @@ func _clear_hand_tile_highlight() -> void:
 		_hand.get_fan_layout().remove_hover_effect(_highlighted_hand_tile)
 	_highlighted_hand_tile = null
 
-
-func _update_cursor_tint() -> void:
-	_cursor_rect.modulate = Color.WHITE
-
-
-func _update_ghost_display() -> void:
-	_ghost_label.hide()
 
 # =============================================================================
 # INPUT HANDLING
