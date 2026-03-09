@@ -299,45 +299,34 @@ func _on_cursor_confirmed(pos: CursorPosition) -> void:
 		var tile: Tile = hand.get_tile_at(pos.hand_index)
 		if tile == null:
 			return
-		_on_tile_selected(tile)
-		if _selection.has_selection() and _cursor:
-			_cursor.set_held_tile(tile)
+		if _selection.get_selected_tiles().has(tile):
+			_selection.deselect_tile(tile)
+		else:
+			_selection.select_tile(tile)
+		_update_interaction_state()
+		return
 
-	elif pos.is_board():
+	if pos.is_board():
 		var cell: BoardCell = board.get_cell(pos.board_coords.y, pos.board_coords.x)
 		if cell == null:
 			return
-		if _selection.has_selection():
-			var movable: Array[Tile] = _selection.get_selected_tiles().filter(
-				func(t: Tile) -> bool: return not t.is_locked
-			)
-			if not movable.is_empty() and not cell.is_occupied():
-				_place_tiles_on_cell(movable, cell, true)
-				if _cursor:
-					_cursor.clear_held_tile()
-			elif cell.is_occupied():
-				TileAnimator.animate_shake(movable[0])
-		elif cell.is_occupied():
+		if cell.is_occupied():
 			var board_tile: Tile = cell.tile
-			if not board_tile.is_locked:
+			if board_tile.is_locked:
+				TileAnimator.animate_shake(board_tile)
+			else:
+				_play_state_manager.remove_tile_at(cell.grid_position)
 				_placement.return_tile_to_hand(board_tile)
-				_selection.select_tile(board_tile)
-				if _cursor:
-					_cursor.set_held_tile(board_tile)
+				_word_highlight.run_scan()
 				_update_interaction_state()
 				tile_returned_to_hand.emit(board_tile)
-			else:
-				TileAnimator.animate_shake(board_tile)
-		else:
-			_on_play_requested()
+				_play.update_play_button_state()
 
 
 func _on_cursor_cancelled(_pos: CursorPosition) -> void:
 	if not _is_active:
 		return
 	_selection.deselect_all()
-	if _cursor:
-		_cursor.clear_held_tile()
 	_update_interaction_state()
 	_play.update_play_button_state()
 
