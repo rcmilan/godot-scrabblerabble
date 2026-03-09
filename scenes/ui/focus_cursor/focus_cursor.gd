@@ -191,7 +191,11 @@ func _clear_hand_tile_highlight() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not _is_active:
+		if event is InputEventKey and event.is_pressed() and not event.is_echo():
+			print("[Cursor] _input SKIPPED (inactive), key=%s" % event.as_text())
 		return
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		print("[Cursor] _input received key=%s, zone=%s, typing=%s" % [event.as_text(), "hand" if _state.position.is_hand() else "board", _typing_session != null])
 	# TAB to toggle orientation (works in hand or board zone)
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		if event.keycode == KEY_TAB:

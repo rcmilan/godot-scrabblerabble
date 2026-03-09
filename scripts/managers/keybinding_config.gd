@@ -58,6 +58,7 @@ func load_and_apply() -> void:
 			if event is InputEvent:
 				InputMap.action_erase_events(action)
 				InputMap.action_add_event(action, event)
+				binding_changed.emit(action)
 
 
 ## Precondition : action is in KEYBINDABLE_ACTIONS.

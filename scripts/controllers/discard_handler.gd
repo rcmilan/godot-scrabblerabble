@@ -29,14 +29,16 @@ func setup(
 ## Discards selected hand tiles directly.
 func request_discard() -> void:
 	var selected_tiles: Array[Tile] = _selection.get_selected_tiles()
+	print("[Discard] request_discard: %d selected, mode=%s" % [selected_tiles.size(), _selection.get_mode_name() if _selection.has_method("get_mode_name") else "?"])
 
 	var hand_tiles: Array[Tile] = []
 	for tile in selected_tiles:
+		print("[Discard]   tile '%s' location=%s" % [tile.letter if tile else "?", tile.location if tile else "?"])
 		if tile.location == Tile.TileLocation.IN_HAND:
 			hand_tiles.append(tile)
 
 	if hand_tiles.is_empty():
-		print("[Gameplay] No hand tiles selected to discard")
+		print("[Discard] No hand tiles selected to discard (selected=%d, hand_filtered=%d)" % [selected_tiles.size(), hand_tiles.size()])
 		return
 
 	execute_discard_animated(hand_tiles)

@@ -93,7 +93,11 @@ func _ready() -> void:
 ## key events during GUI processing before _unhandled_input sees them.
 func _input(event: InputEvent) -> void:
 	if not _is_active:
+		if event is InputEventKey and event.is_pressed() and not event.is_echo():
+			print("[Gameplay] _input SKIPPED (inactive), key=%s" % event.as_text())
 		return
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		print("[Gameplay] _input received key=%s, handled=%s" % [event.as_text(), get_viewport().is_input_handled()])
 	if event.is_action_pressed(KeyAction.PLAY_HAND):
 		print("[Gameplay] Play requested (Enter)")
 		_on_play_requested()
@@ -104,8 +108,14 @@ func _input(event: InputEvent) -> void:
 		pause_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
-	if _input_router.route(event):
-		get_viewport().set_input_as_handled()
+	# Letter-based game actions (Q, Z) — only route when NOT in a typing session,
+	# otherwise the letter should be consumed by FocusCursor as a typed tile.
+	var has_typing := _cursor != null and _cursor.get_typing_session() != null
+	if not has_typing:
+		if _input_router.route(event):
+			get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.is_pressed():
+		print("[Gameplay] Skipped routing (typing session active), key=%s" % event.as_text())
 
 
 func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dialog: CanvasLayer, p_hud: CanvasLayer, p_selection: SelectionManager, p_cursor: FocusCursor = null) -> void:
@@ -156,6 +166,14 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	_input_router = InputRouter.new()
 	_input_router.register(KeyAction.TOGGLE_MULTI, _selection.toggle_mode)
 	_input_router.register(KeyAction.DISCARD_TILES, _discard.request_discard)
+
+	# Debug: dump InputMap events for routed actions
+	for action_name in [KeyAction.TOGGLE_MULTI, KeyAction.DISCARD_TILES]:
+		var events := InputMap.action_get_events(action_name)
+		var texts: Array[String] = []
+		for ev in events:
+			texts.append(ev.as_text())
+		print("[Gameplay] InputMap '%s': %s" % [action_name, ", ".join(texts)])
 
 	# Initialize grid cache
 	if board and _play_state_manager:

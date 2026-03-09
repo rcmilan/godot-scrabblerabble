@@ -17,4 +17,10 @@ func route(event: InputEvent) -> bool:
 			print("[InputRouter] Routed: %s (event: %s)" % [action, event.as_text()])
 			_action_map[action].call()
 			return true
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		var checks := []
+		for action in _action_map:
+			checks.append("%s=%s" % [action, event.is_action(action)])
+		print("[InputRouter] No match for key=%s (keycode=%d, phys=%d) checks: %s" % [
+			event.as_text(), event.keycode, event.physical_keycode, ", ".join(checks)])
 	return false
