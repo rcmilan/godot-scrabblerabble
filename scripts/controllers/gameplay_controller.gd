@@ -89,23 +89,20 @@ func _ready() -> void:
 	_play_state_manager = PlayStateManager.new()
 
 
-## Play and Pause must run at _input priority — Godot's built-in ui_accept
-## (hardcoded to Enter) lets focused UI controls consume the event before
-## _unhandled_input sees it.
+## Game actions run at _input priority — focused UI controls can consume
+## key events during GUI processing before _unhandled_input sees them.
 func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
 	if event.is_action_pressed(KeyAction.PLAY_HAND):
+		print("[Gameplay] Play requested (Enter)")
 		_on_play_requested()
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(KeyAction.PAUSE_GAME):
+		print("[Gameplay] Pause requested (Esc)")
 		pause_requested.emit()
 		get_viewport().set_input_as_handled()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not _is_active:
 		return
 	if _input_router.route(event):
 		get_viewport().set_input_as_handled()
