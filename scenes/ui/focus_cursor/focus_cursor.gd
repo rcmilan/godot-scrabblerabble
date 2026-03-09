@@ -323,9 +323,6 @@ func _handle_typing_key(event: InputEventKey) -> bool:
 	if event.keycode == KEY_BACKSPACE:
 		backspace_pressed.emit()
 		return true
-	# Let game actions fall through (e.g. Z = discard, L = draw)
-	if event.is_action(KeyAction.DISCARD_TILES) or event.is_action(KeyAction.DRAW_TILES):
-		return false
 	var unicode := event.unicode
 	if (unicode >= 65 and unicode <= 90) or (unicode >= 97 and unicode <= 122):
 		letter_typed.emit(char(unicode).to_upper())
