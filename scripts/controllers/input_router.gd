@@ -14,7 +14,7 @@ func register(action: StringName, handler: Callable) -> void:
 func route(event: InputEvent) -> bool:
 	for action in _action_map:
 		if event.is_action_pressed(action):
-			print("[InputRouter] Routed action: %s" % action)
+			print("[InputRouter] Routed: %s (event: %s)" % [action, event.as_text()])
 			_action_map[action].call()
 			return true
 	return false
