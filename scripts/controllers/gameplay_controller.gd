@@ -89,15 +89,24 @@ func _ready() -> void:
 	_play_state_manager = PlayStateManager.new()
 
 
-func _unhandled_input(event: InputEvent) -> void:
+## Play and Pause must run at _input priority — Godot's built-in ui_accept
+## (hardcoded to Enter) lets focused UI controls consume the event before
+## _unhandled_input sees it.
+func _input(event: InputEvent) -> void:
 	if not _is_active:
 		return
-
+	if event.is_action_pressed(KeyAction.PLAY_HAND):
+		_on_play_requested()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(KeyAction.PAUSE_GAME):
 		pause_requested.emit()
 		get_viewport().set_input_as_handled()
-		return
 
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _is_active:
+		return
 	if _input_router.route(event):
 		get_viewport().set_input_as_handled()
 
@@ -150,7 +159,6 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 	_input_router = InputRouter.new()
 	_input_router.register(KeyAction.TOGGLE_MULTI, _selection.toggle_mode)
 	_input_router.register(KeyAction.DISCARD_TILES, _discard.request_discard)
-	_input_router.register(KeyAction.PLAY_HAND, _on_play_requested)
 
 	# Initialize grid cache
 	if board and _play_state_manager:
