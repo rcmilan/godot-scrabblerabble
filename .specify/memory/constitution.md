@@ -1,50 +1,78 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- SYNC IMPACT REPORT (Generated 2026-04-03)
+Version: 1.0.0 (initial)
+New Principles: 5 (Domain-Driven Design, Decoupled Communication, Immutable Domain, Thin Controllers, Manual Testing First)
+Added Sections: Architecture Constraints, Development Workflow
+No prior version to compare; initial constitution establishment.
+Follow-up: None - all placeholders resolved.
+-->
+
+# Wordatro Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Domain-Driven Design
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Pure business logic and game rules live in `/scripts/domain` with zero Godot engine dependencies. Domain layer contains immutable value objects (BoardState, TileState, Deck systems, Modifiers) and services (scoring, word validation, game rule logic). Controllers and UI never directly implement game rules; all rule changes flow through domain services.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**Rationale**: Enables independent testing and reasoning about game mechanics without engine overhead. Decouples business logic from framework specifics, making the game portable and testable in isolation.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Decoupled Communication via EventBus
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Systems communicate through EventBus signals rather than direct references. Controllers and autoloads emit and subscribe to events (tile_placed, round_started, etc.). Direct references are used only for tight-coupling orchestration scenarios (e.g., GameplayController routing input to PlacementExecutor).
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rationale**: Reduces coupling between systems, enables parallel development, and simplifies testing by allowing selective event subscription.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Immutable Domain Objects
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Domain value objects (BoardState, TileState) never mutate in place. All state transitions return new instances. Services return new copies of modified state, never modifying arguments.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**Rationale**: Prevents subtle bugs from shared state mutations, enables replay and undo mechanics, simplifies debugging and reasoning about state flow.
+
+### IV. Thin Controllers
+
+Controllers (`/scripts/controllers`) perform orchestration only: routing input events, calling domain services, emitting EventBus signals, and updating UI state. No business logic or rule enforcement in controllers. Controllers receive scene node references (Board, Hand, etc.) via setup injection.
+
+**Rationale**: Maintains clear separation between UI interaction and game logic. Controllers become simple state machines rather than logic centers, reducing complexity and improving maintainability.
+
+### V. Manual Testing First
+
+Before automated testing frameworks are integrated, manual testing in the Godot editor is the verification method. When writing features, verify behavior by playing the game. Document edge cases that need manual verification. When automated tests are added later, these manual cases become the acceptance criteria.
+
+**Rationale**: Allows rapid iteration without test infrastructure overhead while the codebase stabilizes. Manual testing directly validates user experience and catches integration issues that unit tests might miss.
+
+## Architecture Constraints
+
+- **No Godot Code in Domain**: `/scripts/domain` must not import any Godot classes or engine features. Domain is pure GDScript logic—testable outside the engine.
+- **EventBus as Communication Hub**: Inter-system communication defaults to EventBus signals. Direct function calls are permitted only for tightly coupled layers (domain → controller data flows).
+- **Autoload Registry**: All global singletons must be declared in `project.godot` under `[autoload]` with explicit names. No dynamic singleton creation.
+- **Scene Dependency Injection**: Controllers receive scene node references (Board, Hand, TileAnimator, etc.) through explicit setup methods, never through `get_tree()` lookups.
+
+## Development Workflow
+
+**Code Review Checklist**:
+- Does the change modify domain logic? → Must be in `/scripts/domain` with no Godot dependencies.
+- Does the change need UI updates? → Controllers and scenes handle this; emit EventBus signals for system-wide effects.
+- Does this introduce coupling? → Prefer EventBus signals over direct references.
+- Have the changes been tested manually in the editor?
+
+**Adding Features**:
+1. Identify if change is domain logic (rules), controller logic (input), or UI (scenes).
+2. Implement in appropriate layer; domain first.
+3. Emit/subscribe EventBus events for cross-layer communication.
+4. Test manually in the Godot editor before commit.
+5. Document any manual edge cases that might become automated tests later.
+
+**Refactoring**:
+- Preserve the three-layer architecture (domain, controllers, scenes).
+- Never move business logic into controllers or scenes.
+- Prefer moving logic down into domain; moving up violates DDD.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all prior informal practices. Amendments must be documented in `.specify/memory/constitution.md` with a version bump and rationale. Breaking changes (principle removals or redefinitions) require MAJOR version bumps. New guidance or principle expansion requires MINOR bumps. Clarifications and wording fixes require PATCH bumps.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+All code reviews MUST verify compliance with Core Principles I–V and Architecture Constraints. Deviations are permitted only if a Complexity Tracking justification is documented in the PR description.
+
+When manual testing is insufficient, failing tests MUST be added before implementation begins (Test-First discipline per CLAUDE.md). No code is considered complete until manually verified in the editor and any documented edge cases are confirmed.
+
+**Version**: 1.0.0 | **Ratified**: 2026-04-03 | **Last Amended**: 2026-04-03
