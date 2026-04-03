@@ -143,3 +143,10 @@ signal run_shop_requested(round_number: int)
 
 ## Emitted when the run ends (win or lose).
 signal run_ended(victory: bool, total_score: int)
+
+# =============================================================================
+# BOARD EVENTS
+# =============================================================================
+
+## Emitted when the board is resized (dimensions or position change).
+signal board_resized(board_state: BoardState)

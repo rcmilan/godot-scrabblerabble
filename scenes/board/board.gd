@@ -119,6 +119,19 @@ func get_grid_state() -> Array[Array]:
 	return state
 
 
+## Returns the screen-space global position of the board's top-left cell (0,0).
+func get_top_left_screen_position() -> Vector2:
+	var cell: BoardCell = get_cell(0, 0)
+	if cell == null:
+		return grid.global_position
+	return cell.global_position
+
+
+## Returns the pixel dimensions of a single rendered cell.
+func get_cell_size_pixels() -> Vector2:
+	return Vector2(cell_size, cell_size)
+
+
 ## Clears all tiles from the board.
 func clear_board() -> void:
 	for row in _cells:
@@ -169,6 +182,10 @@ func _initialize_grid() -> void:
 	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
+
+	# Emit board_resized signal for UI updates (e.g., orientation icon positioning)
+	var board_state: BoardState = BoardState.from_board(self)
+	EventBus.board_resized.emit(board_state)
 
 
 func _create_cell(row: int, col: int) -> BoardCell:
