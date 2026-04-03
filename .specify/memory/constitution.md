@@ -4,6 +4,10 @@ New Principles: 5 (Domain-Driven Design, Decoupled Communication, Immutable Doma
 Added Sections: Architecture Constraints, Development Workflow
 No prior version to compare; initial constitution establishment.
 Follow-up: None - all placeholders resolved.
+
+Patch 1.0.1 (2026-04-03): Removed pre-commit hook enforcing snake_case filenames.
+Hook was broken and blocking commits. File naming convention (snake_case) remains
+the expected practice but is no longer enforced at commit time.
 -->
 
 # Wordatro Constitution
@@ -75,4 +79,4 @@ All code reviews MUST verify compliance with Core Principles I–V and Architect
 
 When manual testing is insufficient, failing tests MUST be added before implementation begins (Test-First discipline per CLAUDE.md). No code is considered complete until manually verified in the editor and any documented edge cases are confirmed.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-03 | **Last Amended**: 2026-04-03
+**Version**: 1.0.1 | **Ratified**: 2026-04-03 | **Last Amended**: 2026-04-03

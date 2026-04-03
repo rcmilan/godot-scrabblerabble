@@ -2,7 +2,7 @@ extends Node
 class_name MenuController
 
 ## Handles menu navigation and input for title screen.
-## Supports keyboard (WASD) and mouse input.
+## Supports keyboard (WASD/arrows) and mouse input.
 ## Follows the controller pattern used in GameplayController.
 
 # =============================================================================
@@ -11,7 +11,6 @@ class_name MenuController
 
 signal menu_item_selected(index: int)
 signal new_game_requested()
-signal options_requested()
 signal exit_requested()
 
 # =============================================================================
@@ -27,24 +26,21 @@ var _current_index: int = 0
 # =============================================================================
 
 var _new_game_button: Button
-var _options_button: Button
 var _exit_button: Button
 
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
 
-func setup(new_game_btn: Button, options_btn: Button, exit_btn: Button) -> void:
+func setup(new_game_btn: Button, exit_btn: Button) -> void:
 	"""Inject menu button dependencies."""
 	_new_game_button = new_game_btn
-	_options_button = options_btn
 	_exit_button = exit_btn
 
-	_menu_items = [new_game_btn, options_btn, exit_btn]
+	_menu_items = [new_game_btn, exit_btn]
 
 	# Connect button signals
 	_new_game_button.pressed.connect(_on_new_game_pressed)
-	_options_button.pressed.connect(_on_options_pressed)
 	_exit_button.pressed.connect(_on_exit_pressed)
 
 	# Connect focus signals for mouse hover
@@ -130,10 +126,6 @@ func _activate_current_item() -> void:
 
 func _on_new_game_pressed() -> void:
 	new_game_requested.emit()
-
-
-func _on_options_pressed() -> void:
-	options_requested.emit()
 
 
 func _on_exit_pressed() -> void:

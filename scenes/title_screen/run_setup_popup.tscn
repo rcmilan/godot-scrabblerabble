@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/title_screen/run_setup_popup.gd" id="1_setup"]
 
-[node name="RunSetupPopup" type="Control"]
+[node name="RunSetupView" type="Control"]
 visible = false
 layout_mode = 3
 anchors_preset = 15
@@ -11,15 +11,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_setup")
-
-[node name="Overlay" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1

@@ -1,15 +1,22 @@
 extends Control
-class_name RunSetupPopup
+class_name RunSetupView
 
-## RunSetupPopup: Modal overlay for selecting run qualities before starting.
+## RunSetupView: Full-screen view for selecting run settings before starting.
+## Shown by swapping visibility with the MenuView; never overlays it.
 ## Dynamically populates quality checkboxes from QualityRegistry.
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+const VISIBLE_QUALITIES: Array[StringName] = [&"auto_win"]
 
 # =============================================================================
 # SIGNALS
 # =============================================================================
 
 signal run_confirmed(run: Run)
-signal cancelled()
+signal back_requested()
 
 # =============================================================================
 # NODE REFERENCES
@@ -25,9 +32,6 @@ signal cancelled()
 # =============================================================================
 
 var _quality_checkboxes: Dictionary = {}  # StringName -> CheckBox
-
-var _guard: ModalInputGuard
-
 var _deck_option: OptionButton = null
 var _deck_desc_label: Label = null
 var _deck_ids: Array[StringName] = []
@@ -39,10 +43,6 @@ var _deck_ids: Array[StringName] = []
 func _ready() -> void:
 	_start_button.pressed.connect(_on_start_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
-	_guard = ModalInputGuard.new().setup(self) \
-		.add_close_action(KeyAction.CANCEL) \
-		.add_close_action(&"ui_cancel")
-	_guard.close_requested.connect(close_popup)
 	set_process_input(true)
 	_populate_deck_selector()
 	_populate_quality_list()
@@ -51,11 +51,8 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-		
+
 	# Forward WASD (navigate_*) as ui_* so Godot's focus traversal picks them up.
-	# Must run before guard, which would otherwise block these actions.
-	# Safe from loops: the re-injected InputEventAction("ui_up") is not matched by
-	# is_action_pressed("navigate_up") because ui_up is not in navigate_up's bindings.
 	var nav_map: Dictionary = {
 		KeyAction.NAVIGATE_UP:    &"ui_up",
 		KeyAction.NAVIGATE_DOWN:  &"ui_down",
@@ -71,20 +68,21 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	# Enter confirms focused control (CheckBox toggle, Button is handled by Godot)
+	# Enter confirms focused CheckBox
 	if event.is_action_pressed(&"ui_accept"):
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused is CheckBox:
 			focused.button_pressed = not focused.button_pressed
 			get_viewport().set_input_as_handled()
 			return
-		# Let Button handle ui_accept via Godot's default behavior (don't block)
 
-	# Close on cancel (guard handles this via close_requested signal)
-	if _guard.handle(event):
+	# ESC goes back
+	if event.is_action_pressed(KeyAction.CANCEL) or event.is_action_pressed(&"ui_cancel"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
 		return
-	
-	# Block gameplay actions from leaking through (but allow ui_* for navigation)
+
+	# Block gameplay actions from leaking through
 	if event.is_action_pressed(KeyAction.TOGGLE_MULTI) or \
 	   event.is_action_pressed(KeyAction.DISCARD_TILES) or \
 	   event.is_action_pressed(KeyAction.PLAY_HAND) or \
@@ -96,14 +94,13 @@ func _input(event: InputEvent) -> void:
 # PUBLIC API
 # =============================================================================
 
-func show_popup() -> void:
+func show_view() -> void:
 	show()
 	_start_button.grab_focus()
 
 
-func close_popup() -> void:
+func hide_view() -> void:
 	hide()
-	cancelled.emit()
 
 # =============================================================================
 # PRIVATE
@@ -167,6 +164,8 @@ func _populate_quality_list() -> void:
 	var ids := QualityRegistry.get_all_quality_ids()
 	for i in ids.size():
 		var id := ids[i]
+		if id not in VISIBLE_QUALITIES:
+			continue
 		var quality := QualityRegistry.create_default(id)
 		if quality == null:
 			continue
@@ -208,9 +207,10 @@ func _build_run() -> Run:
 
 func _on_start_pressed() -> void:
 	var run := _build_run()
-	hide()
+	hide_view()
 	run_confirmed.emit(run)
 
 
 func _on_back_pressed() -> void:
-	close_popup()
+	hide_view()
+	back_requested.emit()
