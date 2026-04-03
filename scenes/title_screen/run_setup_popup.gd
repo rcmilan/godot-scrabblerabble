@@ -51,6 +51,11 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 
+	# Debug log all input events
+	if event is InputEventKey and event.pressed:
+		var focused = get_viewport().gui_get_focus_owner()
+		print("[RunSetupView] Event: %s, Focused: %s" % [event.get_action_strength("ui_accept") > 0 and "ui_accept" or event.keycode, focused.name if focused else "NONE"])
+
 	# Forward WASD/arrow keys as ui_* for focus traversal
 	var nav_map: Dictionary = {
 		KeyAction.NAVIGATE_UP:    &"ui_up",
@@ -60,6 +65,7 @@ func _input(event: InputEvent) -> void:
 	}
 	for game_action: StringName in nav_map:
 		if event.is_action_pressed(game_action):
+			print("[RunSetupView] Navigation: %s" % game_action)
 			var fake := InputEventAction.new()
 			fake.action = nav_map[game_action]
 			fake.pressed = true
@@ -69,8 +75,15 @@ func _input(event: InputEvent) -> void:
 
 	# ESC goes back
 	if event.is_action_pressed(KeyAction.CANCEL) or event.is_action_pressed(&"ui_cancel"):
+		print("[RunSetupView] ESC/Cancel pressed")
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
+		return
+
+	# Debug: log ui_accept specifically
+	if event.is_action_pressed(&"ui_accept"):
+		print("[RunSetupView] ui_accept (Enter) detected - allowing default handler")
+		# DO NOT consume the event - let Godot's default handler process it
 		return
 
 	# Block gameplay actions from leaking through
@@ -79,6 +92,7 @@ func _input(event: InputEvent) -> void:
 	   event.is_action_pressed(KeyAction.PLAY_HAND) or \
 	   event.is_action_pressed(KeyAction.DRAW_TILES) or \
 	   event.is_action_pressed(KeyAction.PAUSE_GAME):
+		print("[RunSetupView] Blocking gameplay action")
 		get_viewport().set_input_as_handled()
 
 # =============================================================================
