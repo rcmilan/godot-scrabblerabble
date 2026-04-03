@@ -67,14 +67,6 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	# Enter confirms focused CheckBox
-	if event.is_action_pressed(&"ui_accept"):
-		var focused := get_viewport().gui_get_focus_owner()
-		if focused is CheckBox:
-			focused.button_pressed = not focused.button_pressed
-			get_viewport().set_input_as_handled()
-			return
-
 	# ESC goes back
 	if event.is_action_pressed(KeyAction.CANCEL) or event.is_action_pressed(&"ui_cancel"):
 		_on_back_pressed()
