@@ -4,6 +4,15 @@ New Principles: 5 (Domain-Driven Design, Decoupled Communication, Immutable Doma
 Added Sections: Architecture Constraints, Development Workflow
 No prior version to compare; initial constitution establishment.
 Follow-up: None - all placeholders resolved.
+
+Patch 1.0.1 (2026-04-03): Removed pre-commit hook enforcing snake_case filenames.
+Hook was broken and blocking commits. File naming convention (snake_case) remains
+the expected practice but is no longer enforced at commit time.
+
+Patch 1.0.2 (2026-04-03): Added constraint forbidding modals, popups, and dialogs.
+Rationale: Modal overlays cause input leakage between UI layers. Replace with
+view-swapping (sibling Control visibility toggles) or scene changes. Learned during
+title screen refactor: modals can never fully prevent focus bleed to hidden UI.
 -->
 
 # Wordatro Constitution
@@ -46,6 +55,7 @@ Before automated testing frameworks are integrated, manual testing in the Godot 
 - **EventBus as Communication Hub**: Inter-system communication defaults to EventBus signals. Direct function calls are permitted only for tightly coupled layers (domain → controller data flows).
 - **Autoload Registry**: All global singletons must be declared in `project.godot` under `[autoload]` with explicit names. No dynamic singleton creation.
 - **Scene Dependency Injection**: Controllers receive scene node references (Board, Hand, TileAnimator, etc.) through explicit setup methods, never through `get_tree()` lookups.
+- **No Modals, Popups, or Dialogs**: UI state transitions MUST use view-swapping (hide/show sibling controls) instead of modal overlays. Modals cause input leakage between hidden and visible UI layers. Use full-screen or split-pane `Control` nodes with visibility toggling. If modal-like behavior is needed, implement as separate scenes reached via `change_scene_to_file()`, not overlay components.
 
 ## Development Workflow
 
@@ -75,4 +85,4 @@ All code reviews MUST verify compliance with Core Principles I–V and Architect
 
 When manual testing is insufficient, failing tests MUST be added before implementation begins (Test-First discipline per CLAUDE.md). No code is considered complete until manually verified in the editor and any documented edge cases are confirmed.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-03 | **Last Amended**: 2026-04-03
+**Version**: 1.0.2 | **Ratified**: 2026-04-03 | **Last Amended**: 2026-04-03

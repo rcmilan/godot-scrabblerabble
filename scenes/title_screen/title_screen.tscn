@@ -1,7 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://ba7kv2r3xm8pl"]
+[gd_scene load_steps=3 format=3 uid="uid://ba7kv2r3xm8pl"]
 
 [ext_resource type="Script" path="res://scenes/title_screen/title_screen.gd" id="1_title"]
-[ext_resource type="PackedScene" path="res://scenes/title_screen/options_popup.tscn" id="2_options"]
 [ext_resource type="PackedScene" path="res://scenes/title_screen/run_setup_popup.tscn" id="3_run_setup"]
 
 [node name="TitleScreen" type="Control"]
@@ -22,7 +21,15 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.15, 0.15, 0.2, 1)
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="MenuView" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="MenuView"]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -38,7 +45,7 @@ text = "Scrabblerabble"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="MenuContainer" type="Control" parent="."]
+[node name="MenuContainer" type="Control" parent="MenuView"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -46,13 +53,13 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -100.0
-offset_top = -60.0
+offset_top = -40.0
 offset_right = 100.0
-offset_bottom = 60.0
+offset_bottom = 40.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MenuContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuView/MenuContainer"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -60,39 +67,28 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -100.0
-offset_top = -60.0
+offset_top = -40.0
 offset_right = 100.0
-offset_bottom = 60.0
+offset_bottom = 40.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 10
 
-[node name="NewGameButton" type="Button" parent="MenuContainer/VBoxContainer"]
+[node name="NewGameButton" type="Button" parent="MenuView/MenuContainer/VBoxContainer"]
 layout_mode = 2
 focus_neighbor_top = NodePath("../ExitButton")
-focus_neighbor_bottom = NodePath("../OptionsButton")
+focus_neighbor_bottom = NodePath("../ExitButton")
 theme_override_font_sizes/font_size = 24
 text = "New Game"
 
-[node name="OptionsButton" type="Button" parent="MenuContainer/VBoxContainer"]
+[node name="ExitButton" type="Button" parent="MenuView/MenuContainer/VBoxContainer"]
 layout_mode = 2
 focus_neighbor_top = NodePath("../NewGameButton")
-focus_neighbor_bottom = NodePath("../ExitButton")
-theme_override_font_sizes/font_size = 24
-text = "Options"
-
-[node name="ExitButton" type="Button" parent="MenuContainer/VBoxContainer"]
-layout_mode = 2
-focus_neighbor_top = NodePath("../OptionsButton")
 focus_neighbor_bottom = NodePath("../NewGameButton")
 theme_override_font_sizes/font_size = 24
 text = "Exit"
 
-[node name="OptionsPopup" parent="." instance=ExtResource("2_options")]
-
-[node name="RunSetupPopup" parent="." instance=ExtResource("3_run_setup")]
-
-[node name="ControlHint" type="Label" parent="."]
+[node name="ControlHint" type="Label" parent="MenuView"]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -107,5 +103,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
 theme_override_font_sizes/font_size = 14
-text = "W/S: Navigate | A/D: First/Last | Enter: Select"
+text = "W/S: Navigate | A/D: First/Last | Enter: Confirm"
 horizontal_alignment = 1
+
+[node name="RunSetupView" parent="." instance=ExtResource("3_run_setup")]
