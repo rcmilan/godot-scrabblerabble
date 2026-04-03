@@ -36,6 +36,7 @@ var _debug_frame_counter: int = 0
 
 
 func _ready() -> void:
+	grid.resized.connect(_update_orientation_button_position)
 	_initialize_grid()
 
 
@@ -119,12 +120,13 @@ func get_grid_state() -> Array[Array]:
 	return state
 
 
-## Returns the screen-space global position of the board's top-left cell (0,0).
-func get_top_left_screen_position() -> Vector2:
+## Returns the local position (relative to Board) of the board's top-left cell (0,0).
+## This accounts for the grid container's position and the cell's position within it.
+func get_top_left_local_position() -> Vector2:
 	var cell: BoardCell = get_cell(0, 0)
 	if cell == null:
-		return grid.global_position
-	return cell.global_position
+		return grid.position
+	return grid.position + cell.position
 
 
 ## Returns the pixel dimensions of a single rendered cell.
@@ -179,13 +181,15 @@ func _initialize_grid() -> void:
 		_cells.append(row)
 
 	_update_grid_size()
-	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
 
-	# Emit board_resized signal for UI updates (e.g., orientation icon positioning)
-	var board_state: BoardState = BoardState.from_board(self)
-	EventBus.board_resized.emit(board_state)
+	# Emit board_resized signal deferred so layout has settled and button exists
+	# (OrientationIcon listeners will position the icon relative to board cells)
+	(func():
+		var board_state: BoardState = BoardState.from_board(self)
+		EventBus.board_resized.emit(board_state)
+	).call_deferred()
 
 
 func _create_cell(row: int, col: int) -> BoardCell:
