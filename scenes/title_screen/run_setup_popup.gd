@@ -2,7 +2,7 @@ extends Control
 class_name RunSetupView
 
 ## RunSetupView: Full-screen view for selecting run settings before starting.
-## Shown by swapping visibility with the MenuView; never overlays it.
+## Shown by swapping visibility with MenuView; simple button-based layout.
 ## Dynamically populates quality checkboxes from QualityRegistry.
 
 # =============================================================================
@@ -22,18 +22,17 @@ signal back_requested()
 # NODE REFERENCES
 # =============================================================================
 
-@onready var _quality_list: VBoxContainer = $Panel/MarginContainer/VBoxContainer/ScrollContainer/QualityList
-@onready var _start_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/StartButton
-@onready var _back_button: Button = $Panel/MarginContainer/VBoxContainer/ButtonContainer/BackButton
-@onready var _content_vbox: VBoxContainer = $Panel/MarginContainer/VBoxContainer
+@onready var _deck_option: OptionButton = $ContentContainer/DeckOption
+@onready var _deck_desc_label: Label = $ContentContainer/DeckDescription
+@onready var _quality_list: VBoxContainer = $ContentContainer/QualityList
+@onready var _start_button: Button = $ContentContainer/ButtonContainer/StartButton
+@onready var _back_button: Button = $ContentContainer/ButtonContainer/BackButton
 
 # =============================================================================
 # STATE
 # =============================================================================
 
 var _quality_checkboxes: Dictionary = {}  # StringName -> CheckBox
-var _deck_option: OptionButton = null
-var _deck_desc_label: Label = null
 var _deck_ids: Array[StringName] = []
 
 # =============================================================================
@@ -52,7 +51,7 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 
-	# Forward WASD (navigate_*) as ui_* so Godot's focus traversal picks them up.
+	# Forward WASD/arrow keys as ui_* for focus traversal
 	var nav_map: Dictionary = {
 		KeyAction.NAVIGATE_UP:    &"ui_up",
 		KeyAction.NAVIGATE_DOWN:  &"ui_down",
@@ -107,42 +106,18 @@ func hide_view() -> void:
 # =============================================================================
 
 func _populate_deck_selector() -> void:
-	var deck_label := Label.new()
-	deck_label.text = "Deck"
-	deck_label.add_theme_font_size_override("font_size", 14)
-
-	_deck_option = OptionButton.new()
-	_deck_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_deck_ids = DeckRegistry.get_all_deck_ids()
 	for id in _deck_ids:
 		var deck := DeckRegistry.create_default(id)
 		_deck_option.add_item(deck.get_display_name())
 	_deck_option.item_selected.connect(_on_deck_selected)
 
-	_deck_desc_label = Label.new()
-	_deck_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_deck_desc_label.add_theme_font_size_override("font_size", 12)
-	_deck_desc_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-
-	var section := VBoxContainer.new()
-	section.add_theme_constant_override("separation", 6)
-	section.add_child(deck_label)
-	section.add_child(_deck_option)
-	section.add_child(_deck_desc_label)
-
-	var sep := HSeparator.new()
-
-	_content_vbox.add_child(section)
-	_content_vbox.add_child(sep)
-	_content_vbox.move_child(section, 0)
-	_content_vbox.move_child(sep, 1)
-
 	var default_index := _deck_ids.find(&"standard")
 	_on_deck_selected(maxi(default_index, 0))
 
 
 func _on_deck_selected(index: int) -> void:
-	if _deck_desc_label == null or index < 0 or index >= _deck_ids.size():
+	if index < 0 or index >= _deck_ids.size():
 		return
 	var deck := DeckRegistry.create_default(_deck_ids[index])
 	if deck:
