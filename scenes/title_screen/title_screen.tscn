@@ -103,7 +103,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
 theme_override_font_sizes/font_size = 14
-text = "W/S: Navigate | A/D: First/Last | Enter: Select"
+text = "W/S: Navigate | A/D: First/Last | Enter: Confirm"
 horizontal_alignment = 1
 
 [node name="RunSetupView" parent="." instance=ExtResource("3_run_setup")]

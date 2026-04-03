@@ -88,7 +88,7 @@ func _input(event: InputEvent) -> void:
 		_focus_item(_menu_items.size() - 1)
 		get_viewport().set_input_as_handled()
 
-	# Enter or Space - Activate selected item
+	# Enter - Activate selected item
 	elif event.is_action_pressed("ui_accept"):
 		_activate_current_item()
 		get_viewport().set_input_as_handled()
