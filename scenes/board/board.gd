@@ -50,15 +50,14 @@ func setup_orientation_button() -> OrientationIconButton:
 func _update_orientation_button_position() -> void:
 	if _orientation_button == null:
 		return
-	var cell := get_cell(0, 0)
-	if cell == null:
-		return
-	var cell_rect := cell.get_rect()
-	var cell_x := grid.position.x + cell_rect.position.x
-	var cell_y := grid.position.y + cell_rect.position.y
+	# Calculate cell (0,0) position mathematically (no layout dependency)
+	var grid_width: float = columns * cell_size + (columns - 1) * cell_spacing
+	var grid_height: float = rows * cell_size + (rows - 1) * cell_spacing
+	var cell_x: float = (size.x - grid_width) / 2.0
+	var cell_y: float = (size.y - grid_height) / 2.0
 	_orientation_button.position = Vector2(cell_x - 32 - 4, cell_y)
-	print("[Board] OrientationButton positioned at %s (grid=%s, cell_rect=%s)" % [
-		_orientation_button.position, grid.position, cell_rect.position
+	print("[Board] OrientationButton positioned at %s (board_size=%s, grid=%sx%s)" % [
+		_orientation_button.position, size, grid_width, grid_height
 	])
 
 

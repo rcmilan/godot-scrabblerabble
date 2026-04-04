@@ -101,6 +101,10 @@ func _start_run() -> void:
 # =============================================================================
 
 func _on_round_ready(config: RoundConfig) -> void:
+	print("[Main] === ROUND %d START | board: %dx%d | target: %d ===" % [
+		config.round_number, config.board_columns, config.board_rows, config.target_score
+	])
+
 	# Deactivate controller during setup
 	_gameplay_controller.deactivate()
 	_focus_cursor.deactivate()
@@ -110,6 +114,7 @@ func _on_round_ready(config: RoundConfig) -> void:
 
 	# Configure board size for this round
 	board.resize_board(config.board_rows, config.board_columns)
+	_gameplay_controller.reset_for_board(config.board_rows, config.board_columns)
 	board.clear_board()
 
 	# Reset per-round tile state for rounds after the first
@@ -168,6 +173,8 @@ func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
 # =============================================================================
 
 func _on_shop_requested(round_number: int) -> void:
+	print("[Main] === ROUND %d END | score: %d ===" % [round_number, GameManager.get_current_score()])
+
 	_gameplay_controller.deactivate()
 	_focus_cursor.deactivate()
 	_hide_gameplay_ui()
@@ -177,10 +184,11 @@ func _on_shop_requested(round_number: int) -> void:
 		RunManager.run_state
 	)
 	shop_overlay.show_shop(round_number, GameManager.get_current_score(), next_config)
-	print("[Main] Showing shop after round %d" % round_number)
+	print("[Main] === SHOP START | after round %d ===" % round_number)
 
 
 func _on_shop_continue() -> void:
+	print("[Main] === SHOP END | proceeding to next round ===")
 	RunManager.proceed_from_shop()
 
 
