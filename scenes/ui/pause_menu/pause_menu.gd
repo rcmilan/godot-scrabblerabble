@@ -1,4 +1,4 @@
-extends CanvasLayer
+extends Control
 class_name PauseMenu
 
 ## Pause menu overlay with resume and return-to-title options.
@@ -21,8 +21,8 @@ var _guard: ModalInputGuard
 # =============================================================================
 
 @onready var _overlay: ColorRect = $Overlay
-@onready var _resume_button: Button = $Panel/MarginContainer/VBoxContainer/ResumeButton
-@onready var _return_button: Button = $Panel/MarginContainer/VBoxContainer/ReturnToTitleButton
+@onready var _resume_button: Button = $ContentContainer/ResumeButton
+@onready var _return_button: Button = $ContentContainer/ReturnToTitleButton
 
 # =============================================================================
 # LIFECYCLE
