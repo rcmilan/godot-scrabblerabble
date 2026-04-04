@@ -53,12 +53,14 @@ theme_override_constants/separation = 20
 
 [node name="ResumeButton" type="Button" parent="ContentContainer"]
 layout_mode = 2
+focus_neighbor_top = NodePath("../ReturnToTitleButton")
 focus_neighbor_bottom = NodePath("../ReturnToTitleButton")
 text = "Resume"
 
 [node name="ReturnToTitleButton" type="Button" parent="ContentContainer"]
 layout_mode = 2
 focus_neighbor_top = NodePath("../ResumeButton")
+focus_neighbor_bottom = NodePath("../ResumeButton")
 text = "Return to Title"
 
 [node name="ControlHint" type="Label" parent="."]

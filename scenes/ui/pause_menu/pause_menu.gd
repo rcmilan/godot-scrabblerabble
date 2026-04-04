@@ -87,6 +87,34 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+
+	# Translate navigate_up/down to ui_up/ui_down before ModalInputGuard can block them
+	var nav_map: Dictionary = {
+		KeyAction.NAVIGATE_UP: &"ui_up",
+		KeyAction.NAVIGATE_DOWN: &"ui_down",
+	}
+	for game_action: StringName in nav_map:
+		if event.is_action_pressed(game_action):
+			var fake := InputEventAction.new()
+			fake.action = nav_map[game_action]
+			fake.pressed = true
+			Input.parse_input_event(fake)
+			get_viewport().set_input_as_handled()
+			return
+
+	# Activate the focused button on confirm (Enter). Input.parse_input_event
+	# does not reliably route through _gui_input, so emit pressed directly.
+	if event.is_action_pressed(KeyAction.PLAY_HAND):
+		var vp := get_viewport()
+		if not _animating:
+			var focused := vp.gui_get_focus_owner()
+			if focused == _resume_button or focused == _return_button:
+				focused.pressed.emit()  # may free this node (return_to_title path)
+		vp.set_input_as_handled()
+		return
+
 	if _guard.handle(event):
 		return
 
