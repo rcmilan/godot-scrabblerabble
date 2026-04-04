@@ -189,6 +189,13 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 		_orientation_button.orientation_toggled.connect(_on_orientation_toggled)
 
 
+## Resets the play state manager for a new board size.
+## Call this after board.resize_board() on each round transition.
+func reset_for_board(rows: int, cols: int) -> void:
+	if _play_state_manager:
+		_play_state_manager.initialize_grid(rows, cols)
+
+
 func activate() -> void:
 	if _is_active:
 		return
