@@ -1,4 +1,4 @@
-extends CanvasLayer
+extends Control
 class_name ShopOverlay
 
 ## ShopOverlay: Transitional scene between rounds.
@@ -17,11 +17,11 @@ signal debug_config_requested
 # =============================================================================
 
 @onready var _overlay: ColorRect = $Overlay
-@onready var _round_label: Label = $Panel/MarginContainer/VBoxContainer/RoundLabel
-@onready var _score_label: Label = $Panel/MarginContainer/VBoxContainer/ScoreLabel
-@onready var _next_board_label: Label = $Panel/MarginContainer/VBoxContainer/NextBoardLabel
-@onready var _continue_button: Button = $Panel/MarginContainer/VBoxContainer/ContinueButton
-@onready var _debug_config_button: Button = $Panel/MarginContainer/VBoxContainer/DebugConfigButton
+@onready var _round_label: Label = $ContentContainer/RoundLabel
+@onready var _score_label: Label = $ContentContainer/ScoreLabel
+@onready var _next_board_label: Label = $ContentContainer/NextBoardLabel
+@onready var _continue_button: Button = $ContentContainer/ContinueButton
+@onready var _debug_config_button: Button = $ContentContainer/DebugConfigButton
 @onready var _debug_popup: DebugRoundConfigPopup = $DebugRoundConfigPopup
 
 var _next_config: RoundConfig = null

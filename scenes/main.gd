@@ -224,7 +224,7 @@ func _pause_game() -> void:
 	_gameplay_controller.deactivate()
 	_focus_cursor.deactivate()
 	GameManager.pause_game()
-	pause_menu.show_pause_menu()
+	pause_menu.show_pause_menu_animated()
 
 
 func _resume_game() -> void:
