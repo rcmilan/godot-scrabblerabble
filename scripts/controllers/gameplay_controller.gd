@@ -726,6 +726,8 @@ func _return_to_original_cell(tile: Tile) -> void:
 func _on_play_requested() -> void:
 	if not _is_active:
 		return
+	if TileAnimator.is_animating():
+		return
 	_play.on_play_requested()
 
 
