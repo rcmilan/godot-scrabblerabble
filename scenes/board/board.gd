@@ -51,6 +51,8 @@ func setup_orientation_button() -> OrientationIconButton:
 func _update_orientation_button_position() -> void:
 	if _orientation_button == null:
 		return
+	if _cells.is_empty():
+		return
 	var cell := get_cell(0, 0)
 	if cell == null:
 		return
@@ -120,20 +122,6 @@ func get_grid_state() -> Array[Array]:
 	return state
 
 
-## Returns the local position (relative to Board) of the board's top-left cell (0,0).
-## This accounts for the grid container's position and the cell's position within it.
-func get_top_left_local_position() -> Vector2:
-	var cell: BoardCell = get_cell(0, 0)
-	if cell == null:
-		return grid.position
-	return grid.position + cell.position
-
-
-## Returns the pixel dimensions of a single rendered cell.
-func get_cell_size_pixels() -> Vector2:
-	return Vector2(cell_size, cell_size)
-
-
 ## Clears all tiles from the board.
 func clear_board() -> void:
 	for row in _cells:
@@ -181,15 +169,9 @@ func _initialize_grid() -> void:
 		_cells.append(row)
 
 	_update_grid_size()
+	(func(): _update_orientation_button_position.call_deferred()).call_deferred()
 	board_initialized.emit(rows, columns)
 	print("[Board] Initialized %dx%d grid with %d cells" % [rows, columns, rows * columns])
-
-	# Emit board_resized signal deferred so layout has settled and button exists
-	# (OrientationIcon listeners will position the icon relative to board cells)
-	(func():
-		var board_state: BoardState = BoardState.from_board(self)
-		EventBus.board_resized.emit(board_state)
-	).call_deferred()
 
 
 func _create_cell(row: int, col: int) -> BoardCell:

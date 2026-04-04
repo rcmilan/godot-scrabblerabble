@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://6mhb0a0g3kj8"]
+[gd_scene load_steps=2 format=3 uid="uid://6mhb0a0g3kj8"]
 
 [ext_resource type="Script" uid="uid://dpqhtavtawnb5" path="res://scenes/Board/board.gd" id="1_v1rvb"]
-[ext_resource type="Script" uid="uid://dmq6v29k1lhh" path="res://scenes/board/orientation_icon.gd" id="2_xkwcm"]
 
 [node name="Board" type="Control"]
 layout_mode = 3
@@ -28,6 +27,3 @@ grow_vertical = 2
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
 columns = 8
-
-[node name="OrientationIcon" type="Node" parent="."]
-script = ExtResource("2_xkwcm")
