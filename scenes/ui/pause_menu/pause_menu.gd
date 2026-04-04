@@ -119,8 +119,9 @@ func show_pause_menu_animated() -> void:
 
 	# Pause menu slides in from right with completion callback
 	TileAnimator.animate_slide_in_from_right(self, func() -> void:
-		_animating = false
-		_resume_button.grab_focus()
+		if is_instance_valid(self):
+			_animating = false
+			_resume_button.grab_focus()
 	)
 
 
@@ -148,9 +149,10 @@ func close_pause_menu_animated() -> void:
 		TileAnimator.animate_slide_in_from_top(_multi_select_indicator, _multi_select_original_pos.y)
 	if _keyboard_hint:
 		TileAnimator.animate_slide_in_from_bottom(_keyboard_hint, _keyboard_hint_original_pos.y, func() -> void:
-			_animating = false
-			visible = false
-			resume_requested.emit()
+			if is_instance_valid(self):
+				_animating = false
+				visible = false
+				resume_requested.emit()
 		)
 
 
