@@ -30,15 +30,21 @@ func animate(node: Node, on_complete: Callable = Callable()) -> Tween:
 		return null
 
 	var screen_width: float = viewport.get_visible_rect().size.x
-	node.position.x = screen_width
+
+	# Set starting position (off-screen to the right)
+	if node is CanvasLayer:
+		node.offset.x = screen_width
+	else:
+		node.position.x = screen_width
 
 	# Create tween
 	var tween: Tween = node.get_tree().create_tween()
 	tween.set_ease(ease_type)
 	tween.set_trans(trans_type)
 
-	# Animate position x from off-screen right to 0
-	tween.tween_property(node, "position:x", 0.0, duration)
+	# Animate position x (or offset:x for CanvasLayer) from off-screen right to 0
+	var property_path: String = "offset:x" if node is CanvasLayer else "position:x"
+	tween.tween_property(node, property_path, 0.0, duration)
 
 	# Call completion callback if provided
 	if on_complete.is_valid():

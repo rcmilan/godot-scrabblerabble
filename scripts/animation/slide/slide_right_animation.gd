@@ -1,9 +1,8 @@
 extends Node
-class_name SlideLeftAnimation
+class_name SlideRightAnimation
 
-## Animation that slides a node off-screen to the left.
-## Used for board exit and pause menu exit during pause transitions.
-## Duration: 400ms (must complete within 500ms threshold per FR-004/SC-001)
+## Animation that slides a node right off-screen.
+## Used for UI elements to exit during pause transitions.
 
 # =============================================================================
 # CONFIGURATION
@@ -17,8 +16,8 @@ var trans_type: Tween.TransitionType = Tween.TRANS_CUBIC
 # PUBLIC API
 # =============================================================================
 
-## Animates a node sliding left off-screen.
-## node: The node to animate (typically Board or PauseMenu Control)
+## Animates a node sliding right off-screen.
+## node: The node to animate (typically HUD elements)
 ## on_complete: Optional callback when animation finishes
 func animate(node: Node, on_complete: Callable = Callable()) -> Tween:
 	if node == null:
@@ -30,14 +29,14 @@ func animate(node: Node, on_complete: Callable = Callable()) -> Tween:
 		return null
 
 	var screen_width: float = viewport.get_visible_rect().size.x
-	var target_x: float = -screen_width
+	var target_x: float = screen_width
 
 	# Create tween
 	var tween: Tween = node.get_tree().create_tween()
 	tween.set_ease(ease_type)
 	tween.set_trans(trans_type)
 
-	# Animate position x (or offset:x for CanvasLayer) to off-screen left
+	# Animate position x (or offset:x for CanvasLayer) to off-screen right
 	var property_path: String = "offset:x" if node is CanvasLayer else "position:x"
 	tween.tween_property(node, property_path, target_x, duration)
 

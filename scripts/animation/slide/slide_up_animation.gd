@@ -1,9 +1,8 @@
 extends Node
-class_name SlideLeftAnimation
+class_name SlideUpAnimation
 
-## Animation that slides a node off-screen to the left.
-## Used for board exit and pause menu exit during pause transitions.
-## Duration: 400ms (must complete within 500ms threshold per FR-004/SC-001)
+## Animation that slides a node up off-screen.
+## Used for UI elements to exit during pause transitions.
 
 # =============================================================================
 # CONFIGURATION
@@ -17,29 +16,29 @@ var trans_type: Tween.TransitionType = Tween.TRANS_CUBIC
 # PUBLIC API
 # =============================================================================
 
-## Animates a node sliding left off-screen.
-## node: The node to animate (typically Board or PauseMenu Control)
+## Animates a node sliding up off-screen.
+## node: The node to animate (typically Hand or other UI elements)
 ## on_complete: Optional callback when animation finishes
 func animate(node: Node, on_complete: Callable = Callable()) -> Tween:
 	if node == null:
 		return null
 
-	# Get screen width from the node's viewport
+	# Get screen height from the node's viewport
 	var viewport = node.get_viewport()
 	if viewport == null:
 		return null
 
-	var screen_width: float = viewport.get_visible_rect().size.x
-	var target_x: float = -screen_width
+	var screen_height: float = viewport.get_visible_rect().size.y
+	var target_y: float = -screen_height
 
 	# Create tween
 	var tween: Tween = node.get_tree().create_tween()
 	tween.set_ease(ease_type)
 	tween.set_trans(trans_type)
 
-	# Animate position x (or offset:x for CanvasLayer) to off-screen left
-	var property_path: String = "offset:x" if node is CanvasLayer else "position:x"
-	tween.tween_property(node, property_path, target_x, duration)
+	# Animate position y (or offset:y for CanvasLayer) to off-screen up
+	var property_path: String = "offset:y" if node is CanvasLayer else "position:y"
+	tween.tween_property(node, property_path, target_y, duration)
 
 	# Call completion callback if provided
 	if on_complete.is_valid():

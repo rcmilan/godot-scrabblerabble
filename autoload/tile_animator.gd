@@ -29,6 +29,12 @@ var _stomp_animation: StompTileAnimation = null
 var _spin_animation: SpinTileAnimation = null
 var _slide_left_animation: SlideLeftAnimation = null
 var _slide_in_from_right_animation: SlideInFromRightAnimation = null
+var _slide_up_animation: SlideUpAnimation = null
+var _slide_down_animation: SlideDownAnimation = null
+var _slide_right_animation: SlideRightAnimation = null
+var _slide_in_from_top_animation: SlideInFromTopAnimation = null
+var _slide_in_from_bottom_animation: SlideInFromBottomAnimation = null
+var _slide_in_from_left_animation: SlideInFromLeftAnimation = null
 
 # =============================================================================
 # EXECUTORS (lazy-loaded)
@@ -136,6 +142,66 @@ func animate_slide_in_from_right(node: Node, on_complete: Callable = Callable())
 	return _slide_in_from_right_animation.animate(node, on_complete)
 
 
+## Slides a node up off-screen.
+## Used for UI elements during pause transitions.
+func animate_slide_up(node: Node, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_up_resources()
+	return _slide_up_animation.animate(node, on_complete)
+
+
+## Slides a node down off-screen.
+## Used for UI elements during pause transitions.
+func animate_slide_down(node: Node, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_down_resources()
+	return _slide_down_animation.animate(node, on_complete)
+
+
+## Slides a node right off-screen.
+## Used for UI elements during pause transitions.
+func animate_slide_right(node: Node, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_right_resources()
+	return _slide_right_animation.animate(node, on_complete)
+
+
+## Slides a node in from the top of the screen.
+## Used for UI elements returning during resume transitions.
+func animate_slide_in_from_top(node: Node, original_y: float, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_in_from_top_resources()
+	return _slide_in_from_top_animation.animate(node, original_y, on_complete)
+
+
+## Slides a node in from the bottom of the screen.
+## Used for UI elements returning during resume transitions.
+func animate_slide_in_from_bottom(node: Node, original_y: float, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_in_from_bottom_resources()
+	return _slide_in_from_bottom_animation.animate(node, original_y, on_complete)
+
+
+## Slides a node in from the left of the screen.
+## Used for UI elements returning during resume transitions.
+func animate_slide_in_from_left(node: Node, original_x: float, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_in_from_left_resources()
+	return _slide_in_from_left_animation.animate(node, original_x, on_complete)
+
+
 ## Animates a batch of tiles gliding from hand positions to their board cells.
 ## Call AFTER all tiles have been placed (reparented to their cells).
 ## start_positions: Dictionary mapping Tile -> Vector2 captured BEFORE placement.
@@ -235,3 +301,33 @@ func _ensure_slide_left_resources() -> void:
 func _ensure_slide_in_from_right_resources() -> void:
 	if _slide_in_from_right_animation == null:
 		_slide_in_from_right_animation = SlideInFromRightAnimation.new()
+
+
+func _ensure_slide_up_resources() -> void:
+	if _slide_up_animation == null:
+		_slide_up_animation = SlideUpAnimation.new()
+
+
+func _ensure_slide_down_resources() -> void:
+	if _slide_down_animation == null:
+		_slide_down_animation = SlideDownAnimation.new()
+
+
+func _ensure_slide_right_resources() -> void:
+	if _slide_right_animation == null:
+		_slide_right_animation = SlideRightAnimation.new()
+
+
+func _ensure_slide_in_from_top_resources() -> void:
+	if _slide_in_from_top_animation == null:
+		_slide_in_from_top_animation = SlideInFromTopAnimation.new()
+
+
+func _ensure_slide_in_from_bottom_resources() -> void:
+	if _slide_in_from_bottom_animation == null:
+		_slide_in_from_bottom_animation = SlideInFromBottomAnimation.new()
+
+
+func _ensure_slide_in_from_left_resources() -> void:
+	if _slide_in_from_left_animation == null:
+		_slide_in_from_left_animation = SlideInFromLeftAnimation.new()

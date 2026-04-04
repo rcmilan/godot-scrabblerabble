@@ -20,6 +20,19 @@ var _guard: ModalInputGuard
 var _animating: bool = false
 var _board: Control = null
 
+# UI references and original positions
+var _hand: Control = null
+var _main_hud: CanvasLayer = null
+var _discard_pile: Control = null
+var _multi_select_indicator: Control = null
+var _keyboard_hint: Control = null
+
+var _hand_original_pos: Vector2 = Vector2.ZERO
+var _hud_original_pos: Vector2 = Vector2.ZERO
+var _discard_original_pos: Vector2 = Vector2.ZERO
+var _multi_select_original_pos: Vector2 = Vector2.ZERO
+var _keyboard_hint_original_pos: Vector2 = Vector2.ZERO
+
 # =============================================================================
 # NODE REFERENCES
 # =============================================================================
@@ -36,10 +49,31 @@ func _ready() -> void:
 	_resume_button.pressed.connect(_on_resume_pressed)
 	_return_button.pressed.connect(_on_return_pressed)
 
-	# Get board reference from parent (Main scene)
+	# Get all UI references from parent (Main scene)
 	var parent = get_parent()
-	if parent and parent.has_node("Board"):
-		_board = parent.get_node("Board")
+	if parent:
+		if parent.has_node("Board"):
+			_board = parent.get_node("Board")
+		if parent.has_node("Hand"):
+			_hand = parent.get_node("Hand")
+			_hand_original_pos = _hand.position
+		if parent.has_node("MainHUD"):
+			_main_hud = parent.get_node("MainHUD")
+			# MainHUD is a CanvasLayer, use offset instead of position
+			if _main_hud is CanvasLayer:
+				_hud_original_pos = _main_hud.offset
+			else:
+				_hud_original_pos = _main_hud.position
+		if parent.has_node("DiscardPile"):
+			_discard_pile = parent.get_node("DiscardPile")
+			_discard_original_pos = _discard_pile.position
+		if parent.has_node("MultiSelectIndicator"):
+			_multi_select_indicator = parent.get_node("MultiSelectIndicator")
+			_multi_select_original_pos = _multi_select_indicator.position
+		# Find keyboard hint bar (usually in MainHUD)
+		if _main_hud and _main_hud.has_node("KeyboardHintBar"):
+			_keyboard_hint = _main_hud.get_node("KeyboardHintBar")
+			_keyboard_hint_original_pos = _keyboard_hint.position
 
 	# Setup ModalInputGuard for Escape key
 	_guard = ModalInputGuard.new().setup(self).add_close_action(KeyAction.PAUSE_GAME)
@@ -61,7 +95,7 @@ func _input(event: InputEvent) -> void:
 # =============================================================================
 
 ## Shows pause menu with animated scene-swap.
-## Board slides left off-screen while pause menu slides in from right simultaneously.
+## All UI elements slide off-screen in different directions, pause menu slides in from right.
 func show_pause_menu_animated() -> void:
 	if _animating:
 		return
@@ -69,43 +103,55 @@ func show_pause_menu_animated() -> void:
 	_animating = true
 	visible = true
 
-	# Start animations in parallel
-	var slide_left_tween: Tween = null
-	var slide_in_tween: Tween = null
-
+	# Animate all UI elements out in different directions (in parallel)
 	if _board:
-		slide_left_tween = TileAnimator.animate_slide_left(_board)
+		TileAnimator.animate_slide_left(_board)
+	if _hand:
+		TileAnimator.animate_slide_up(_hand)
+	if _main_hud:
+		TileAnimator.animate_slide_right(_main_hud)
+	if _discard_pile:
+		TileAnimator.animate_slide_down(_discard_pile)
+	if _multi_select_indicator:
+		TileAnimator.animate_slide_up(_multi_select_indicator)
+	if _keyboard_hint:
+		TileAnimator.animate_slide_down(_keyboard_hint)
 
-	slide_in_tween = TileAnimator.animate_slide_in_from_right(self, func() -> void:
+	# Pause menu slides in from right with completion callback
+	TileAnimator.animate_slide_in_from_right(self, func() -> void:
 		_animating = false
 		_resume_button.grab_focus()
 	)
 
 
 ## Closes pause menu with animated scene-swap (reverses the entry animation).
-## Pause menu slides left off-screen while board slides in from right simultaneously.
+## All UI elements slide back in from opposite directions, pause menu slides left off-screen.
 func close_pause_menu_animated() -> void:
 	if _animating:
 		return
 
 	_animating = true
 
-	# Start animations in parallel (reverse of entry)
-	var slide_left_tween: Tween = TileAnimator.animate_slide_left(self)
-	var slide_in_tween: Tween = null
+	# Animate pause menu out to the left
+	TileAnimator.animate_slide_left(self)
 
+	# Animate all UI elements back in from opposite directions (in parallel)
 	if _board:
-		slide_in_tween = TileAnimator.animate_slide_in_from_right(_board, func() -> void:
+		TileAnimator.animate_slide_in_from_right(_board)
+	if _hand:
+		TileAnimator.animate_slide_in_from_top(_hand, _hand_original_pos.y)
+	if _main_hud:
+		TileAnimator.animate_slide_in_from_left(_main_hud, _hud_original_pos.x)
+	if _discard_pile:
+		TileAnimator.animate_slide_in_from_bottom(_discard_pile, _discard_original_pos.y)
+	if _multi_select_indicator:
+		TileAnimator.animate_slide_in_from_top(_multi_select_indicator, _multi_select_original_pos.y)
+	if _keyboard_hint:
+		TileAnimator.animate_slide_in_from_bottom(_keyboard_hint, _keyboard_hint_original_pos.y, func() -> void:
 			_animating = false
 			visible = false
 			resume_requested.emit()
 		)
-	else:
-		# If no board reference, just complete animation without it
-		await slide_left_tween.finished
-		_animating = false
-		visible = false
-		resume_requested.emit()
 
 
 ## Legacy method for compatibility (non-animated).

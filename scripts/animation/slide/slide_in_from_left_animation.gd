@@ -1,9 +1,8 @@
 extends Node
-class_name SlideLeftAnimation
+class_name SlideInFromLeftAnimation
 
-## Animation that slides a node off-screen to the left.
-## Used for board exit and pause menu exit during pause transitions.
-## Duration: 400ms (must complete within 500ms threshold per FR-004/SC-001)
+## Animation that slides a node in from the left of the screen.
+## Inverse of slide_right_animation.
 
 # =============================================================================
 # CONFIGURATION
@@ -17,10 +16,11 @@ var trans_type: Tween.TransitionType = Tween.TRANS_CUBIC
 # PUBLIC API
 # =============================================================================
 
-## Animates a node sliding left off-screen.
-## node: The node to animate (typically Board or PauseMenu Control)
+## Animates a node sliding in from the left of the screen to its original x.
+## node: The node to animate
+## original_x: The original x position to return to
 ## on_complete: Optional callback when animation finishes
-func animate(node: Node, on_complete: Callable = Callable()) -> Tween:
+func animate(node: Node, original_x: float, on_complete: Callable = Callable()) -> Tween:
 	if node == null:
 		return null
 
@@ -30,16 +30,21 @@ func animate(node: Node, on_complete: Callable = Callable()) -> Tween:
 		return null
 
 	var screen_width: float = viewport.get_visible_rect().size.x
-	var target_x: float = -screen_width
+
+	# Set starting position (off-screen to the left)
+	if node is CanvasLayer:
+		node.offset.x = -screen_width
+	else:
+		node.position.x = -screen_width
 
 	# Create tween
 	var tween: Tween = node.get_tree().create_tween()
 	tween.set_ease(ease_type)
 	tween.set_trans(trans_type)
 
-	# Animate position x (or offset:x for CanvasLayer) to off-screen left
+	# Animate position x (or offset:x for CanvasLayer) from off-screen left to original position
 	var property_path: String = "offset:x" if node is CanvasLayer else "position:x"
-	tween.tween_property(node, property_path, target_x, duration)
+	tween.tween_property(node, property_path, original_x, duration)
 
 	# Call completion callback if provided
 	if on_complete.is_valid():
