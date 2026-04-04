@@ -7,20 +7,21 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Pause Menu as Full-Screen View (Priority: P1)
+### User Story 1 - Pause Menu with Animated Scene Swap (Priority: P1)
 
-When a player pauses the game mid-round, the pause menu replaces the game view as a full-screen Control node -- not a floating panel or overlay dialog. It is shown and hidden by toggling visibility, matching the same structural pattern as the Run Setup screen.
+When a player pauses the game mid-round, the gameplay board animates off-screen to the left while the pause menu simultaneously animates in from the right. This creates a seamless scene-swap effect similar to the title screen ↔ run setup navigation. Resuming reverses the animations, with the pause menu sliding left and the board returning from the right, creating a "rotation" visual illusion.
 
-**Why this priority**: The pause menu is accessed frequently during play. Getting its presentation pattern right is fundamental to the consistency requirement. It is also simpler than the shop, making it a good starting point.
+**Why this priority**: The pause menu is accessed frequently during play. A smooth animated transition improves perceived responsiveness and visual polish. The scene-swap architecture eliminates overlay complexity and input routing issues.
 
-**Independent Test**: Pause the game during a round and verify the pause menu fills the screen as a dedicated view with no dimmed overlay, no floating panel, and no CanvasLayer above the game.
+**Independent Test**: Pause the game during a round. Verify: (1) board slides left off-screen while pause menu slides in from right simultaneously, (2) both animations complete smoothly, (3) pause menu is fully interactive with proper focus handling, (4) pressing Resume reverses the animations symmetrically, (5) no CanvasLayer, overlays, or modal elements are present.
 
 **Acceptance Scenarios**:
 
-1. **Given** a player is in an active round, **When** they trigger the pause action, **Then** the pause menu fills the entire screen as a Control node with anchors covering the full rect, and the game view is hidden behind it (not dimmed beneath it).
-2. **Given** the pause menu is visible, **When** the player selects "Resume", **Then** the pause menu hides (visible = false) and the game view returns.
-3. **Given** the pause menu is visible, **When** the player selects "Return to Title", **Then** the game transitions to the title screen.
-4. **Given** the pause menu is displayed, **Then** no CanvasLayer, ColorRect overlay, Panel, or popup/dialog node is used as the root of the pause menu structure.
+1. **Given** a player is in an active round, **When** they press Escape, **Then** the board animates left off-screen and the pause menu animates in from the right simultaneously, with both animations completing in under 500ms.
+2. **Given** the pause menu is visible and focused, **When** the player presses arrow keys, **Then** focus navigates between Resume and Return to Title buttons.
+3. **Given** the pause menu is visible, **When** the player selects "Resume", **Then** the pause menu animates left off-screen while the board animates in from the right, and gameplay resumes seamlessly.
+4. **Given** the pause menu is visible, **When** the player selects "Return to Title", **Then** the pause menu is dismissed and the game transitions to the title screen (no reverse animation).
+5. **Given** the pause menu is displayed, **Then** the scene tree shows full-screen Control siblings (Board and PauseMenu), not CanvasLayer or overlay elements.
 
 ---
 
@@ -44,19 +45,23 @@ After a round ends successfully, the shop is presented as a full-screen Control 
 ### Edge Cases
 
 - If the player triggers pause while a round-end transition is in progress, the shop takes precedence: the shop is shown and the pause input is ignored (existing game logic behavior, unchanged by this refactor).
-- When the pause menu or shop appears while the underlying game scene is animating tiles, the animations continue beneath the full-screen view. No freeze or cancellation is required; the view renders on top via sibling tree order.
+- If the player presses Resume while the pause menu animation is still playing, the action is queued or ignored until the animation completes (debounce input during animation).
+- If tile animations are playing on the board when pause is pressed, they continue smoothly as the board slides off-screen (no cancellation or interruption).
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The pause menu MUST be implemented as a full-screen Control node with full-rect anchors, shown and hidden via the `visible` property, consistent with how RunSetupView is structured.
-- **FR-002**: The shop MUST be implemented as a full-screen Control node with full-rect anchors, shown and hidden via the `visible` property, consistent with how RunSetupView is structured.
+- **FR-001**: The pause menu MUST be implemented as a full-screen Control node with full-rect anchors, matching the RunSetupView structural pattern.
+- **FR-002**: The shop MUST be implemented as a full-screen Control node with full-rect anchors, matching the RunSetupView structural pattern.
 - **FR-003**: Neither the pause menu nor the shop MUST use a CanvasLayer, ColorRect dimming overlay, floating Panel, AcceptDialog, ConfirmationDialog, Popup, or any modal/dialog node type as the root or primary container.
-- **FR-004**: The pause menu MUST preserve all existing actions: Resume and Return to Title.
-- **FR-005**: The shop MUST preserve all existing information and actions: round summary labels, Continue button, and the debug round config trigger.
-- **FR-006**: Both screens MUST include a title label and keyboard hint label at consistent positions, following the Run Setup layout convention (title anchored near top-center, hint anchored near bottom-center). The pause menu hint text is "Press Escape to resume". The shop hint text is "Press Enter to continue".
-- **FR-007**: Content in both screens MUST be centered on the full-screen layout using a VBoxContainer anchored to the screen center, consistent with the ContentContainer pattern in Run Setup.
+- **FR-004**: When the player presses Escape during gameplay, the game board MUST animate off-screen to the left while the pause menu simultaneously animates in from the right. Both animations MUST complete within 500ms.
+- **FR-005**: When the player selects Resume from the pause menu, the pause menu MUST animate off-screen to the left while the game board animates back in from the right (reversing the pause animation). Both animations MUST complete within 500ms.
+- **FR-006**: The pause menu animations MUST reuse or extend the existing tile animation infrastructure (`scripts/animation/draw/` and `scripts/animation/glide/`) to maintain consistency with the game's animation system.
+- **FR-007**: The pause menu MUST preserve all existing actions: Resume and Return to Title. Button navigation using arrow keys and Enter MUST work without mouse input.
+- **FR-008**: The shop MUST preserve all existing information and actions: round summary labels, Continue button, and the debug round config trigger.
+- **FR-009**: Both screens MUST include a title label and keyboard hint label at consistent positions, following the Run Setup layout convention (title anchored near top-center, hint anchored near bottom-center). The pause menu hint text is "Press Escape to resume". The shop hint text is "Press Enter to continue".
+- **FR-010**: Content in both screens MUST be centered on the full-screen layout using a VBoxContainer anchored to the screen center, consistent with the ContentContainer pattern in Run Setup.
 
 ### Key Entities
 
@@ -68,9 +73,12 @@ After a round ends successfully, the shop is presented as a full-screen Control 
 
 ### Measurable Outcomes
 
-- **SC-001**: Both the pause menu and shop screens fill 100% of the viewport with no floating panel, overlay rect, or CanvasLayer above the game scene. Visual inspection of the scene tree confirms a root Control node with full-rect anchors and zero CanvasLayer or Panel nodes at the root level, matching the structure of RunSetupView.
-- **SC-002**: All existing pause menu actions (Resume, Return to Title) and shop actions (Continue, debug config) remain accessible and functional after the redesign.
-- **SC-003**: Players can navigate and activate all buttons on both screens without any regression in behavior compared to the previous implementation.
+- **SC-001**: Pause animation completes in under 500ms: board slides left off-screen while pause menu slides in from right, both starting and ending simultaneously.
+- **SC-002**: Resume animation mirrors the pause animation: pause menu slides left off-screen while board slides in from right, both completing in under 500ms.
+- **SC-003**: Both the pause menu and shop screens fill 100% of the viewport with no floating panel, overlay rect, or CanvasLayer above the game scene. Visual inspection of the scene tree confirms root Control nodes with full-rect anchors and zero CanvasLayer or Panel nodes at the root level.
+- **SC-004**: Pause menu button navigation via arrow keys and Enter works correctly (focus moves between Resume and Return to Title, Enter activates focused button).
+- **SC-005**: All existing pause menu actions (Resume, Return to Title) and shop actions (Continue, debug config) remain functional after the redesign.
+- **SC-006**: Tile animations running on the board continue smoothly as the board slides off-screen (animations are not interrupted or cancelled by the pause transition).
 
 ## Assumptions
 

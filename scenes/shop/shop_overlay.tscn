@@ -49,6 +49,7 @@ offset_right = 200.0
 offset_bottom = 120.0
 grow_horizontal = 2
 grow_vertical = 2
+focus_mode = 1
 theme_override_constants/separation = 15
 
 [node name="RoundLabel" type="Label" parent="ContentContainer"]
@@ -72,10 +73,12 @@ layout_mode = 2
 
 [node name="ContinueButton" type="Button" parent="ContentContainer"]
 layout_mode = 2
+focus_neighbor_bottom = NodePath("../DebugConfigButton")
 text = "Continue"
 
 [node name="DebugConfigButton" type="Button" parent="ContentContainer"]
 layout_mode = 2
+focus_neighbor_top = NodePath("../ContinueButton")
 theme_override_font_sizes/font_size = 11
 text = "Debug: Next Round Config"
 

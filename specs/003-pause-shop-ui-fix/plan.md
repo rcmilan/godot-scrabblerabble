@@ -5,7 +5,7 @@
 
 ## Summary
 
-Convert `PauseMenu` and `ShopOverlay` from `CanvasLayer`-based modal overlays to full-screen `Control` nodes, mirroring the structure of `RunSetupView`. This brings both screens into compliance with the constitution's "No Modals, Popups, or Dialogs" constraint. No game logic changes. No changes to `main.gd` or `main.tscn`.
+Convert `PauseMenu` and `ShopOverlay` from `CanvasLayer`-based modal overlays to full-screen `Control` nodes matching `RunSetupView` structure. Implement the pause menu as an **animated scene-swap**: when paused, the board slides left off-screen while the pause menu slides in from the right (mirroring the title screen ↔ run setup navigation pattern). Resume reverses the animations, creating a "rotation" illusion. The shop remains a simple visibility-toggled view (no animation). This architecture eliminates overlay complexity, modal anti-patterns, and resolves input routing issues. Changes include new animations, modified pause menu script with animation orchestration, and updates to `main.gd` to trigger animated transitions.
 
 ## Technical Context
 
@@ -17,7 +17,7 @@ Convert `PauseMenu` and `ShopOverlay` from `CanvasLayer`-based modal overlays to
 **Project Type**: Desktop game (Wordatro)
 **Performance Goals**: 60 fps (unchanged)
 **Constraints**: No modals/popups/dialogs (constitution); view-swapping via visibility toggling required
-**Scale/Scope**: 2 scene files + 2 script files modified
+**Scale/Scope**: 2 scene files modified (pause_menu.tscn, shop_overlay.tscn); 4 script files modified (pause_menu.gd, shop_overlay.gd, tile_animator.gd, main.gd); 2 new animation files created (slide_left_animation.gd, slide_in_from_right_animation.gd)
 
 ## Constitution Check
 
@@ -48,18 +48,28 @@ specs/003-pause-shop-ui-fix/
 ### Source Code (files to change)
 
 ```text
+scripts/animation/slide/
++-- slide_left_animation.gd          # NEW: Board slide-left animation strategy
++-- slide_in_from_right_animation.gd # NEW: Pause menu slide-in animation strategy
+
 scenes/ui/pause_menu/
 +-- pause_menu.tscn      # Rewrite: remove CanvasLayer/ColorRect/Panel; add full-rect Control
-+-- pause_menu.gd        # Edit: extends Control, remove _overlay, update @onready paths
++-- pause_menu.gd        # Edit: extends Control, add animation methods, input debouncing, update paths
 
 scenes/shop/
-+-- shop_overlay.tscn    # Rewrite: same structural change
-+-- shop_overlay.gd      # Edit: extends Control, remove _overlay, update @onready paths
++-- shop_overlay.tscn    # Rewrite: same structural change (no animations)
++-- shop_overlay.gd      # Edit: extends Control, update @onready paths
+
+scripts/animation/
++-- tile_animator.gd     # Edit: Register new slide animations (AnimationType.SLIDE_LEFT, SLIDE_IN_FROM_RIGHT)
 ```
 
-**Files NOT changing**: `main.gd`, `main.tscn`, `modal_input_guard.gd`, any other scene or script.
+**Files PARTIALLY CHANGING**:
+- `main.gd`: Update pause menu show/hide calls to use animated methods (`show_pause_menu_animated()`, `close_pause_menu_animated()`).
 
-**Structure Decision**: Single-project Godot game. All changes are in `scenes/` only (UI layer). No new files created.
+**Files NOT changing**: `main.tscn`, `modal_input_guard.gd`, any other scene or script.
+
+**Structure Decision**: Single-project Godot game. New animation strategies in `scripts/animation/slide/`. Scene changes in `scenes/`. Updates to `main.gd` for animation orchestration.
 
 ## Design Details
 
@@ -96,25 +106,62 @@ ContentContainer (VBoxContainer)
 DebugRoundConfigPopup   # direct child of root (unchanged)
 ```
 
+### Animation Strategies (New)
+
+**SlideLeftAnimation** (`scripts/animation/slide/slide_left_animation.gd`):
+- Extends `TileAnimationStrategy` (reuses framework)
+- Animates node position from current x to off-screen left (x = -screen_width)
+- Duration: 400ms
+- Tween-based, non-blocking (allows parallel animations)
+
+**SlideInFromRightAnimation** (`scripts/animation/slide/slide_in_from_right_animation.gd`):
+- Extends `TileAnimationStrategy`
+- Animates node position from off-screen right (x = screen_width) to x=0
+- Duration: 400ms
+- Mirrors SlideLeftAnimation for symmetry
+
+**Registration**:
+- Both registered in `TileAnimator` under new category `slide` with enum `AnimationType.SLIDE_LEFT` and `AnimationType.SLIDE_IN_FROM_RIGHT`
+
 ### Script Changes
 
 **pause_menu.gd**:
 - `extends CanvasLayer` -> `extends Control`
-- Remove `@onready var _overlay: ColorRect = $Overlay`
-- `$Panel/MarginContainer/VBoxContainer/ResumeButton` -> `$ContentContainer/ResumeButton`
-- `$Panel/MarginContainer/VBoxContainer/ReturnToTitleButton` -> `$ContentContainer/ReturnToTitleButton`
-- All other logic (ModalInputGuard, signals, show/hide) unchanged
+- Remove `@onready var _overlay: ColorRect` (no overlay needed; animations handle visibility)
+- `@onready` paths: `$Panel/MarginContainer/VBoxContainer/X` -> `$ContentContainer/X`
+- Replace `show()` and `hide()` with animation methods:
+  - `show_pause_menu_animated()`: Triggers TileAnimator to animate board slide-left + pause menu slide-in-from-right simultaneously
+  - `close_pause_menu_animated()`: Triggers TileAnimator to animate pause menu slide-left + board slide-in-from-right, then emits `resume_requested`
+- Add `_animating: bool` flag to debounce input during animations (block button presses while slide animation is running)
+- ModalInputGuard still used for Escape key; Escape calls `close_pause_menu_animated()`
+- Signal emission unchanged (`resume_requested`, `return_to_title_requested`)
 
 **shop_overlay.gd**:
 - `extends CanvasLayer` -> `extends Control`
-- Remove `@onready var _overlay: ColorRect = $Overlay`
-- All `$Panel/MarginContainer/VBoxContainer/X` -> `$ContentContainer/X`
-- `$DebugRoundConfigPopup` unchanged (still a direct child of root)
-- All other logic unchanged
+- Remove `@onready var _overlay: ColorRect`
+- All `@onready` paths: `$Panel/MarginContainer/VBoxContainer/X` -> `$ContentContainer/X`
+- `@onready var _debug_popup: DebugRoundConfigPopup = $DebugRoundConfigPopup` unchanged
+- All other logic unchanged (no animations for shop; standard visibility toggling)
+
+### Architecture: Scene Swap with Animations
+
+The pause menu and board operate as sibling full-screen Control nodes. When paused:
+1. Board animates off-screen left (position x → -screen_width) via SlideLeftAnimation
+2. PauseMenu animates in from right (position x: screen_width → 0) via SlideInFromRightAnimation
+3. Both animations run **simultaneously** for 400ms
+4. After animations complete, PauseMenu is visible and interactive; Board is off-screen
+
+When resuming:
+1. PauseMenu animates left off-screen via SlideLeftAnimation
+2. Board animates in from right via SlideInFromRightAnimation
+3. Both animations run **simultaneously** for 400ms
+4. After animations complete, Board is visible; PauseMenu is off-screen
+
+This creates a "carousel" or "rotation" visual effect, improving perceived responsiveness and eliminating overlay/modal complexity.
 
 ### Rendering Order
 
-Both nodes are already positioned after all gameplay nodes in `main.tscn` (PauseMenu and ShopOverlay appear after Board, Hand, HUD etc.). In Godot 4, later siblings render on top. No reordering needed. They are mutually exclusive states and never visible simultaneously.
+Both nodes are direct children of Main (Control root). In Godot 4, later siblings in tree order render on top. PauseMenu and Board are never visible simultaneously (mutual exclusion via animation states). No z-index manipulation needed.
 
 ## Complexity Tracking
 

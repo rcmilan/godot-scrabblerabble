@@ -1,11 +1,11 @@
-# Tasks: Pause Menu and Shop UI Redesign
+# Tasks: Pause Menu and Shop UI Redesign (Animated Scene Swap)
 
-**Input**: Design documents from `/specs/003-pause-shop-ui-fix/`
-**Prerequisites**: plan.md, spec.md, research.md
+**Input**: Specification from `spec.md`
+**Prerequisites**: plan.md, research.md
 
 **Tests**: No automated tests. Verification is manual in the Godot editor per constitution (Manual Testing First).
 
-**Organization**: Tasks are grouped by user story. US1 (pause menu) and US2 (shop) are independent -- files do not overlap.
+**Organization**: Tasks are grouped by user story and technical phase. US1 (pause menu with animations) and US2 (shop) are independent -- pause has no dependencies on shop.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -14,44 +14,69 @@
 
 ---
 
-## Phase 1: User Story 1 - Pause Menu as Full-Screen View (Priority: P1) MVP
+## Phase 1: Animation Infrastructure - Slide Animations (Priority: P0) Foundational
 
-**Goal**: Convert `PauseMenu` from CanvasLayer+ColorRect+Panel overlay to a full-rect Control node matching the RunSetupView structural pattern.
+**Goal**: Create reusable slide-in and slide-out animations that mimic the existing tile animation system. These animations will drive both the board slide-left and pause-menu slide-in behaviors.
 
-**Independent Test**: Open the project in the Godot editor, run the game, pause mid-round. Confirm: (1) pause menu fills 100% of the viewport with no dark overlay beneath it, (2) Resume returns to gameplay, (3) Return to Title navigates to the title screen. The scene tree for PauseMenu must show a Control root with no CanvasLayer or Panel nodes.
+**Independent Test** (Manual, post-T003): In Godot editor, verify that slide animations work by manually instantiating a test node and triggering slide_left and slide_in_from_right animations. Animations should complete smoothly within 500ms.
 
 ### Implementation
 
-- [ ] T001 [US1] Rewrite the scene tree in `scenes/ui/pause_menu/pause_menu.tscn`: replace the CanvasLayer root (and its ColorRect + Panel + MarginContainer + VBoxContainer children) with a Control root using `anchors_preset = 15` and `visible = false`. Add a TitleLabel (Label, anchored top-center, text "PAUSED", font size 32) matching RunSetupView's TitleLabel. Add a ContentContainer (VBoxContainer, anchored center, separation 20) containing ResumeButton and ReturnToTitleButton. Add a ControlHint Label anchored bottom-center with text "Press Escape to resume".
-- [ ] T002 [US1] Edit `scenes/ui/pause_menu/pause_menu.gd`: change `extends CanvasLayer` to `extends Control`; remove `@onready var _overlay: ColorRect = $Overlay`; update `@onready var _resume_button: Button` path from `$Panel/MarginContainer/VBoxContainer/ResumeButton` to `$ContentContainer/ResumeButton`; update `@onready var _return_button: Button` path from `$Panel/MarginContainer/VBoxContainer/ReturnToTitleButton` to `$ContentContainer/ReturnToTitleButton`. No other logic changes.
-- [ ] T003 [US1] Manual verification in Godot editor: run the game, pause mid-round (default key). Confirm pause menu fills the screen, no dimming overlay is visible, "PAUSED" title label is visible near the top, "Press Escape to resume" hint is visible near the bottom, Resume resumes gameplay, Return to Title goes to title screen. Inspect the remote scene tree to confirm root is Control (not CanvasLayer).
+- [X] T001 Create `scripts/animation/slide/slide_left_animation.gd`: Extends `TileAnimationStrategy`. Animates a node's position from its current x to off-screen left (negative screen width). **Duration: 400ms** (required to complete within 500ms threshold per FR-005 and SC-002). Reuses Tween infrastructure from existing animations.
+- [X] T002 Create `scripts/animation/slide/slide_in_from_right_animation.gd`: Extends `TileAnimationStrategy`. Animates a node's position from off-screen right (screen width) to x=0. **Duration: 400ms** (required to complete within 500ms threshold per FR-004 and SC-001). Mirrors SlideLeftAnimation for symmetry.
+- [X] T003 [P] Register both animations in `scripts/animation/tile_animator.gd` under new category `slide` (e.g., `AnimationType.SLIDE_LEFT`, `AnimationType.SLIDE_IN_FROM_RIGHT`). Verify registration does not break existing animations.
 
-**Checkpoint**: Pause menu fully functional as full-screen Control. US1 complete.
+**Checkpoint**: Slide animations ready to use. TileAnimator can animate arbitrary nodes, not just tiles.
 
 ---
 
-## Phase 2: User Story 2 - Shop as Full-Screen View (Priority: P2)
+## Phase 2: User Story 1 - Pause Menu with Animated Scene Swap (Priority: P1) MVP
 
-**Goal**: Convert `ShopOverlay` from CanvasLayer+ColorRect+Panel overlay to a full-rect Control node matching the RunSetupView structural pattern.
+**Goal**: Convert `PauseMenu` to a full-screen Control that animates in/out alongside the board. Scene-swap architecture mirrors title screen ↔ run setup pattern.
 
-**Independent Test**: Complete a round in the game. Confirm: (1) shop fills 100% of the viewport with no dark overlay, (2) round summary labels (round number, score, next round info) are visible, (3) Continue proceeds to the next round, (4) the debug config button still opens the debug popup. The scene tree for ShopOverlay must show a Control root with no CanvasLayer or Panel nodes.
+**Independent Test**: Open Godot editor, run game, pause mid-round. Verify: (1) board slides left off-screen while pause menu slides in from right simultaneously, (2) both animations complete smoothly in under 500ms, (3) pause menu is fully visible and interactive, (4) arrow keys navigate buttons, (5) Resume button reverses animations symmetrically, (6) Return to Title exits to title screen.
 
 ### Implementation
 
-- [ ] T004 [US2] Rewrite the scene tree in `scenes/shop/shop_overlay.tscn`: replace the CanvasLayer root (and its ColorRect + Panel + MarginContainer + VBoxContainer children) with a Control root using `anchors_preset = 15` and `visible = false`. Add a TitleLabel (Label, anchored top-center, text "SHOP", font size 24) matching RunSetupView's TitleLabel. Add a ContentContainer (VBoxContainer, anchored center, separation 15) containing RoundLabel, ScoreLabel, NextBoardLabel, HSeparator, ContinueButton, and DebugConfigButton. Add a ControlHint Label anchored bottom-center with text "Press Enter to continue". Keep `DebugRoundConfigPopup` as a direct child of the Control root (unchanged).
-- [ ] T005 [US2] Edit `scenes/shop/shop_overlay.gd`: change `extends CanvasLayer` to `extends Control`; remove `@onready var _overlay: ColorRect = $Overlay`; update all six label/button onready paths from `$Panel/MarginContainer/VBoxContainer/X` to `$ContentContainer/X` (RoundLabel, ScoreLabel, NextBoardLabel, ContinueButton, DebugConfigButton). Keep `@onready var _debug_popup: DebugRoundConfigPopup = $DebugRoundConfigPopup` unchanged. No other logic changes.
-- [ ] T006 [US2] Manual verification in Godot editor: complete a round. Confirm shop fills the screen, no dimming overlay is visible, "SHOP" title label is visible near the top, "Press Enter to continue" hint is visible near the bottom, all three summary labels display correct data, Continue proceeds to the next round, debug config button opens the debug round config popup. Inspect the remote scene tree to confirm root is Control (not CanvasLayer).
+- [X] T004 [US1] Rewrite scene tree in `scenes/ui/pause_menu/pause_menu.tscn`: Root is Control (`anchors_preset = 15`, `visible = false`). Add TitleLabel (Label, anchored top-center, text "PAUSED", font size 32). Add ContentContainer (VBoxContainer, anchored center, separation 20) containing ResumeButton and ReturnToTitleButton with explicit `focus_neighbor_top`/`focus_neighbor_bottom` for keyboard navigation. Add ControlHint (Label, anchored bottom-center, text "Press Escape to resume"). NO ColorRect overlay (animations handle visibility, not overlays). NO CanvasLayer.
+- [X] T005 [US1] Edit `scenes/ui/pause_menu/pause_menu.gd`: Change `extends CanvasLayer` to `extends Control`. Remove all `_overlay` references. Update `@onready` paths to `$ContentContainer/ResumeButton` and `$ContentContainer/ReturnToTitleButton`. Replace `show()`/`hide()` calls with animation-based show/hide methods:
+  - `show_pause_menu_animated()`: Calls TileAnimator to animate board slide-left and pause menu slide-in-from-right simultaneously.
+  - `close_pause_menu_animated()`: Calls TileAnimator to animate pause menu slide-left and board slide-in-from-right simultaneously, then emits `resume_requested`.
+  - Keep ModalInputGuard for Escape key handling: In `_ready()`, wire ModalInputGuard's `close_requested` signal to call `close_pause_menu_animated()` (replace the old simple `hide()` with the animation method).
+  - Add input debouncing: prevent button presses during animation (set flag `_animating = true` during animation, check before processing input).
+- [X] T006 [US1] Edit `scenes/main.gd`: Update pause menu show/hide calls:
+  - Replace `pause_menu.show_pause_menu()` with `pause_menu.show_pause_menu_animated()`.
+  - Replace `pause_menu.hide()` with `pause_menu.close_pause_menu_animated()` (where resume is requested).
+  - **Verify Board is a direct child of Main**: Check `scenes/main.tscn` to confirm Board is a direct child (sibling of PauseMenu). If Board is nested deeper in the tree, flag as a blocking issue and halt—do not restructure the scene tree without explicit requirement. Animations require Board and PauseMenu to be siblings.
+- [ ] T007 [US1] Manual verification in Godot editor: Run game, pause mid-round. Verify: (1) board slides left off-screen while pause menu slides in from right, both synchronously, (2) animations complete in under 500ms, (3) pause menu is fully visible and focused on Resume button, (4) **hint label text is exactly "Press Escape to resume"**, (5) arrow down key moves focus to Return to Title, arrow up moves back, (6) Enter activates focused button, (7) Resume reverses animations, (8) Return to Title exits to title screen. Inspect scene tree to confirm Control root (not CanvasLayer).
+
+**Checkpoint**: Pause menu fully functional with smooth animated transitions. US1 complete.
+
+---
+
+## Phase 3: User Story 2 - Shop as Full-Screen View (Priority: P2)
+
+**Goal**: Convert `ShopOverlay` from CanvasLayer overlay to full-rect Control node matching the RunSetupView structural pattern. Shop remains a visibility-toggled screen (no animation; pause menu is the primary animated transition).
+
+**Independent Test**: Complete a round in the game. Verify: (1) shop fills 100% of the viewport with no dark overlay, (2) round summary labels (round number, score, next round info) are visible, (3) Continue proceeds to the next round, (4) the debug config button still opens the debug popup. The scene tree for ShopOverlay must show a Control root with no CanvasLayer or Panel nodes.
+
+### Implementation
+
+- [X] T008 [US2] Rewrite the scene tree in `scenes/shop/shop_overlay.tscn`: Replace CanvasLayer root with Control (`anchors_preset = 15`, `visible = false`). Add TitleLabel (Label, anchored top-center, text "SHOP", font size 24). Add ContentContainer (VBoxContainer, anchored center, separation 15) containing RoundLabel, ScoreLabel, NextBoardLabel, HSeparator, ContinueButton, and DebugConfigButton with explicit `focus_neighbor_top`/`focus_neighbor_bottom`. Add ControlHint (Label, anchored bottom-center, text "Press Enter to continue"). Keep `DebugRoundConfigPopup` as a direct child of the Control root (unchanged). NO ColorRect overlay, NO CanvasLayer.
+- [X] T009 [US2] Edit `scenes/shop/shop_overlay.gd`: Change `extends CanvasLayer` to `extends Control`. Remove `@onready var _overlay: ColorRect`. Update all `@onready` paths from `$Panel/MarginContainer/VBoxContainer/X` to `$ContentContainer/X` (RoundLabel, ScoreLabel, NextBoardLabel, ContinueButton, DebugConfigButton). Keep `@onready var _debug_popup: DebugRoundConfigPopup = $DebugRoundConfigPopup` unchanged. No other logic changes required.
+- [ ] T010 [US2] Manual verification in Godot editor: Complete a round. Verify: (1) shop fills the screen with no dimming overlay, (2) all three summary labels (Round, Score, Next Board) display correct data, (3) **hint label text is exactly "Press Enter to continue"**, (4) Continue proceeds to the next round, (5) debug config button opens the debug round config popup, (6) arrow keys navigate buttons, (7) Enter activates focused button. Inspect scene tree to confirm root is Control (not CanvasLayer).
 
 **Checkpoint**: Shop fully functional as full-screen Control. US2 complete.
 
 ---
 
-## Phase 3: Polish & Cross-Cutting Concerns
+## Phase 4: Polish & Cross-Cutting Concerns
 
 **Purpose**: Final integration validation across both user stories.
 
-- [ ] T007 Open `scenes/main.tscn` in the Godot editor and confirm the scene loads with zero errors -- both ShopOverlay and PauseMenu nodes are recognized and the type annotations in `scenes/main.gd` still resolve correctly.
-- [ ] T008 Run the full game flow end-to-end: title screen -> run setup -> round 1 -> pause -> resume -> play to round end -> shop -> continue -> round 2. Confirm no regressions in any transition.
+- [X] T011 Open `scenes/main.tscn` in the Godot editor and confirm the scene loads with zero errors -- Board, PauseMenu, and ShopOverlay nodes are recognized and type annotations in `scenes/main.gd` still resolve correctly.
+- [ ] T012 Run the full game flow end-to-end: title screen -> run setup -> round 1 -> pause -> resume -> play to round end -> shop -> continue -> round 2 -> pause -> resume -> play to round end. Verify all animations play smoothly, no animation stuttering, all button interactions work, no regressions in transitions.
+- [ ] T013 Verify tile animations continue smoothly while board is animating off-screen during pause transition (no cancellation or interruption).
 
 ---
 
@@ -59,39 +84,35 @@
 
 ### Phase Dependencies
 
-- **Phase 1 (US1)**: No dependencies -- start immediately
-- **Phase 2 (US2)**: No dependency on US1 (different files) -- can start in parallel or after US1
-- **Phase 3 (Polish)**: Depends on both US1 and US2 being complete
+- **Phase 1 (Animations)**: No dependencies -- start immediately. Must complete before Phase 2 (pause menu animations depend on slide animations being registered).
+- **Phase 2 (US1 Pause)**: Depends on Phase 1 (slide animations). Can start after T003 completes.
+- **Phase 3 (US2 Shop)**: No dependency on Phase 2 (different files, different systems). Can run in parallel with US1 or after.
+- **Phase 4 (Polish)**: Depends on all user stories being complete.
 
-### User Story Dependencies
+### Task Dependencies Within Phases
 
-- **US1**: T001 must complete before T002 (scene structure defines the node paths the script references)
-- **US2**: T004 must complete before T005 (same reason)
-- US1 and US2 are fully independent -- different files, different nodes, no shared state
+- **Phase 1**: T001 → T002 → T003 (sequential: animations must be created before registration)
+- **Phase 2**: T004 → T005 → T006 → T007 (sequential: scene structure defines node paths; script updates reference those paths; main.gd wiring must be complete before testing)
+- **Phase 3**: T008 → T009 → T010 (sequential: same logic as Phase 2)
 
 ### Parallel Opportunities
 
-- T001 and T004 can run in parallel (different scene files)
-- T002 and T005 can run in parallel (different script files, after their respective scene tasks)
+- T001 and T008 can start in parallel (different animation files)
+- T002 and T009 can start in parallel (different script files)
 
 ---
 
-## Parallel Example: Both User Stories Together
+## Parallel Example: Independent Teams
 
 ```
-# If working with two parallel agents or developers:
+Agent A (Animations + Pause Menu):
+  Phase 1: T001 → T002 → T003 (animations ready)
+  Phase 2: T004 → T005 → T006 → T007 (pause menu animated)
 
-Agent A:
-  T001 - Rewrite pause_menu.tscn
-  T002 - Edit pause_menu.gd
-  T003 - Verify pause menu
+Agent B (Shop):
+  Phase 3 (parallel with Phase 2): T008 → T009 → T010 (shop as full-screen Control)
 
-Agent B (simultaneously):
-  T004 - Rewrite shop_overlay.tscn
-  T005 - Edit shop_overlay.gd
-  T006 - Verify shop
-
-Both done -> T007, T008 (integration validation)
+Both done -> Phase 4: T011 → T012 → T013 (integration)
 ```
 
 ---
@@ -100,22 +121,27 @@ Both done -> T007, T008 (integration validation)
 
 ### MVP First (User Story 1 Only)
 
-1. Complete T001, T002: Pause menu scene + script
-2. Complete T003: Manual verification
-3. **STOP and VALIDATE**: Pause menu works as full-screen Control
-4. Proceed to US2 when ready
+1. Complete Phase 1 (animations)
+2. Complete Phase 2 (pause menu animated)
+3. Complete T007 (manual verification of pause menu)
+4. **STOP and VALIDATE**: Pause menu works with smooth slide animations
+5. Proceed to US2 when ready
 
 ### Sequential Single-Developer
 
-1. T001 -> T002 -> T003 (pause menu done)
-2. T004 -> T005 -> T006 (shop done)
-3. T007 -> T008 (integration validation done)
+1. Phase 1: T001 → T002 → T003 (animations)
+2. Phase 2: T004 → T005 → T006 → T007 (pause menu)
+3. Phase 3: T008 → T009 → T010 (shop)
+4. Phase 4: T011 → T012 → T013 (integration)
 
 ---
 
 ## Notes
 
-- No new files are created. All tasks modify existing files only.
-- `main.gd` and `main.tscn` require zero changes -- all call sites are compatible with Control.
-- `ModalInputGuard` requires zero changes -- already supports Control nodes.
-- After T002 and T005, the `class_name` declarations (`PauseMenu`, `ShopOverlay`) remain unchanged, so all external references continue to work.
+- No new files created in `scenes/`. All modifications to existing scene files.
+- Two new animation strategy files created in `scripts/animation/slide/`.
+- `main.gd` requires updates to use new animated show/hide methods for pause menu.
+- `main.tscn` requires zero structural changes if Board is already a direct child (it should be).
+- Input debouncing in pause_menu.gd prevents accidental button presses during slide animations.
+- ModalInputGuard remains unchanged; Escape key handling is preserved.
+- Shop uses standard visibility toggling (no animation); only pause menu uses slide animations.

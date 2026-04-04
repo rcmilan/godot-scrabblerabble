@@ -48,14 +48,17 @@ offset_right = 150.0
 offset_bottom = 80.0
 grow_horizontal = 2
 grow_vertical = 2
+focus_mode = 1
 theme_override_constants/separation = 20
 
 [node name="ResumeButton" type="Button" parent="ContentContainer"]
 layout_mode = 2
+focus_neighbor_bottom = NodePath("../ReturnToTitleButton")
 text = "Resume"
 
 [node name="ReturnToTitleButton" type="Button" parent="ContentContainer"]
 layout_mode = 2
+focus_neighbor_top = NodePath("../ResumeButton")
 text = "Return to Title"
 
 [node name="ControlHint" type="Label" parent="."]

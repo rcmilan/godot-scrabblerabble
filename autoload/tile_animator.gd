@@ -27,6 +27,8 @@ var _glide_animation: GlideTileAnimation = null
 var _shake_animation: ShakeTileAnimation = null
 var _stomp_animation: StompTileAnimation = null
 var _spin_animation: SpinTileAnimation = null
+var _slide_left_animation: SlideLeftAnimation = null
+var _slide_in_from_right_animation: SlideInFromRightAnimation = null
 
 # =============================================================================
 # EXECUTORS (lazy-loaded)
@@ -112,6 +114,26 @@ func animate_cancel_to_hand(tiles: Array[Tile], hand: Node, restore_fn: Callable
 
 	_ensure_glide_resources()
 	_return_executor.execute_cancel_batch(tiles, hand, _glide_animation, restore_fn)
+
+
+## Slides a node off-screen to the left.
+## Used for board exit during pause transitions.
+func animate_slide_left(node: Node, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_left_resources()
+	return _slide_left_animation.animate(node, on_complete)
+
+
+## Slides a node in from the right side of the screen.
+## Used for pause menu entrance and board re-entrance during transitions.
+func animate_slide_in_from_right(node: Node, on_complete: Callable = Callable()) -> Tween:
+	if node == null:
+		return null
+
+	_ensure_slide_in_from_right_resources()
+	return _slide_in_from_right_animation.animate(node, on_complete)
 
 
 ## Animates a batch of tiles gliding from hand positions to their board cells.
@@ -203,3 +225,13 @@ func _ensure_stomp_resources() -> void:
 func _ensure_spin_resources() -> void:
 	_spin_animation = _ensure_strategy(_spin_animation, SpinTileAnimation)
 	_spin_executor = _ensure_executor(_spin_executor, SpinAnimationExecutor)
+
+
+func _ensure_slide_left_resources() -> void:
+	if _slide_left_animation == null:
+		_slide_left_animation = SlideLeftAnimation.new()
+
+
+func _ensure_slide_in_from_right_resources() -> void:
+	if _slide_in_from_right_animation == null:
+		_slide_in_from_right_animation = SlideInFromRightAnimation.new()
