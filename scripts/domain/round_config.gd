@@ -10,6 +10,7 @@ var board_columns: int = 6
 var target_score: int = 100
 var plays_per_round: int = 2
 var hand_size: int = 10
+var is_boss_round: bool = false
 
 
 func _init(
@@ -18,7 +19,8 @@ func _init(
 	p_cols: int = 6,
 	p_target: int = 100,
 	p_plays: int = 2,
-	p_hand_size: int = 10
+	p_hand_size: int = 10,
+	p_is_boss: bool = false
 ) -> void:
 	round_number = p_round
 	board_rows = p_rows
@@ -26,9 +28,11 @@ func _init(
 	target_score = p_target
 	plays_per_round = p_plays
 	hand_size = p_hand_size
+	is_boss_round = p_is_boss
 
 
 func _to_string() -> String:
-	return "Round %d: %dx%d board, target=%d, plays=%d" % [
-		round_number, board_rows, board_columns, target_score, plays_per_round
+	var boss_marker := " (Boss)" if is_boss_round else ""
+	return "Round %d%s: %dx%d board, target=%d, plays=%d" % [
+		round_number, boss_marker, board_rows, board_columns, target_score, plays_per_round
 	]

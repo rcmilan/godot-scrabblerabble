@@ -17,7 +17,7 @@ func get_quality_name() -> String:
 
 
 func get_description() -> String:
-	return "Exhaust your %d plays to win each round. Run ends after %d rounds." % [PLAYS_PER_ROUND, MAX_ROUNDS]
+	return "Exhaust your %d Plays to win each Round. Run ends after %d Rounds." % [PLAYS_PER_ROUND, MAX_ROUNDS]
 
 
 func apply_to_run_state(run_state: RunState) -> void:

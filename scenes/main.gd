@@ -30,7 +30,11 @@ var _focus_cursor: FocusCursor = null
 @onready var shop_overlay: ShopOverlay = $ShopOverlay
 @onready var game_over_popup: GameOverPopup = $GameOverPopup
 @onready var pause_menu: PauseMenu = $PauseMenu
-@onready var multi_select_indicator: Control = $MultiSelectIndicator
+@onready var _background: ColorRect = $Background
+@onready var _round_indicator: Label = $RoundIndicator
+
+# Animation state
+var _bg_tween: Tween = null
 
 
 # =============================================================================
@@ -54,7 +58,6 @@ func _setup_selection_manager() -> void:
 
 	hand.set_selection_manager(_selection_manager)
 	discard_pile.set_selection_manager(_selection_manager)
-	multi_select_indicator.set_selection_manager(_selection_manager)
 
 
 func _setup_controllers() -> void:
@@ -134,6 +137,11 @@ func _on_round_ready(config: RoundConfig) -> void:
 		await HandManager.initialized
 	HandManager.refill_hand()
 
+	# Update background and round indicator
+	var bg_color := Color(1.0, 0.85, 0.85, 1.0) if config.is_boss_round else Color(0.85, 0.88, 0.92, 1.0)
+	_transition_background(bg_color)
+	_round_indicator.text = "Boss Round" if config.is_boss_round else "Round %d" % config.round_number
+
 	# Activate gameplay and show UI
 	_gameplay_controller.activate()
 	_focus_cursor.activate()
@@ -142,6 +150,19 @@ func _on_round_ready(config: RoundConfig) -> void:
 	print("[Main] Round %d ready - %dx%d board" % [
 		config.round_number, config.board_columns, config.board_rows
 	])
+
+
+# =============================================================================
+# BACKGROUND TRANSITION
+# =============================================================================
+
+func _transition_background(target_color: Color) -> void:
+	if _bg_tween:
+		_bg_tween.kill()
+	_bg_tween = create_tween()
+	_bg_tween.set_trans(Tween.TRANS_SINE)
+	_bg_tween.set_ease(Tween.EASE_IN_OUT)
+	_bg_tween.tween_property(_background, "color", target_color, 1.0)
 
 
 # =============================================================================

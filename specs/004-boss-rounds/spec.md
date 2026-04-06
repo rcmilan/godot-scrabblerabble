@@ -96,12 +96,26 @@ The Auto Win run modifier name and description are updated to use the canonical 
 
 ---
 
+### User Story 5 - Global Persistent Background (Priority: P2)
+
+The background color is a global, persistent visual element that appears on all game screens (title, options, game over, etc.). The background color persists across scene changes during a run (e.g., if the player loses on a Boss Round, the game over screen shows the Boss Round's light red background). The background resets to the default blue-gray color only when a new game starts.
+
+**Why this priority**: A cohesive visual experience across all screens reinforces the Boss Round aesthetic. Persistence creates continuity and narrative clarity when rounds end.
+
+**Independent Test**: Play to Round 3 (Boss Round). Verify the red background appears. Lose or complete the round and navigate to the game over/shop screen. Verify the red background persists. Return to title and start a new game. Verify the background resets to blue-gray.
+
+**Acceptance Scenarios**:
+
+1. **Given** gameplay is on a Boss Round with red background, **When** the round ends, **Then** all subsequent screens (shop, game over, etc.) show the red background.
+2. **Given** gameplay is on a Normal Round with blue-gray background, **When** the round ends, **Then** all subsequent screens show the blue-gray background.
+3. **Given** a run has ended and the player is on the game over screen, **When** they return to the title screen, **Then** the background color persists (does not reset until a new game is started).
+4. **Given** the player is on any screen (title, options, game over), **When** they start a new game, **Then** the background color is reset to the default blue-gray (regardless of the last run's final color).
+
+---
+
 ### Edge Cases
 
 - What happens when Round Number is very large (long run)? The "Round [x]" display must render correctly for any positive integer without truncation or overflow.
-- What happens if the player starts a new game while on a Boss Round? Background and Round label must both reset to their Normal Round state for Round 1.
-- What happens during the Shop screen between rounds? The gameplay background color is only relevant on the gameplay screen; the Shop screen is unaffected.
-- What if the Auto Win modifier's run ends on a Boss Round? No special end-of-run behavior is needed; the run ends normally.
 
 ---
 
@@ -120,6 +134,8 @@ The Auto Win run modifier name and description are updated to use the canonical 
 - **FR-007b**: The background color transition mechanism MUST be generic -- it receives only a target color and animates to it, with no knowledge of round types. Any future round type that introduces a new background color MUST work without modifying the animation logic.
 - **FR-008**: The round-type classification (Normal vs Boss) MUST be a domain concept accessible to any game system, not a numeric check embedded in UI code.
 - **FR-009**: The Auto Win run modifier name and description MUST use "Plays" and "Rounds" as defined in the ubiquitous language.
+- **FR-010**: A global BackgroundManager autoload MUST maintain the current background color and make it accessible to all screens (title, options, gameplay, game over, etc.). The background MUST be applied to all scenes via a unified mechanism.
+- **FR-011**: The background color MUST persist across scene changes during a run (title → gameplay → shop → game over), reflecting the last round type. The background MUST be reset to the default blue-gray (0.85, 0.88, 0.92) only when a new game is started via RunManager.initialize_run_from_builder().
 
 ### Key Entities
 
@@ -138,6 +154,8 @@ The Auto Win run modifier name and description are updated to use the canonical 
 - **SC-003**: No MULTI [Q] text or icon appears anywhere during gameplay after this feature ships.
 - **SC-004**: The Auto Win modifier description contains no synonyms outside the canonical ubiquitous language (no "turn", "move", "multi", etc.).
 - **SC-005**: A future game system can determine whether the current round is a Boss Round by querying a single domain property, without parsing or computing the Round Number itself.
+- **SC-006**: The background color persists correctly across all scene transitions (gameplay → shop → game over → title) and resets to blue-gray only when a new game is started (no orphaned colors from previous runs).
+- **SC-007**: All game screens (title, options, game over, shop) display the same background color with the same smooth 1.0s transition animation when the color changes.
 
 ---
 
@@ -146,9 +164,11 @@ The Auto Win run modifier name and description are updated to use the canonical 
 - Boss Round frequency (every 3rd Round) is fixed and not player-configurable.
 - "White or near-white" background for Normal rounds means a clean, light color; exact shade is a visual design decision made during implementation.
 - "Light red" for Boss rounds is a soft, desaturated red sufficient to signal elevated stakes without being visually aggressive; exact shade is a visual design decision.
+- Normal Round background color is RGB(0.85, 0.88, 0.92, 1.0) — a soft blue-gray tone.
+- Boss Round background color is RGB(1.0, 0.85, 0.85, 1.0) — a soft desaturated light red.
 - The multi-select mechanic (toggled by Q) continues to exist as gameplay; only its HUD indicator is removed, not the underlying functionality.
 - The Round label is a new standalone node placed at the top-left of the gameplay screen, in the same position previously occupied by the MULTI [Q] indicator (approximately 20px from the top-left corner).
 - The existing top-right stats panel (RoundLabel, PlaysLabel, ScoreLabel, etc. in MainHUD) is a debug panel scheduled for removal in a future feature. It is left untouched by this feature.
-- The Shop screen between rounds is out of scope for Boss Round visual treatment.
+- The Shop screen displays the persisted background color from the active round (IN SCOPE per US5 — Global Persistent Background).
 - The background color change IS animated (1.0s smooth transition). No other audio or particle effects are added for Boss Round entry in this iteration.
 - The Auto Win modifier's numeric constants (10 Plays per Round, 10 Rounds per run) are unchanged; only the display text is updated.

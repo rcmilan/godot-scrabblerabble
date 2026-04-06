@@ -5,7 +5,7 @@
 
 ## Summary
 
-Introduce a Boss Round concept to Wordatro: every 3rd Round (3, 6, 9, ...) is a Boss Round. Concretely, this means (1) adding `is_boss_round` to the `RoundConfig` domain value object so any game system can query it, (2) driving a background color change in the main scene (white for Normal, light red for Boss) from that domain flag, (3) replacing the `MainHUD` round label with context-aware text ("Round N" vs "Boss Round"), (4) removing the `MultiSelectIndicator` node from the scene tree, and (5) updating the `AutoWinQuality` display text to use canonical terminology. The multi-select *mechanic* (Q key) is preserved; only the visual indicator is removed.
+Introduce a Boss Round concept to Wordatro with global persistent background color management. Concretely, this means (1) adding `is_boss_round` to the `RoundConfig` domain value object; (2) creating a global `BackgroundManager` autoload for persistent background color across all scenes; (3) applying background color changes (blue-gray for Normal, light red for Boss) to gameplay, title screen, shop, and game over screens; (4) placing a new top-left round indicator label ("Round X" / "Boss Round") and removing the MULTI [Q] indicator; (5) updating the `AutoWinQuality` display text to canonical terminology. The multi-select mechanic is preserved; only its HUD indicator is removed.
 
 ## Technical Context
 
@@ -17,7 +17,7 @@ Introduce a Boss Round concept to Wordatro: every 3rd Round (3, 6, 9, ...) is a 
 **Project Type**: Desktop game (Godot 4.6)
 **Performance Goals**: 60 fps; no new compute-heavy logic added
 **Constraints**: No Godot engine imports in `/scripts/domain`. No modals/dialogs per Constitution §Architecture.
-**Scale/Scope**: Small feature — 6 files modified, 0 new files, 1 new scene node added
+**Scale/Scope**: Medium feature — 1 new autoload, 6+ files modified (domain, qualities, main scene + 3 additional scene scripts), 4 new scene nodes (Background ColorRects), smooth 1.0s color transitions on all screens
 
 ## Constitution Check
 
@@ -46,9 +46,12 @@ specs/004-boss-rounds/
 └── tasks.md             # Phase 2 output (/speckit.tasks - not created here)
 ```
 
-### Source Code (files modified)
+### Source Code (files modified and created)
 
 ```text
+autoload/
+└── background_manager.gd    # NEW: Global background state and transition manager
+
 scripts/domain/
 ├── round_config.gd          # Add is_boss_round: bool field
 └── progression_rules.gd     # Add _is_boss_round(), update get_round_config()
@@ -59,17 +62,52 @@ scripts/domain/qualities/
 scenes/
 ├── main.tscn                # Add Background ColorRect, add RoundIndicator Label (top-left),
 |                            #   remove MultiSelectIndicator
-└── main.gd                  # Update _on_round_ready() for bg color + round label,
+└── main.gd                  # Update _on_round_ready() to use BackgroundManager,
                              #   remove multi_select_indicator refs, add round_indicator ref
 
 scenes/ui/main_hud/
 ├── main_hud.gd              # No changes needed (top-right panel is debug; left untouched)
 └── main_hud.tscn            # No changes needed
+
+scenes/title_screen/
+├── title_screen.tscn        # Add Background ColorRect child, connected to BackgroundManager
+└── title_screen.gd          # Add BackgroundManager signal connection for color updates
+
+scenes/shop/
+├── shop_overlay.tscn        # Add Background ColorRect, connected to BackgroundManager
+└── shop_overlay.gd          # Add BackgroundManager signal connection for color updates
+
+scenes/ui/game_over_popup/
+├── game_over_popup.tscn     # Add Background ColorRect, connected to BackgroundManager
+└── game_over_popup.gd       # Add BackgroundManager signal connection for color updates
+
+project.godot
+            # Register BackgroundManager as autoload "BackgroundManager"
 ```
 
-**Structure Decision**: Single-project GDScript codebase. All changes are in-place modifications to existing files. No new source files created. Two new scene nodes added inside `main.tscn`: a `Background` ColorRect and a `RoundIndicator` Label.
+**Structure Decision**: Single-project GDScript codebase. All changes are in-place modifications to existing files and one new autoload.
 
-**Clarification applied (2026-04-06)**: The canonical round label is a NEW standalone Label at top-left (replacing MULTI [Q]), not the existing top-right RoundLabel in MainHUD. The top-right stats panel is a debug panel scheduled for future removal -- it is not touched by this feature.
+**New Architecture Component**: BackgroundManager (autoload)
+- Global singleton managing background color state and persistence
+- Emits signals when color changes for reactive UI updates
+- Handles transitions via Tweens
+- Persists color across scene changes
+- Resets to default blue-gray only on new game start
+
+**Clarification applied (2026-04-06)**: 
+- Round label: NEW standalone Label at top-left (replacing MULTI [Q])
+- Background: Persistent global layer across all scenes, not just gameplay
+- Color persistence: Carries over between scene changes, reset only on new game
+
+## EventBus Alignment Note
+
+**BackgroundManager Signal Pattern**: BackgroundManager.color_changed is emitted directly to scene subscribers (T013-T015), NOT routed through EventBus. This is intentional:
+
+- **Rationale**: BackgroundManager is a persistent state holder (like TileBag or HandManager singletons), not a discrete system responding to game events. Its purpose is to hold and broadcast a global UI state, not to represent game mechanics.
+- **Justification**: Constitution II applies to systems that *communicate about game events*. BackgroundManager is a utility singleton holding persistent visual state. Direct signal subscription is acceptable for UI state propagation to avoid polluting EventBus with non-game-logic signals.
+- **Future clarification**: If BackgroundManager evolves to dispatch significant game events (e.g., "boss_aesthetic_activated"), those should route through EventBus.
+
+**Current Implementation**: BackgroundManager.color_changed → direct subscription in scene controllers. No EventBus involvement.
 
 ## Complexity Tracking
 
