@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://ddchieu337gsy"]
+[gd_scene load_steps=12 format=3 uid="uid://ddchieu337gsy"]
 
 [ext_resource type="PackedScene" uid="uid://6mhb0a0g3kj8" path="res://scenes/board/board.tscn" id="1_idj7w"]
 [ext_resource type="Script" uid="uid://mpe2jq6utcpi" path="res://scenes/main.gd" id="1_kln2b"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/shop/shop_overlay.tscn" id="10_shop"]
 [ext_resource type="PackedScene" path="res://scenes/ui/game_over_popup/game_over_popup.tscn" id="11_gameover"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu/pause_menu.tscn" id="12_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/score_panel/score_panel.tscn" id="13_score_panel"]
 [node name="Main" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -47,6 +48,8 @@ layout_mode = 1
 visible = false
 
 [node name="MainHUD" parent="." instance=ExtResource("7_hud")]
+
+[node name="ScorePanel" parent="." instance=ExtResource("13_score_panel")]
 
 [node name="DiscardPile" parent="." instance=ExtResource("8_discard")]
 layout_mode = 1

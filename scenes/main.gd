@@ -32,6 +32,7 @@ var _focus_cursor: FocusCursor = null
 @onready var pause_menu: PauseMenu = $PauseMenu
 @onready var _background: ColorRect = $Background
 @onready var _round_indicator: Label = $RoundIndicator
+@onready var _score_panel: CanvasLayer = $ScorePanel
 
 # Animation state
 var _bg_tween: Tween = null
@@ -153,7 +154,15 @@ func _on_round_ready(config: RoundConfig) -> void:
 		TileBag.populate_bag(RunManager.run_state.bag_config)
 
 	# Setup GameManager for this round
-	GameManager.setup_round(config)
+	var previous_total: int = 0
+	if RunManager.run_state:
+		previous_total = RunManager.run_state.total_score
+	GameManager.setup_round(config, previous_total)
+
+	# Notify ScorePanel directly after GameManager is ready
+	# (avoid re-emitting run_round_ready which would create a signal loop)
+	if _score_panel:
+		_score_panel._on_round_ready(config)
 
 	# Pass RoundConfig to PlayExecutor for boss effect handling
 	_gameplay_controller.set_play_executor_round_config(config)
@@ -267,19 +276,8 @@ func _disconnect_hurry_timer() -> void:
 ## Called when tiles are played (locked on board).
 ## Always consumes a play. Words may be empty if no valid words were formed.
 func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
-	var total_score: int = 0
-	var word_validator: WordValidator = _gameplay_controller.get_word_validator()
-
-	for word_info in words:
-		var score_result: Dictionary = word_validator.calculate_placement_score(
-			word_info.tiles, word_info.cells
-		)
-		total_score += score_result.total
-		EventBus.score_calculated.emit(score_result.total, score_result)
-
-	GameManager.commit_play(total_score)
-	print("[Main] Play committed: %d pts from %d words | Score: %d/%d | Plays left: %d" % [
-		total_score, words.size(), GameManager.get_current_score(),
+	print("[Main] Play completed: %d words formed | Cumulative Score: %d/%d | Plays left: %d" % [
+		words.size(), GameManager.get_cumulative_score(),
 		GameManager.get_target_score(), GameManager.get_plays_remaining()
 	])
 
@@ -299,7 +297,7 @@ func _on_shop_requested(round_number: int) -> void:
 	var next_config: RoundConfig = RunManager.progression_rules.peek_round_config(
 		RunManager.run_state
 	)
-	shop_overlay.show_shop(round_number, GameManager.get_current_score(), next_config)
+	shop_overlay.show_shop(round_number, GameManager.get_cumulative_score(), next_config)
 	print("[Main] === SHOP START | after round %d ===" % round_number)
 
 
