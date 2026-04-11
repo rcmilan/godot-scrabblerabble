@@ -84,7 +84,8 @@ func get_post_play_movements(
 					"to": Vector2i(col, target_row)
 				})
 
-			# Update simulated grid: mark target row as occupied for next tile in column
+			# Update simulated grid: clear old position, mark new position
+			simulated_grid[from_row][col] = false
 			simulated_grid[target_row][col] = true
 
 	return movements

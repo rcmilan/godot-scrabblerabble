@@ -206,11 +206,19 @@ func _advance_to_next_round() -> void:
 
 	# Check if boss pool is exhausted (is_boss_round but no boss assigned)
 	if current_round_config.is_boss_round and current_round_config.boss == null:
-		# All bosses defeated - run ends with victory
-		run_state.end_run()
-		EventBus.run_ended.emit(true, run_state.total_score)
-		print("[RunManager] Boss pool exhausted - run ends with victory | Score: %d" % run_state.total_score)
-		return
+		if _debug_auto_win:
+			# Endless mode: reset boss pool and re-fetch config
+			var boss_pool = run_state.get_boss_pool()
+			if boss_pool:
+				boss_pool.reset()
+				print("[RunManager] Boss pool reset for endless mode")
+			current_round_config = progression_rules.get_round_config(run_state)
+		else:
+			# All bosses defeated - run ends with victory
+			run_state.end_run()
+			EventBus.run_ended.emit(true, run_state.total_score)
+			print("[RunManager] Boss pool exhausted - run ends with victory | Score: %d" % run_state.total_score)
+			return
 
 	# Now advance the round counter to match
 	run_state.advance_round()
