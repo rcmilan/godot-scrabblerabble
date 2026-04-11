@@ -15,6 +15,7 @@ var _round_scores: Array[int] = []
 var _plays_per_round: int = 2
 var _hand_size: int = 10
 var _bag_config: BagDistribution = null
+var _boss_pool: BossPool = null
 
 
 func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribution) -> void:
@@ -70,6 +71,10 @@ var hand_size: int:
 
 var bag_config: BagDistribution:
 	get: return _bag_config
+
+## Returns the boss pool for this run (tracks boss selection).
+func get_boss_pool() -> BossPool:
+	return _boss_pool
 
 ## Returns a duplicate of round scores to prevent external mutation.
 func get_round_scores() -> Array[int]:
