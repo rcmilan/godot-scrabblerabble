@@ -260,6 +260,12 @@ func register_tile(tile: Tile) -> void:
 		tile.tile_drag_ended.connect(_on_tile_drag_ended)
 
 
+## Sets the current round config for PlayExecutor (called from Main._on_round_ready)
+func set_play_executor_round_config(config: RoundConfig) -> void:
+	if _play:
+		_play.set_round_config(config)
+
+
 func debug_return_tile_to_hand(tile: Tile) -> void:
 	if tile == null or tile.current_cell == null:
 		return

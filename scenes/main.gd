@@ -129,6 +129,9 @@ func _on_round_ready(config: RoundConfig) -> void:
 	# Setup GameManager for this round
 	GameManager.setup_round(config)
 
+	# Pass RoundConfig to PlayExecutor for boss effect handling
+	_gameplay_controller.set_play_executor_round_config(config)
+
 	# Configure hand size
 	HandManager.set_hand_size(config.hand_size)
 
