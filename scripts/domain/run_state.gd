@@ -28,6 +28,11 @@ func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribu
 	_hand_size = config_hand_size
 	_bag_config = config_bag
 
+	# Initialize boss pool from registry
+	var boss_registry = BossRegistry.new()
+	var all_bosses = boss_registry.get_all_bosses()
+	_boss_pool = BossPool.new(all_bosses)
+
 
 func advance_round() -> void:
 	_current_round += 1

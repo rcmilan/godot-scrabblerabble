@@ -180,6 +180,14 @@ func _advance_to_next_round() -> void:
 	# Get config BEFORE advancing — config reads current_round from run_state
 	current_round_config = progression_rules.get_round_config(run_state)
 
+	# Check if boss pool is exhausted (is_boss_round but no boss assigned)
+	if current_round_config.is_boss_round and current_round_config.boss == null:
+		# All bosses defeated - run ends with victory
+		run_state.end_run()
+		EventBus.run_ended.emit(true, run_state.total_score)
+		print("[RunManager] Boss pool exhausted - run ends with victory | Score: %d" % run_state.total_score)
+		return
+
 	# Now advance the round counter to match
 	run_state.advance_round()
 

@@ -68,6 +68,8 @@ signal round_started(round_number: int)
 ## Emitted when a round ends.
 signal round_ended(round_number: int, success: bool)
 
+## Emitted when a boss round begins (carries the active boss reference).
+signal boss_activated(boss: Boss)
 
 ## Emitted when a play is completed (tiles committed).
 signal play_completed(plays_remaining: int)

@@ -138,10 +138,27 @@ func _on_round_ready(config: RoundConfig) -> void:
 	HandManager.refill_hand()
 
 	# Update background and round indicator
-	var bg_color := Color(1.0, 0.85, 0.85, 1.0) if config.is_boss_round else Color(0.85, 0.88, 0.92, 1.0)
+	var bg_color: Color
+	if config.boss != null:
+		bg_color = config.boss.background_color
+	elif config.is_boss_round:
+		# Fallback boss color if is_boss_round but boss is null (shouldn't happen normally)
+		bg_color = Color(1.0, 0.85, 0.85, 1.0)
+	else:
+		# Normal round color
+		bg_color = Color(0.85, 0.88, 0.92, 1.0)
+
 	_transition_background(bg_color)
 	BackgroundManager.set_color(bg_color)
-	_round_indicator.text = "Boss Round" if config.is_boss_round else "Round %d" % config.round_number
+
+	# Update round indicator with boss name if available
+	if config.boss != null:
+		_round_indicator.text = config.boss.display_name
+		EventBus.boss_activated.emit(config.boss)
+	elif config.is_boss_round:
+		_round_indicator.text = "Boss Round"
+	else:
+		_round_indicator.text = "Round %d" % config.round_number
 
 	# Activate gameplay and show UI
 	_gameplay_controller.activate()

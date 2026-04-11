@@ -23,6 +23,14 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 	var hand: int = run_state.hand_size
 	var is_boss: bool = _is_boss_round(round_num)
 
+	# Assign boss if this is a boss round
+	var boss: Boss = null
+	if is_boss:
+		var boss_pool = run_state.get_boss_pool()
+		if boss_pool and boss_pool.has_next():
+			boss = boss_pool.next()
+		# If pool is exhausted, boss remains null (signals run should end)
+
 	return RoundConfig.new(
 		round_num,
 		board_size.y,  # rows
@@ -30,7 +38,8 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 		target,
 		plays,
 		hand,
-		is_boss
+		is_boss,
+		boss
 	)
 
 
