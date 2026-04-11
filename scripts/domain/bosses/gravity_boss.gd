@@ -14,8 +14,14 @@ extends BossHooks
 ##
 ## For each unplayed position, finds the lowest row in the same column where
 ## grid_occupancy is false (empty). Processes columns bottom-to-top to handle
-## stacking correctly (if tile A drops to row 5, tile B in the same column
-## above it should drop to row 4, not overlap).
+## stacking correctly: when multiple unplayed tiles are in the same column,
+## the lowest one drops first, and upper tiles stack above it (not overlap).
+##
+## Algorithm:
+## 1. Group unplayed positions by column
+## 2. For each column, sort positions bottom-to-top
+## 3. Simulate grid as we process each tile: after calculating target row,
+##    mark that row as "will be occupied" for subsequent tiles in the column
 ##
 ## Args:
 ##   grid_occupancy: Array - 2D bool array (true = occupied, false = empty)
@@ -35,29 +41,50 @@ func get_post_play_movements(
 	if unplayed_positions.is_empty():
 		return []
 
+	# Create a working copy of grid_occupancy to simulate drops
+	var simulated_grid: Array = []
+	for row in grid_occupancy:
+		simulated_grid.append(row.duplicate())
+
+	# Group unplayed positions by column
+	var positions_by_column: Dictionary = {}
+	for pos in unplayed_positions:
+		var col = pos.x
+		if not positions_by_column.has(col):
+			positions_by_column[col] = []
+		positions_by_column[col].append(pos)
+
 	var movements: Array[Dictionary] = []
 
-	# For each unplayed position, calculate where it should drop to
-	for from_pos in unplayed_positions:
-		var col = from_pos.x
-		var from_row = from_pos.y
+	# Process each column, sorting positions bottom-to-top
+	for col in positions_by_column.keys():
+		var col_positions = positions_by_column[col]
+		# Sort by row descending (bottom-to-top)
+		col_positions.sort_custom(func(a, b): return a.y > b.y)
 
-		# Skip positions already at the bottom row
-		if from_row >= board_rows - 1:
-			continue
+		# For each tile in this column (bottom-first)
+		for from_pos in col_positions:
+			var from_row = from_pos.y
 
-		# Find the lowest empty row in this column (scan from bottom up)
-		var target_row = from_row  # Default to current row
-		for row in range(board_rows - 1, from_row, -1):
-			if not grid_occupancy[row][col]:
-				target_row = row
-				break
+			# Skip positions already at the bottom row
+			if from_row >= board_rows - 1:
+				continue
 
-		# Only add movement if target differs from current position
-		if target_row != from_row:
-			movements.append({
-				"from": from_pos,
-				"to": Vector2i(col, target_row)
-			})
+			# Find the lowest empty row in simulated grid
+			var target_row = from_row  # Default to current row
+			for row in range(board_rows - 1, from_row, -1):
+				if not simulated_grid[row][col]:
+					target_row = row
+					break
+
+			# Only add movement if target differs from current position
+			if target_row != from_row:
+				movements.append({
+					"from": from_pos,
+					"to": Vector2i(col, target_row)
+				})
+
+			# Update simulated grid: mark target row as occupied for next tile in column
+			simulated_grid[target_row][col] = true
 
 	return movements
