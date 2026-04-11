@@ -20,6 +20,7 @@ var board: Board = null
 var _play_validator: PlayValidator = null
 var _word_validator: WordValidator = null
 var _selection: SelectionManager = null
+var _round_config: RoundConfig = null
 
 
 func setup(p_board: Board, p_selection: SelectionManager) -> void:
@@ -27,6 +28,11 @@ func setup(p_board: Board, p_selection: SelectionManager) -> void:
 	_selection = p_selection
 	_word_validator = WordValidator.new()
 	_play_validator = PlayValidator.new(_word_validator)
+
+
+## Sets the current round config (called from Main._on_round_ready)
+func set_round_config(config: RoundConfig) -> void:
+	_round_config = config
 
 
 func get_word_validator() -> WordValidator:
@@ -72,6 +78,10 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 
 	_selection.deselect_all()
 
+	# Execute boss post-play effects (e.g., gravity drop)
+	if _round_config and _round_config.boss:
+		await _execute_boss_post_play_effects(unplayed_tiles)
+
 	# Animate ALL board tiles
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
 	await _animate_play(all_tiles)
@@ -90,6 +100,83 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	print("[Gameplay] Play accepted: %d tiles locked, %d words found" % [
 		unplayed_tiles.size(), words.size()
 	])
+
+
+## Executes boss post-play effects (e.g., gravity drop).
+func _execute_boss_post_play_effects(unplayed_tiles: Array[Tile]) -> void:
+	var boss = _round_config.boss
+	if not boss:
+		return
+
+	# Build grid occupancy (2D bool array)
+	var grid_occupancy: Array = []
+	for row in range(board.rows):
+		var row_array: Array = []
+		for col in range(board.columns):
+			var cell = board.get_cell(row, col)
+			row_array.append(cell != null and (cell.is_occupied() or cell.is_unavailable()))
+		grid_occupancy.append(row_array)
+
+	# Collect unplayed positions
+	var unplayed_positions: Array[Vector2i] = []
+	for tile in unplayed_tiles:
+		if tile.current_cell:
+			unplayed_positions.append(tile.current_cell.grid_position)
+
+	# Get post-play movements from boss
+	var movements_raw: Array = boss.hooks.get_post_play_movements(
+		grid_occupancy, unplayed_positions, board.rows, board.columns
+	)
+
+	if movements_raw.is_empty():
+		return
+
+	# Resolve Vector2i positions to BoardCell references
+	var resolved_movements: Array = []
+	for movement in movements_raw:
+		var from_pos: Vector2i = movement["from"]
+		var to_pos: Vector2i = movement["to"]
+		var from_cell = board.get_cell(from_pos.y, from_pos.x)
+		var to_cell = board.get_cell(to_pos.y, to_pos.x)
+
+		if from_cell and from_cell.is_occupied() and to_cell:
+			resolved_movements.append({
+				"tile": from_cell.tile,
+				"from_cell": from_cell,
+				"to_cell": to_cell
+			})
+
+	if resolved_movements.is_empty():
+		return
+
+	# Disable play button during animation
+	play_button_changed.emit(false, false)
+
+	# Execute drop animation
+	TileAnimator.animate_drop_batch(resolved_movements)
+	await TileAnimator.animation_completed
+
+	# Rebind cells after drop animation
+	_rebind_cells_after_drop(resolved_movements)
+
+
+## Rebinds tiles to their new cells after drop animation.
+## Processes from bottom-to-top to avoid conflicts when multiple tiles drop in same column.
+func _rebind_cells_after_drop(movements: Array) -> void:
+	# Sort movements by row descending (bottom-to-top)
+	movements.sort_custom(func(a, b): return a["to_cell"].grid_position.y > b["to_cell"].grid_position.y)
+
+	for movement in movements:
+		var tile: Tile = movement["tile"]
+		var from_cell: BoardCell = movement["from_cell"]
+		var to_cell: BoardCell = movement["to_cell"]
+
+		# Remove tile from original cell
+		from_cell.remove_tile()
+		# Place tile on new cell
+		to_cell.place_tile(tile)
+		# Rebind tile to new cell
+		tile.attach_to_cell(to_cell)
 
 
 ## Animates tiles using AnimationCategorizer dispatch.
@@ -201,7 +288,7 @@ func has_valid_moves() -> bool:
 	var has_tiles_available: bool = not HandManager.is_hand_empty() or not TileBag.is_empty()
 	var has_empty_cells: bool = false
 	for cell in board.get_all_cells():
-		if not cell.is_occupied():
+		if not cell.is_occupied() and not cell.is_unavailable():
 			has_empty_cells = true
 			break
 

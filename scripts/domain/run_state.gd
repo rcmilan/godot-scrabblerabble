@@ -15,17 +15,27 @@ var _round_scores: Array[int] = []
 var _plays_per_round: int = 2
 var _hand_size: int = 10
 var _bag_config: BagDistribution = null
+var _boss_pool: BossPool = null
+var _bosses_defeated: int = 0
 
 
 func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribution) -> void:
 	_current_round = 0
 	_total_score = 0
 	_rounds_completed = 0
+	_bosses_defeated = 0
 	_is_run_active = true
 	_round_scores.clear()
 	_plays_per_round = config_plays
 	_hand_size = config_hand_size
 	_bag_config = config_bag
+
+	# Initialize boss pool from registry
+	var boss_registry = BossRegistry.new()
+	var all_bosses = boss_registry.get_all_bosses()
+	print("[RunState] Boss registry returned %d bosses: %s" % [all_bosses.size(), all_bosses.map(func(b): return b.display_name)])
+	_boss_pool = BossPool.new(all_bosses)
+	print("[RunState] BossPool initialized with %d bosses | Pool ready: has_next=%s" % [_boss_pool.get_total_count(), _boss_pool.has_next()])
 
 
 func advance_round() -> void:
@@ -40,6 +50,11 @@ func complete_round(round_score: int) -> void:
 
 func end_run() -> void:
 	_is_run_active = false
+
+
+func record_boss_defeat() -> void:
+	_bosses_defeated += 1
+	print("[RunState] Boss defeated | Total bosses defeated: %d" % _bosses_defeated)
 
 
 func get_next_round_number() -> int:
@@ -68,8 +83,15 @@ var hand_size: int:
 	get: return _hand_size
 	set(value): _hand_size = value
 
+var bosses_defeated: int:
+	get: return _bosses_defeated
+
 var bag_config: BagDistribution:
 	get: return _bag_config
+
+## Returns the boss pool for this run (tracks boss selection).
+func get_boss_pool() -> BossPool:
+	return _boss_pool
 
 ## Returns a duplicate of round scores to prevent external mutation.
 func get_round_scores() -> Array[int]:

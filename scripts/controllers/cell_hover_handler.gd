@@ -19,6 +19,10 @@ func on_cell_hovered(cell: BoardCell) -> void:
 
 	var selected_count: int = _selection.get_selection_count()
 
+	if cell.is_unavailable():
+		cell.show_invalid_hover()
+		return
+
 	if selected_count > 1:
 		var cells: Array[BoardCell] = _placement.get_sequential_cells(cell, selected_count)
 		if cells.is_empty():

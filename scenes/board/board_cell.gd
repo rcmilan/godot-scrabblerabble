@@ -26,6 +26,10 @@ var tile: Tile = null
 var grid_position: Vector2i = Vector2i.ZERO
 var _word_highlight_active: bool = false  # True when cell is part of a valid word
 var _typing_cursor_active: bool = false
+var _is_unavailable: bool = false
+var _unavailable_color: Color = Color.TRANSPARENT
+var _boss_tile_multiplier: float = 1.0
+var _boss_highlighted: bool = false
 
 # === Cell Type (multiplier logic implemented; special cells not yet assigned in level design) ===
 enum CellType {
@@ -58,9 +62,43 @@ func is_occupied() -> bool:
 	return tile != null
 
 
+## Returns true if this cell is unavailable (blocked by boss mechanic).
+func is_unavailable() -> bool:
+	return _is_unavailable
+
+
+## Marks this cell as unavailable, tinting its base visual to the background color.
+func set_unavailable(unavailable: bool, color: Color = Color.TRANSPARENT) -> void:
+	_is_unavailable = unavailable
+	_unavailable_color = color
+	if unavailable:
+		visual.modulate = color
+	else:
+		visual.modulate = Color.WHITE
+
+
+## Sets the boss tile score multiplier for this cell.
+func set_boss_tile_multiplier(mult: float) -> void:
+	_boss_tile_multiplier = mult
+
+
+## Returns the boss tile score multiplier for this cell.
+func get_boss_tile_multiplier() -> float:
+	return _boss_tile_multiplier
+
+
+## Marks this cell as boss-highlighted (e.g., golden for diagonal boss).
+func set_boss_highlight(highlighted: bool) -> void:
+	_boss_highlighted = highlighted
+	if highlighted:
+		visual.modulate = COLOR_SPECIAL_MULTIPLIER
+	else:
+		visual.modulate = Color.WHITE
+
+
 ## Returns true if a tile can be placed on this cell.
 func can_place_tile() -> bool:
-	return not is_occupied()
+	return not is_occupied() and not _is_unavailable
 
 
 ## Places a tile on this cell.
@@ -165,11 +203,16 @@ func _show_overlay(color: Color) -> void:
 # === Signal Handlers (connected in scene) ===
 
 func _on_mouse_entered() -> void:
-	if not is_occupied():
+	if not is_occupied() and not _is_unavailable:
 		visual.modulate = Color(0.9, 0.9, 0.9)
 	cell_hovered.emit(self)
 
 
 func _on_mouse_exited() -> void:
-	visual.modulate = Color.WHITE
+	if _is_unavailable:
+		visual.modulate = _unavailable_color
+	elif _boss_highlighted:
+		visual.modulate = COLOR_SPECIAL_MULTIPLIER
+	else:
+		visual.modulate = Color.WHITE
 	cell_unhovered.emit(self)

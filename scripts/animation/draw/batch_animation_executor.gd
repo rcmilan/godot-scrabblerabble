@@ -19,6 +19,16 @@ func execute(tiles: Array[Tile], strategy: TileAnimationStrategy) -> void:
 	# Wait for layout to calculate final positions
 	await _context.get_tree().process_frame
 
+	# Guard: tiles may have been freed during the frame wait (e.g., round transition)
+	var valid_tiles: Array[Tile] = []
+	for t in tiles:
+		if is_instance_valid(t):
+			valid_tiles.append(t)
+	if valid_tiles.is_empty():
+		_context.is_animating = false
+		return
+	tiles = valid_tiles
+
 	var completed_count_ref: Array = [0]  # Reference wrapper
 	var total_tiles: int = tiles.size()
 

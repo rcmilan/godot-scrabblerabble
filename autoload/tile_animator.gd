@@ -45,6 +45,8 @@ var _return_executor: ReturnAnimationExecutor = null
 var _shake_executor: ShakeAnimationExecutor = null
 var _stomp_executor: StompAnimationExecutor = null
 var _spin_executor: SpinAnimationExecutor = null
+var _drop_animation: DropTileAnimation = null
+var _drop_executor: DropAnimationExecutor = null
 
 
 func _ready() -> void:
@@ -111,6 +113,16 @@ func animate_spin_batch(tiles: Array[Tile]) -> void:
 
 	_ensure_spin_resources()
 	_spin_executor.execute(tiles, _spin_animation)
+
+
+## Animates gravity drop effect for a batch of tiles.
+## movements: Array[Dictionary] - each dict contains {tile: Tile, from_cell: BoardCell, to_cell: BoardCell}
+func animate_drop_batch(movements: Array) -> void:
+	if movements.is_empty():
+		return
+
+	_ensure_drop_resources()
+	_drop_executor.execute(movements, _drop_animation)
 
 
 ## Animates tiles returning to hand from a cancelled drag.
@@ -331,3 +343,8 @@ func _ensure_slide_in_from_bottom_resources() -> void:
 func _ensure_slide_in_from_left_resources() -> void:
 	if _slide_in_from_left_animation == null:
 		_slide_in_from_left_animation = SlideInFromLeftAnimation.new()
+
+
+func _ensure_drop_resources() -> void:
+	_drop_animation = _ensure_strategy(_drop_animation, DropTileAnimation)
+	_drop_executor = _ensure_executor(_drop_executor, DropAnimationExecutor)

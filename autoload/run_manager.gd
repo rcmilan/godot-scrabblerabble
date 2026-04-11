@@ -20,6 +20,9 @@ var _quality_tracker: SignalTracker = SignalTracker.new()
 var _debug_override_board_size: Vector2i = Vector2i.ZERO  # Zero = no override
 var _debug_auto_win: bool = false
 
+# Boss timer (per-round, created for bosses with time_attack_config)
+var _boss_timer: BossTimerRelay = null
+
 
 # =============================================================================
 # LIFECYCLE
@@ -37,6 +40,8 @@ func _process(delta: float) -> void:
 		return
 	for quality in _active_run.qualities:
 		quality.on_process(delta)
+	if _boss_timer:
+		_boss_timer.on_process(delta)
 
 
 # =============================================================================
@@ -104,6 +109,7 @@ func reset() -> void:
 	current_round_config = null
 	_debug_override_board_size = Vector2i.ZERO
 	_debug_auto_win = false
+	_boss_timer = null
 	print("[RunManager] Reset")
 
 
@@ -129,6 +135,11 @@ func is_debug_auto_win() -> bool:
 	return _debug_auto_win
 
 
+## Returns the boss timer relay for the current round (null if no boss timer).
+func get_boss_timer() -> BossTimerRelay:
+	return _boss_timer
+
+
 # =============================================================================
 # QUALITY SIGNAL MANAGEMENT
 # =============================================================================
@@ -143,6 +154,10 @@ func _connect_quality_signals() -> void:
 	var round_started_cb := func(round_number: int) -> void:
 		for quality in _active_run.qualities:
 			quality.on_round_started(round_number)
+		# Start boss timer if configured for this round
+		if _boss_timer and current_round_config and current_round_config.boss:
+			var time_config = current_round_config.boss.hooks.get_time_attack_config()
+			_boss_timer.start(time_config.get("time_limit", 90.0))
 	_quality_tracker.track(EventBus.round_started, round_started_cb)
 
 	var play_completed_cb := func(plays_remaining: int) -> void:
@@ -172,6 +187,15 @@ func _on_quality_time_expired() -> void:
 	GameManager.force_round_end(false)
 
 
+func _on_boss_timer_expired() -> void:
+	if _debug_auto_win:
+		print("[RunManager] Boss timer expired - auto-win enabled, treating as win")
+		GameManager.force_round_end(true)
+	else:
+		print("[RunManager] Boss timer expired - forcing round end (failure)")
+		GameManager.force_round_end(false)
+
+
 # =============================================================================
 # PRIVATE
 # =============================================================================
@@ -179,6 +203,22 @@ func _on_quality_time_expired() -> void:
 func _advance_to_next_round() -> void:
 	# Get config BEFORE advancing — config reads current_round from run_state
 	current_round_config = progression_rules.get_round_config(run_state)
+
+	# Check if boss pool is exhausted (is_boss_round but no boss assigned)
+	if current_round_config.is_boss_round and current_round_config.boss == null:
+		if _debug_auto_win:
+			# Endless mode: reset boss pool and re-fetch config
+			var boss_pool = run_state.get_boss_pool()
+			if boss_pool:
+				boss_pool.reset()
+				print("[RunManager] Boss pool reset for endless mode")
+			current_round_config = progression_rules.get_round_config(run_state)
+		else:
+			# All bosses defeated - run ends with victory
+			run_state.end_run()
+			EventBus.run_ended.emit(true, run_state.total_score)
+			print("[RunManager] Boss pool exhausted - run ends with victory | Score: %d" % run_state.total_score)
+			return
 
 	# Now advance the round counter to match
 	run_state.advance_round()
@@ -193,6 +233,18 @@ func _advance_to_next_round() -> void:
 		current_round_config.board_rows = _debug_override_board_size.y
 		current_round_config.board_columns = _debug_override_board_size.x
 		_debug_override_board_size = Vector2i.ZERO
+
+	# Set up boss timer if the boss has time attack config
+	_boss_timer = null
+	if current_round_config.boss != null:
+		var time_config: Dictionary = current_round_config.boss.hooks.get_time_attack_config()
+		if not time_config.is_empty():
+			_boss_timer = BossTimerRelay.new()
+			_boss_timer.time_expired.connect(_on_boss_timer_expired)
+			print("[RunManager] Boss timer created for '%s' (%.1fs)" % [
+				current_round_config.boss.display_name,
+				time_config.get("time_limit", 90.0)
+			])
 
 	EventBus.run_round_ready.emit(current_round_config)
 	print("[RunManager] %s" % current_round_config)
@@ -221,6 +273,10 @@ func _on_round_ended(round_number: int, success: bool) -> void:
 	if not run_state or not run_state.is_run_active:
 		return
 
+	# Stop boss timer if active
+	if _boss_timer:
+		_boss_timer.stop()
+
 	if _active_run:
 		for quality in _active_run.qualities:
 			quality.on_round_ended(round_number, success)
@@ -230,6 +286,10 @@ func _on_round_ended(round_number: int, success: bool) -> void:
 		EventBus.run_ended.emit(false, run_state.total_score)
 		print("[RunManager] Round %d lost - run ended" % round_number)
 		return
+
+	# Record boss defeat before completing the round (so next round sees updated board size)
+	if current_round_config and current_round_config.is_boss_round and current_round_config.boss != null:
+		run_state.record_boss_defeat()
 
 	run_state.complete_round(GameManager.get_current_score())
 	if _check_quality_win_conditions():
