@@ -4,7 +4,7 @@ class_name AutoWinQuality
 ## AutoWinQuality: Enables auto-win mode with 10 plays per round.
 ## Exhausting plays wins the round. Run ends with victory after 10 rounds.
 
-const PLAYS_PER_ROUND: int = 10
+const PLAYS_PER_ROUND: int = 3
 const MAX_ROUNDS: int = 10
 
 

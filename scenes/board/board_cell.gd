@@ -65,14 +65,14 @@ func is_unavailable() -> bool:
 	return _is_unavailable
 
 
-## Marks this cell as unavailable with a permanent overlay color.
+## Marks this cell as unavailable, tinting its base visual to the background color.
 func set_unavailable(unavailable: bool, color: Color = Color.TRANSPARENT) -> void:
 	_is_unavailable = unavailable
 	_unavailable_color = color
 	if unavailable:
-		_show_overlay(Color(color, 0.85))
+		visual.modulate = color
 	else:
-		hover_overlay.visible = false
+		visual.modulate = Color.WHITE
 
 
 ## Returns true if a tile can be placed on this cell.
@@ -115,9 +115,6 @@ func show_invalid_hover() -> void:
 
 ## Clears the hover indicator.
 func clear_hover() -> void:
-	if _is_unavailable:
-		_show_overlay(Color(_unavailable_color, 0.85))
-		return
 	if _typing_cursor_active:
 		_show_overlay(COLOR_TYPING_CURSOR)
 		return
@@ -185,11 +182,14 @@ func _show_overlay(color: Color) -> void:
 # === Signal Handlers (connected in scene) ===
 
 func _on_mouse_entered() -> void:
-	if not is_occupied():
+	if not is_occupied() and not _is_unavailable:
 		visual.modulate = Color(0.9, 0.9, 0.9)
 	cell_hovered.emit(self)
 
 
 func _on_mouse_exited() -> void:
-	visual.modulate = Color.WHITE
+	if _is_unavailable:
+		visual.modulate = _unavailable_color
+	else:
+		visual.modulate = Color.WHITE
 	cell_unhovered.emit(self)
