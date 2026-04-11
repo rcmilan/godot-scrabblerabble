@@ -93,6 +93,39 @@ func get_hand_modifications() -> Array:
 	return []
 
 
+## Returns a multiplier applied to the calculated target score.
+## Default: 1.0 (no change). Applied after get_target_score_override.
+##
+## Returns: float - multiplier (e.g., 1.25 = 25% harder)
+func get_target_score_multiplier() -> float:
+	return 1.0
+
+
+## Returns cells that should be visually highlighted (e.g., golden for Diagonal).
+## Default: no highlighted cells.
+##
+## Args:
+##   rows: int - total board rows
+##   cols: int - total board columns
+##
+## Returns: Array[Vector2i] - list of highlighted cell positions
+func get_highlighted_cells(rows: int, cols: int) -> Array:
+	return []
+
+
+## Returns custom background gradient configuration.
+## Default: empty dict (use flat boss background_color).
+##
+## Possible keys:
+##   "primary_color": Color - main gradient color
+##   "secondary_color": Color - edge gradient color
+##   "direction": String - gradient direction (e.g., "main_diagonal")
+##
+## Returns: Dictionary - gradient config, or empty dict for flat color
+func get_background_gradient() -> Dictionary:
+	return {}
+
+
 ## Returns time attack configuration (countdown timer, per-play limits).
 ## Default: no time attack (empty dict).
 ##

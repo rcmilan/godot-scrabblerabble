@@ -28,6 +28,8 @@ var _word_highlight_active: bool = false  # True when cell is part of a valid wo
 var _typing_cursor_active: bool = false
 var _is_unavailable: bool = false
 var _unavailable_color: Color = Color.TRANSPARENT
+var _boss_tile_multiplier: float = 1.0
+var _boss_highlighted: bool = false
 
 # === Cell Type (multiplier logic implemented; special cells not yet assigned in level design) ===
 enum CellType {
@@ -71,6 +73,25 @@ func set_unavailable(unavailable: bool, color: Color = Color.TRANSPARENT) -> voi
 	_unavailable_color = color
 	if unavailable:
 		visual.modulate = color
+	else:
+		visual.modulate = Color.WHITE
+
+
+## Sets the boss tile score multiplier for this cell.
+func set_boss_tile_multiplier(mult: float) -> void:
+	_boss_tile_multiplier = mult
+
+
+## Returns the boss tile score multiplier for this cell.
+func get_boss_tile_multiplier() -> float:
+	return _boss_tile_multiplier
+
+
+## Marks this cell as boss-highlighted (e.g., golden for diagonal boss).
+func set_boss_highlight(highlighted: bool) -> void:
+	_boss_highlighted = highlighted
+	if highlighted:
+		visual.modulate = COLOR_SPECIAL_MULTIPLIER
 	else:
 		visual.modulate = Color.WHITE
 
@@ -190,6 +211,8 @@ func _on_mouse_entered() -> void:
 func _on_mouse_exited() -> void:
 	if _is_unavailable:
 		visual.modulate = _unavailable_color
+	elif _boss_highlighted:
+		visual.modulate = COLOR_SPECIAL_MULTIPLIER
 	else:
 		visual.modulate = Color.WHITE
 	cell_unhovered.emit(self)

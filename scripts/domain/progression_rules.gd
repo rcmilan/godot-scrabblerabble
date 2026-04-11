@@ -32,6 +32,13 @@ func peek_round_config(run_state: RunState) -> RoundConfig:
 			boss = boss_pool.peek()  # Peek, don't consume!
 			print("[ProgressionRules] Round %d peeked as boss round | Peeked boss: %s" % [round_num, boss.display_name if boss else "none"])
 
+	# Apply boss overrides
+	if boss != null:
+		target = _apply_boss_target_modifiers(boss, target)
+		var plays_override: int = boss.hooks.get_plays_override()
+		if plays_override > 0:
+			plays = plays_override
+
 	return RoundConfig.new(
 		round_num,
 		board_size.y,  # rows
@@ -69,6 +76,13 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 			print("[ProgressionRules] Boss pool exhausted - setting boss=null")
 		# If pool is exhausted, boss remains null (signals run should end)
 
+	# Apply boss overrides
+	if boss != null:
+		target = _apply_boss_target_modifiers(boss, target)
+		var plays_override: int = boss.hooks.get_plays_override()
+		if plays_override > 0:
+			plays = plays_override
+
 	return RoundConfig.new(
 		round_num,
 		board_size.y,  # rows
@@ -79,6 +93,17 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 		is_boss,
 		boss
 	)
+
+
+func _apply_boss_target_modifiers(boss: Boss, base_target: int) -> int:
+	var target: int = base_target
+	var override: int = boss.hooks.get_target_score_override()
+	if override > 0:
+		target = override
+	var multiplier: float = boss.hooks.get_target_score_multiplier()
+	if multiplier != 1.0:
+		target = int(target * multiplier)
+	return target
 
 
 func _calculate_board_size(bosses_defeated: int) -> Vector2i:

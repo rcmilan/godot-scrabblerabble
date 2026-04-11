@@ -36,6 +36,11 @@ var _focus_cursor: FocusCursor = null
 # Animation state
 var _bg_tween: Tween = null
 
+# Hurry boss background color transition
+var _hurry_timer: BossTimerRelay = null
+var _hurry_time_limit: float = 0.0
+var _hurry_base_color: Color = Color.SILVER
+
 
 # =============================================================================
 # LIFECYCLE
@@ -130,6 +135,17 @@ func _on_round_ready(config: RoundConfig) -> void:
 					cell.set_unavailable(true, config.boss.background_color)
 			print("[Main] Applied %d unavailable cells for boss '%s'" % [unavailable.size(), config.boss.display_name])
 
+	# Apply boss tile multipliers and highlights (e.g., golden diagonal cells)
+	if config.boss != null:
+		var highlighted: Array = config.boss.hooks.get_highlighted_cells(config.board_rows, config.board_columns)
+		for pos in highlighted:
+			var cell: BoardCell = board.get_cell(pos.y, pos.x)
+			if cell:
+				cell.set_boss_tile_multiplier(config.boss.hooks.get_tile_multiplier(pos))
+				cell.set_boss_highlight(true)
+		if not highlighted.is_empty():
+			print("[Main] Applied %d highlighted cells for boss '%s'" % [highlighted.size(), config.boss.display_name])
+
 	# Reset per-round tile state for rounds after the first
 	if config.round_number > 1:
 		hand.clear_hand()
@@ -151,8 +167,12 @@ func _on_round_ready(config: RoundConfig) -> void:
 	HandManager.refill_hand()
 
 	# Update background and round indicator
+	_clear_background_shader()
 	var bg_color: Color
 	if config.boss != null:
+		var gradient: Dictionary = config.boss.hooks.get_background_gradient()
+		if not gradient.is_empty():
+			_apply_shader_background(gradient)
 		bg_color = config.boss.background_color
 	elif config.is_boss_round:
 		# Fallback boss color if is_boss_round but boss is null (shouldn't happen normally)
@@ -163,6 +183,17 @@ func _on_round_ready(config: RoundConfig) -> void:
 
 	_transition_background(bg_color)
 	BackgroundManager.set_color(bg_color)
+
+	# Connect hurry background color transition
+	_disconnect_hurry_timer()
+	var boss_timer := RunManager.get_boss_timer()
+	if boss_timer and config.boss != null:
+		var time_config := config.boss.hooks.get_time_attack_config()
+		if not time_config.is_empty():
+			_hurry_time_limit = time_config.get("time_limit", 90.0)
+			_hurry_base_color = config.boss.background_color
+			_hurry_timer = boss_timer
+			_hurry_timer.time_updated.connect(_on_hurry_timer_updated)
 
 	# Update round indicator with boss name if available
 	if config.boss != null:
@@ -194,6 +225,39 @@ func _transition_background(target_color: Color) -> void:
 	_bg_tween.set_trans(Tween.TRANS_SINE)
 	_bg_tween.set_ease(Tween.EASE_IN_OUT)
 	_bg_tween.tween_property(_background, "color", target_color, 1.0)
+
+
+func _apply_shader_background(gradient_config: Dictionary) -> void:
+	var shader: Shader = load("res://scenes/shaders/diagonal_gradient.gdshader")
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	if gradient_config.has("primary_color"):
+		mat.set_shader_parameter("primary_color", gradient_config["primary_color"])
+	if gradient_config.has("secondary_color"):
+		mat.set_shader_parameter("secondary_color", gradient_config["secondary_color"])
+	_background.material = mat
+
+
+func _clear_background_shader() -> void:
+	_background.material = null
+
+
+func _on_hurry_timer_updated(time_remaining: float) -> void:
+	if _hurry_time_limit <= 0.0:
+		return
+	if _bg_tween:
+		_bg_tween.kill()
+		_bg_tween = null
+	var ratio: float = 1.0 - (time_remaining / _hurry_time_limit)
+	ratio = clampf(ratio, 0.0, 1.0)
+	_background.color = _hurry_base_color.lerp(Color.RED, ratio)
+
+
+func _disconnect_hurry_timer() -> void:
+	if _hurry_timer and _hurry_timer.time_updated.is_connected(_on_hurry_timer_updated):
+		_hurry_timer.time_updated.disconnect(_on_hurry_timer_updated)
+	_hurry_timer = null
+	_hurry_time_limit = 0.0
 
 
 # =============================================================================

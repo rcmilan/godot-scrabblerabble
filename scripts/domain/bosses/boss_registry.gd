@@ -49,6 +49,16 @@ func _init() -> void:
 	_bosses.append(pitfall_boss)
 	print("[BossRegistry] Registered boss: %s | Total bosses: %d" % [pitfall_boss.display_name, _bosses.size()])
 
+	# Register Diagonal boss
+	var diagonal_boss = Boss.new(
+		&"diagonal",
+		"Diagonal",
+		Color("#B8860B"),
+		DiagonalBossHooks.new()
+	)
+	_bosses.append(diagonal_boss)
+	print("[BossRegistry] Registered boss: %s | Total bosses: %d" % [diagonal_boss.display_name, _bosses.size()])
+
 	_initialized = true
 
 

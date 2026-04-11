@@ -96,7 +96,8 @@ func calculate_placement_score(tiles: Array, cells: Array) -> Dictionary:
 		var base: int = tile.get_points()
 		var modifier_result: Dictionary = ModifierScoring.compute_tile_score(base, tile.modifiers)
 		var letter_mult: int = cell.get_letter_multiplier() if cell else 1
-		var tile_score: int = modifier_result.score * letter_mult
+		var boss_mult: float = cell.get_boss_tile_multiplier() if cell else 1.0
+		var tile_score: int = int(modifier_result.score * letter_mult * boss_mult)
 
 		letter_score += tile_score
 
@@ -109,6 +110,7 @@ func calculate_placement_score(tiles: Array, cells: Array) -> Dictionary:
 			"modifier_score": modifier_result.score,
 			"modifiers_applied": modifier_result.modifiers_applied,
 			"letter_mult": letter_mult,
+			"boss_mult": boss_mult,
 			"tile_score": tile_score
 		})
 
