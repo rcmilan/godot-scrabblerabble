@@ -32,7 +32,7 @@ func get_validator() -> PlacementValidator:
 
 ## Places a tile on a cell and updates selection/interaction state.
 func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
-	if cell.is_occupied():
+	if cell.is_occupied() or cell.is_unavailable():
 		return
 
 	place_tile_on_cell_silent(tile, cell)
@@ -41,7 +41,7 @@ func place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
 
 ## Places a tile on a cell and starts a glide animation from hand to board.
 func place_tile_on_cell_animated(tile: Tile, cell: BoardCell) -> void:
-	if cell.is_occupied():
+	if cell.is_occupied() or cell.is_unavailable():
 		return
 
 	var start_global_pos: Vector2 = tile.global_position
@@ -63,7 +63,7 @@ func place_tiles_on_cells_animated(tiles: Array[Tile], cells: Array[BoardCell]) 
 
 ## Places a tile on a cell without updating selection state.
 func place_tile_on_cell_silent(tile: Tile, cell: BoardCell) -> void:
-	if cell.is_occupied():
+	if cell.is_occupied() or cell.is_unavailable():
 		return
 
 	var was_in_hand: bool = tile.location == Tile.TileLocation.IN_HAND

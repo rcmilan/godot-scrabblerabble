@@ -29,6 +29,26 @@ func _init() -> void:
 	_bosses.append(gravity_boss)
 	print("[BossRegistry] Registered boss: %s | Total bosses: %d" % [gravity_boss.display_name, _bosses.size()])
 
+	# Register Hurry boss
+	var hurry_boss = Boss.new(
+		&"hurry",
+		"Hurry",
+		Color.SILVER,
+		HurryBossHooks.new()
+	)
+	_bosses.append(hurry_boss)
+	print("[BossRegistry] Registered boss: %s | Total bosses: %d" % [hurry_boss.display_name, _bosses.size()])
+
+	# Register Pitfall boss
+	var pitfall_boss = Boss.new(
+		&"pitfall",
+		"Pitfall",
+		Color("#8B4513"),
+		PitfallBossHooks.new()
+	)
+	_bosses.append(pitfall_boss)
+	print("[BossRegistry] Registered boss: %s | Total bosses: %d" % [pitfall_boss.display_name, _bosses.size()])
+
 	_initialized = true
 
 

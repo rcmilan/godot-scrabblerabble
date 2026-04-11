@@ -18,7 +18,7 @@ func _init(config: ProgressionConfig = null) -> void:
 ## Peeks at next round config WITHOUT consuming from boss pool (safe for previews)
 func peek_round_config(run_state: RunState) -> RoundConfig:
 	var round_num: int = run_state.get_next_round_number()
-	var board_size: Vector2i = _calculate_board_size(round_num)
+	var board_size: Vector2i = _calculate_board_size(run_state.bosses_defeated)
 	var target: int = _calculate_target_score(round_num)
 	var plays: int = run_state.plays_per_round
 	var hand: int = run_state.hand_size
@@ -46,7 +46,7 @@ func peek_round_config(run_state: RunState) -> RoundConfig:
 
 func get_round_config(run_state: RunState) -> RoundConfig:
 	var round_num: int = run_state.get_next_round_number()
-	var board_size: Vector2i = _calculate_board_size(round_num)
+	var board_size: Vector2i = _calculate_board_size(run_state.bosses_defeated)
 	var target: int = _calculate_target_score(round_num)
 	var plays: int = run_state.plays_per_round
 	var hand: int = run_state.hand_size
@@ -81,11 +81,9 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 	)
 
 
-func _calculate_board_size(round_number: int) -> Vector2i:
-	for threshold in _config.board_size_thresholds:
-		if round_number <= threshold.get("up_to_round", 0):
-			return threshold.get("size", _config.max_board_size)
-	return _config.max_board_size
+func _calculate_board_size(bosses_defeated: int) -> Vector2i:
+	var size: int = mini(6 + bosses_defeated, 8)
+	return Vector2i(size, size)
 
 
 func _calculate_target_score(round_number: int) -> int:

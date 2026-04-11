@@ -114,7 +114,7 @@ func _execute_boss_post_play_effects(unplayed_tiles: Array[Tile]) -> void:
 		var row_array: Array = []
 		for col in range(board.columns):
 			var cell = board.get_cell(row, col)
-			row_array.append(cell != null and cell.is_occupied())
+			row_array.append(cell != null and (cell.is_occupied() or cell.is_unavailable()))
 		grid_occupancy.append(row_array)
 
 	# Collect unplayed positions
@@ -288,7 +288,7 @@ func has_valid_moves() -> bool:
 	var has_tiles_available: bool = not HandManager.is_hand_empty() or not TileBag.is_empty()
 	var has_empty_cells: bool = false
 	for cell in board.get_all_cells():
-		if not cell.is_occupied():
+		if not cell.is_occupied() and not cell.is_unavailable():
 			has_empty_cells = true
 			break
 

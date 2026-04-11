@@ -16,12 +16,14 @@ var _plays_per_round: int = 2
 var _hand_size: int = 10
 var _bag_config: BagDistribution = null
 var _boss_pool: BossPool = null
+var _bosses_defeated: int = 0
 
 
 func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribution) -> void:
 	_current_round = 0
 	_total_score = 0
 	_rounds_completed = 0
+	_bosses_defeated = 0
 	_is_run_active = true
 	_round_scores.clear()
 	_plays_per_round = config_plays
@@ -50,6 +52,11 @@ func end_run() -> void:
 	_is_run_active = false
 
 
+func record_boss_defeat() -> void:
+	_bosses_defeated += 1
+	print("[RunState] Boss defeated | Total bosses defeated: %d" % _bosses_defeated)
+
+
 func get_next_round_number() -> int:
 	return _current_round + 1
 
@@ -75,6 +82,9 @@ var plays_per_round: int:
 var hand_size: int:
 	get: return _hand_size
 	set(value): _hand_size = value
+
+var bosses_defeated: int:
+	get: return _bosses_defeated
 
 var bag_config: BagDistribution:
 	get: return _bag_config

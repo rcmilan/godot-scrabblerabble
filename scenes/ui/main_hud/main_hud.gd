@@ -149,6 +149,15 @@ func _connect_timer_qualities() -> void:
 		if quality.has_timer():
 			has_timer = true
 
+	# Connect boss timer if present for this round
+	var boss_timer := RunManager.get_boss_timer()
+	if boss_timer:
+		var boss_updated_cb := _on_timer_updated.bind()
+		boss_timer.time_updated.connect(boss_updated_cb)
+		_timer_connections.append({"signal": boss_timer.time_updated, "callable": boss_updated_cb})
+		has_timer = true
+		print("[MainHUD] Connected boss timer signals")
+
 	print("[MainHUD] Connected timer signals for %d qualities (has_timer=%s)" % [run.qualities.size(), has_timer])
 	timer_label.visible = has_timer
 	timer_increment_label.visible = false

@@ -120,6 +120,16 @@ func _on_round_ready(config: RoundConfig) -> void:
 	_gameplay_controller.reset_for_board(config.board_rows, config.board_columns)
 	board.clear_board()
 
+	# Apply boss unavailable cells (must happen after board is created and cleared)
+	if config.boss != null:
+		var unavailable: Array = config.boss.hooks.get_unavailable_cells(config.board_rows, config.board_columns)
+		if not unavailable.is_empty():
+			for pos in unavailable:
+				var cell: BoardCell = board.get_cell(pos.y, pos.x)
+				if cell:
+					cell.set_unavailable(true, config.boss.background_color)
+			print("[Main] Applied %d unavailable cells for boss '%s'" % [unavailable.size(), config.boss.display_name])
+
 	# Reset per-round tile state for rounds after the first
 	if config.round_number > 1:
 		hand.clear_hand()

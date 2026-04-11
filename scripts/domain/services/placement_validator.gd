@@ -12,7 +12,7 @@ func _init(board: Board) -> void:
 
 ## Can a tile be placed on this cell?
 func can_place(cell: BoardCell) -> bool:
-	return cell != null and not cell.is_occupied()
+	return cell != null and not cell.is_occupied() and not cell.is_unavailable()
 
 
 ## Can a tile swap with the tile on this cell?
@@ -25,7 +25,7 @@ func can_place_sequence(start_pos: Vector2i, count: int) -> bool:
 	for i in count:
 		var pos: Vector2i = start_pos + Vector2i(i, 0)
 		var cell: BoardCell = _board.get_cell(pos.y, pos.x)
-		if cell == null or cell.is_occupied():
+		if cell == null or cell.is_occupied() or cell.is_unavailable():
 			return false
 	return true
 
@@ -38,7 +38,7 @@ func get_sequential_cells(start: BoardCell, count: int) -> Array[BoardCell]:
 
 	for i in count:
 		var cell: BoardCell = _board.get_cell(pos.y, pos.x)
-		if cell == null or cell.is_occupied():
+		if cell == null or cell.is_occupied() or cell.is_unavailable():
 			return []
 		cells.append(cell)
 		pos += Vector2i.RIGHT
@@ -53,7 +53,7 @@ func get_sequential_cells_centered(drop_cell: BoardCell, count: int, lead_index:
 	for i in count:
 		var pos: Vector2i = start_pos + (Vector2i.RIGHT * i)
 		var cell: BoardCell = _board.get_cell(pos.y, pos.x)
-		if cell == null or cell.is_occupied():
+		if cell == null or cell.is_occupied() or cell.is_unavailable():
 			return []
 		cells.append(cell)
 

@@ -103,6 +103,11 @@ func _skip_locked(pos: Vector2i, direction: Vector2i) -> Vector2i:
 		var cell := board.get_cell(current.y, current.x)
 		if cell == null:
 			return Vector2i(-1, -1)
+		if cell.is_unavailable():
+			current = _wrap_pos(current + direction)
+			if current.y >= board.rows or current.x < 0 or current.y < 0:
+				return Vector2i(-1, -1)
+			continue
 		if not cell.is_occupied() or not cell.tile.is_locked:
 			return current
 		current = _wrap_pos(current + direction)

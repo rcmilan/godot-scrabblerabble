@@ -26,6 +26,8 @@ var tile: Tile = null
 var grid_position: Vector2i = Vector2i.ZERO
 var _word_highlight_active: bool = false  # True when cell is part of a valid word
 var _typing_cursor_active: bool = false
+var _is_unavailable: bool = false
+var _unavailable_color: Color = Color.TRANSPARENT
 
 # === Cell Type (multiplier logic implemented; special cells not yet assigned in level design) ===
 enum CellType {
@@ -58,9 +60,24 @@ func is_occupied() -> bool:
 	return tile != null
 
 
+## Returns true if this cell is unavailable (blocked by boss mechanic).
+func is_unavailable() -> bool:
+	return _is_unavailable
+
+
+## Marks this cell as unavailable with a permanent overlay color.
+func set_unavailable(unavailable: bool, color: Color = Color.TRANSPARENT) -> void:
+	_is_unavailable = unavailable
+	_unavailable_color = color
+	if unavailable:
+		_show_overlay(Color(color, 0.85))
+	else:
+		hover_overlay.visible = false
+
+
 ## Returns true if a tile can be placed on this cell.
 func can_place_tile() -> bool:
-	return not is_occupied()
+	return not is_occupied() and not _is_unavailable
 
 
 ## Places a tile on this cell.
@@ -98,6 +115,9 @@ func show_invalid_hover() -> void:
 
 ## Clears the hover indicator.
 func clear_hover() -> void:
+	if _is_unavailable:
+		_show_overlay(Color(_unavailable_color, 0.85))
+		return
 	if _typing_cursor_active:
 		_show_overlay(COLOR_TYPING_CURSOR)
 		return
