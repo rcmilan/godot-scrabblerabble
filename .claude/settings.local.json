@@ -3,7 +3,8 @@
     "allow": [
       "Bash(rm:*)",
       "Bash(xargs grep:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(powershell.exe:*)"
     ]
   }
 }
