@@ -34,10 +34,12 @@ func peek_round_config(run_state: RunState) -> RoundConfig:
 
 	# Apply boss overrides
 	if boss != null:
-		target = _apply_boss_target_modifiers(boss, target)
+		target = _apply_boss_target_modifiers(boss, target, round_num)
 		var plays_override: int = boss.hooks.get_plays_override()
 		if plays_override > 0:
 			plays = plays_override
+
+	print("[ProgressionRules] Round %d cumulative target: %d" % [round_num, target])
 
 	return RoundConfig.new(
 		round_num,
@@ -78,10 +80,12 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 
 	# Apply boss overrides
 	if boss != null:
-		target = _apply_boss_target_modifiers(boss, target)
+		target = _apply_boss_target_modifiers(boss, target, round_num)
 		var plays_override: int = boss.hooks.get_plays_override()
 		if plays_override > 0:
 			plays = plays_override
+
+	print("[ProgressionRules] Round %d cumulative target: %d" % [round_num, target])
 
 	return RoundConfig.new(
 		round_num,
@@ -95,15 +99,18 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 	)
 
 
-func _apply_boss_target_modifiers(boss: Boss, base_target: int) -> int:
+func _apply_boss_target_modifiers(boss: Boss, base_target: int, round_num: int) -> int:
 	var target: int = base_target
 	var override: int = boss.hooks.get_target_score_override()
 	if override > 0:
-		target = override
+		return override
 	var multiplier: float = boss.hooks.get_target_score_multiplier()
-	if multiplier != 1.0:
-		target = int(target * multiplier)
-	return target
+	if multiplier == 1.0:
+		return target
+	# Apply multiplier only to the per-round portion, not the full cumulative
+	var prev_cumulative: int = _calculate_target_score(round_num - 1) if round_num > 1 else 0
+	var per_round_delta: int = base_target - prev_cumulative
+	return prev_cumulative + int(per_round_delta * multiplier)
 
 
 func _calculate_board_size(bosses_defeated: int) -> Vector2i:
@@ -112,7 +119,8 @@ func _calculate_board_size(bosses_defeated: int) -> Vector2i:
 
 
 func _calculate_target_score(round_number: int) -> int:
-	return _config.base_target_score + (round_number - 1) * _config.target_score_increment
+	return _config.base_target_score * round_number + \
+	       _config.target_score_increment * round_number * (round_number - 1) / 2
 
 
 func _is_boss_round(round_number: int) -> bool:

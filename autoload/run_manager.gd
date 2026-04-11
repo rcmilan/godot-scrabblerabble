@@ -217,7 +217,9 @@ func _advance_to_next_round() -> void:
 			# All bosses defeated - run ends with victory
 			run_state.end_run()
 			EventBus.run_ended.emit(true, run_state.total_score)
-			print("[RunManager] Boss pool exhausted - run ends with victory | Score: %d" % run_state.total_score)
+			print("[RunManager] Run ended | Victory: true | TotalScore: %d | RoundReached: %d" % [
+				run_state.total_score, run_state.current_round
+			])
 			return
 
 	# Now advance the round counter to match
@@ -264,7 +266,9 @@ func _check_quality_win_conditions() -> bool:
 		var victory: bool = result.get("victory", false)
 		run_state.end_run()
 		EventBus.run_ended.emit(victory, run_state.total_score)
-		print("[RunManager] Quality '%s' ended run - Victory: %s" % [quality.get_quality_name(), victory])
+		print("[RunManager] Run ended | Victory: %s | TotalScore: %d | RoundReached: %d" % [
+			str(victory), run_state.total_score, run_state.current_round
+		])
 		return true
 	return false
 
@@ -283,8 +287,11 @@ func _on_round_ended(round_number: int, success: bool) -> void:
 
 	if not success:
 		run_state.end_run()
-		EventBus.run_ended.emit(false, run_state.total_score)
-		print("[RunManager] Round %d lost - run ended" % round_number)
+		var final_score: int = run_state.total_score + GameManager.get_current_score()
+		EventBus.run_ended.emit(false, final_score)
+		print("[RunManager] Run ended | Victory: false | TotalScore: %d | RoundReached: %d" % [
+			final_score, run_state.current_round
+		])
 		return
 
 	# Record boss defeat before completing the round (so next round sees updated board size)

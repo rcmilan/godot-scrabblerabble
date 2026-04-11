@@ -27,17 +27,17 @@
 
 **Warning**: Do not begin any user story phase until ALL tasks here are complete and verified by logging in the Godot console.
 
-- [ ] T002 Add field `var _previous_rounds_total: int = 0` and getter `func get_cumulative_score() -> int: return _current_score + _previous_rounds_total` to `autoload/game_manager.gd`
+- [x] T002 Add field `var _previous_rounds_total: int = 0` and getter `func get_cumulative_score() -> int: return _current_score + _previous_rounds_total` to `autoload/game_manager.gd`
 
-- [ ] T003 Update `GameManager.setup_round(config: RoundConfig)` to accept a second parameter `previous_total: int = 0`, store it in `_previous_rounds_total`, and reset `_current_score = 0` as before in `autoload/game_manager.gd`
+- [x] T003 Update `GameManager.setup_round(config: RoundConfig)` to accept a second parameter `previous_total: int = 0`, store it in `_previous_rounds_total`, and reset `_current_score = 0` as before in `autoload/game_manager.gd`
 
-- [ ] T004 Update `GameManager.commit_play(score: int)` to compute `var cumulative: int = get_cumulative_score()` and emit `EventBus.score_updated.emit(cumulative, score)` (was: `_current_score`) and check win condition as `if cumulative >= _target_score` (was: `if _current_score >= _target_score`) in `autoload/game_manager.gd`
+- [x] T004 Update `GameManager.commit_play(score: int)` to compute `var cumulative: int = get_cumulative_score()` and emit `EventBus.score_updated.emit(cumulative, score)` (was: `_current_score`) and check win condition as `if cumulative >= _target_score` (was: `if _current_score >= _target_score`) in `autoload/game_manager.gd`
 
-- [ ] T005 Update `GameManager.start_round()` (the simpler overload on line ~132) to also accept `previous_total: int = 0` and store it in `_previous_rounds_total`, for safety in `autoload/game_manager.gd`
+- [x] T005 Update `GameManager.start_round()` (the simpler overload on line ~132) to also accept `previous_total: int = 0` and store it in `_previous_rounds_total`, for safety in `autoload/game_manager.gd`
 
-- [ ] T006 Fix `RunManager._on_round_ended()` failure path: before calling `run_state.end_run()`, compute `var final_score: int = run_state.total_score + GameManager.get_current_score()` and emit `EventBus.run_ended.emit(false, final_score)` instead of `run_state.total_score` alone in `autoload/run_manager.gd`
+- [x] T006 Fix `RunManager._on_round_ended()` failure path: before calling `run_state.end_run()`, compute `var final_score: int = run_state.total_score + GameManager.get_current_score()` and emit `EventBus.run_ended.emit(false, final_score)` instead of `run_state.total_score` alone in `autoload/run_manager.gd`
 
-- [ ] T007 In `scenes/main.gd`, find the `_on_round_ready(config)` method that calls `GameManager.setup_round(config)` and update it to pass the previous total: read `RunManager.run_state.total_score` (guard for null) and call `GameManager.setup_round(config, previous_total)` in `scenes/main.gd`
+- [x] T007 In `scenes/main.gd`, find the `_on_round_ready(config)` method that calls `GameManager.setup_round(config)` and update it to pass the previous total: read `RunManager.run_state.total_score` (guard for null) and call `GameManager.setup_round(config, previous_total)` in `scenes/main.gd`
 
 **Checkpoint**: Open Godot, start a run, score points in round 1, win, advance to round 2. Console log from `[GameManager]` must show round 2 starting with previous round's total. Score display (still on top-right HUD at this point) will still show per-round values -- that is expected. What matters is the log.
 
@@ -49,13 +49,13 @@
 
 **Independent Test**: Start run, score ~30 pts in round 1, win round (use debug auto-win if needed), enter shop. Verify shop shows ~30 pts. Then score ~20 pts in round 2, lose. Game over screen must show ~50 pts, not 20.
 
-- [ ] T008 [US1] Update the shop display call in `scenes/main.gd` (`_on_shop_requested`) to pass `GameManager.get_cumulative_score()` instead of `GameManager.get_current_score()` in `scenes/main.gd`
+- [x] T008 [US1] Update the shop display call in `scenes/main.gd` (`_on_shop_requested`) to pass `GameManager.get_cumulative_score()` instead of `GameManager.get_current_score()` in `scenes/main.gd`
 
-- [ ] T009 [US1] Add log line in `GameManager.commit_play()` that includes cumulative and target: `print("[GameManager] Play committed: +%d pts | Round: %d | Cumulative: %d | Target: %d | Plays left: %d")` per FR-024 in `autoload/game_manager.gd`
+- [x] T009 [US1] Add log line in `GameManager.commit_play()` that includes cumulative and target: `print("[GameManager] Play committed: +%d pts | Round: %d | Cumulative: %d | Target: %d | Plays left: %d")` per FR-024 in `autoload/game_manager.gd`
 
-- [ ] T010 [US1] Add log line in `GameManager._complete_round(success)` when `success == true` and cumulative score beat the target: `print("[GameManager] Target beaten! Cumulative: %d | Target: %d | Excess: %d")` per FR-025 in `autoload/game_manager.gd`
+- [x] T010 [US1] Add log line in `GameManager._complete_round(success)` when `success == true` and cumulative score beat the target: `print("[GameManager] Target beaten! Cumulative: %d | Target: %d | Excess: %d")` per FR-025 in `autoload/game_manager.gd`
 
-- [ ] T037 [US1] In `autoload/run_manager.gd`, at both run-end emit sites (victory and defeat), build a named log entry that captures the full run result fields: `print("[RunManager] Run ended | Victory: %s | TotalScore: %d | RoundReached: %d" % [str(victory), final_score, run_state.current_round])`. This named log is the leaderboard hook point per FR-005 -- no new class needed for this feature; the data is in `run_ended(victory, total_score)` signal plus `run_state.current_round` in `autoload/run_manager.gd`
+- [x] T037 [US1] In `autoload/run_manager.gd`, at both run-end emit sites (victory and defeat), build a named log entry that captures the full run result fields: `print("[RunManager] Run ended | Victory: %s | TotalScore: %d | RoundReached: %d" % [str(victory), final_score, run_state.current_round])`. This named log is the leaderboard hook point per FR-005 -- no new class needed for this feature; the data is in `run_ended(victory, total_score)` signal plus `run_state.current_round` in `autoload/run_manager.gd`
 
 **Checkpoint**: Game over screen shows the correct total including the failed round's points. Victory screen shows the correct total. Shop shows cumulative score. Console shows RunManager run-end log with all three fields.
 
@@ -67,17 +67,17 @@
 
 **Independent Test**: Start a run and score two ordinary 4-letter words per play. Round 1 target (25) should be reachable in 1-2 plays. Round 2 target (65 cumulative) should require 3-4 plays total across both rounds.
 
-- [ ] T011 [P] [US2] Change `@export var base_target_score: int = 1000000` to `25` and `@export var target_score_increment: int = 50` to `15` in `data/progression/progression_config.gd`
+- [x] T011 [P] [US2] Change `@export var base_target_score: int = 1000000` to `25` and `@export var target_score_increment: int = 50` to `15` in `data/progression/progression_config.gd`
 
-- [ ] T012 [P] [US2] Update `data/progression/progression_default.tres` to set `base_target_score = 25` and `target_score_increment = 15` to match the new defaults (the `.tres` resource overrides `.gd` defaults at runtime). This can be done via Godot editor inspector OR by editing the `.tres` file as plain text (find `base_target_score` and `target_score_increment` keys and change their values). If editing as text, save and reload in the editor to confirm no parse errors in `data/progression/progression_default.tres`
+- [x] T012 [P] [US2] Update `data/progression/progression_default.tres` to set `base_target_score = 25` and `target_score_increment = 15` to match the new defaults (the `.tres` resource overrides `.gd` defaults at runtime). This can be done via Godot editor inspector OR by editing the `.tres` file as plain text (find `base_target_score` and `target_score_increment` keys and change their values). If editing as text, save and reload in the editor to confirm no parse errors in `data/progression/progression_default.tres`
 
-- [ ] T013 [US2] Replace `_calculate_target_score(round_number)` with the quadratic formula: `return _config.base_target_score * round_number + _config.target_score_increment * round_number * (round_number - 1) / 2` in `scripts/domain/progression_rules.gd`. Expected: R1=25, R2=65, R3=120, R4=190, R5=275.
+- [x] T013 [US2] Replace `_calculate_target_score(round_number)` with the quadratic formula: `return _config.base_target_score * round_number + _config.target_score_increment * round_number * (round_number - 1) / 2` in `scripts/domain/progression_rules.gd`. Expected: R1=25, R2=65, R3=120, R4=190, R5=275.
 
-- [ ] T014 [US2] Update `_apply_boss_target_modifiers(boss, base_target)` to accept a third parameter `round_num: int`, then apply the boss multiplier only to the per-round delta (not the full cumulative): compute `prev_cumulative = _calculate_target_score(round_num - 1) if round_num > 1 else 0`, then `return prev_cumulative + int((base_target - prev_cumulative) * multiplier)` in `scripts/domain/progression_rules.gd`
+- [x] T014 [US2] Update `_apply_boss_target_modifiers(boss, base_target)` to accept a third parameter `round_num: int`, then apply the boss multiplier only to the per-round delta (not the full cumulative): compute `prev_cumulative = _calculate_target_score(round_num - 1) if round_num > 1 else 0`, then `return prev_cumulative + int((base_target - prev_cumulative) * multiplier)` in `scripts/domain/progression_rules.gd`
 
-- [ ] T015 [US2] Update both call sites of `_apply_boss_target_modifiers` in `get_round_config()` and `peek_round_config()` to pass the `round_num` argument in `scripts/domain/progression_rules.gd`
+- [x] T015 [US2] Update both call sites of `_apply_boss_target_modifiers` in `get_round_config()` and `peek_round_config()` to pass the `round_num` argument in `scripts/domain/progression_rules.gd`
 
-- [ ] T016 [US2] Add log: `print("[ProgressionRules] Round %d cumulative target: %d" % [round_num, target])` after target calculation in both `get_round_config()` and `peek_round_config()` per FR-024 in `scripts/domain/progression_rules.gd`
+- [x] T016 [US2] Add log: `print("[ProgressionRules] Round %d cumulative target: %d" % [round_num, target])` after target calculation in both `get_round_config()` and `peek_round_config()` per FR-024 in `scripts/domain/progression_rules.gd`
 
 **Checkpoint**: Start a run, check Godot console. Round 1 log must show target 25. Round 2 must show 65. Round 3 (Gravity boss) target must be 120 + boss adjustment applied only to the 55-pt per-round delta. Verify round 1 and 2 are clearable in normal play.
 
@@ -91,23 +91,23 @@
 
 This phase requires refactoring when scores are committed -- currently `main.gd._on_play_completed()` commits scores after all animation. The stagger-matched approach commits per-tile during animation.
 
-- [ ] T017 [US3] In `PlayExecutor._execute_play()`, before calling `_animate_play()`, pre-calculate the total play score and per-tile score distribution: call `_word_validator.calculate_placement_score()` for each word, sum the `breakdown[i].tile_score` entries into a `tile_score_map: Dictionary` keyed by tile. Also emit `EventBus.score_calculated` per word as before in `scripts/controllers/play_executor.gd`
+- [x] T017 [US3] In `PlayExecutor._execute_play()`, before calling `_animate_play()`, pre-calculate the total play score and per-tile score distribution: call `_word_validator.calculate_placement_score()` for each word, sum the `breakdown[i].tile_score` entries into a `tile_score_map: Dictionary` keyed by tile. Also emit `EventBus.score_calculated` per word as before in `scripts/controllers/play_executor.gd`
 
-- [ ] T018 [US3] Add a new method `_commit_scores_staggered(scored_tiles: Array[Tile], tile_score_map: Dictionary)` to `PlayExecutor` that awaits the stomp slam onset (read `StompTileAnimation.RISE_DURATION + StompTileAnimation.SLAM_DURATION` -- do NOT hardcode) then commits each tile's score with a per-tile stagger interval (read `StompTileAnimation.STAGGER_INTERVAL` or equivalent constant -- do NOT hardcode) via `GameManager.commit_play(tile_score_map[tile])` in `scripts/controllers/play_executor.gd`
+- [x] T018 [US3] Add a new method `_commit_scores_staggered(scored_tiles: Array[Tile], tile_score_map: Dictionary)` to `PlayExecutor` that awaits the stomp slam onset (read `StompTileAnimation.RISE_DURATION + StompTileAnimation.SLAM_DURATION` -- do NOT hardcode) then commits each tile's score with a per-tile stagger interval (read `StompTileAnimation.STAGGER_INTERVAL` or equivalent constant -- do NOT hardcode) via `GameManager.commit_play(tile_score_map[tile])` in `scripts/controllers/play_executor.gd`
 
-- [ ] T019 [US3] In `PlayExecutor._execute_play()`, launch `_commit_scores_staggered()` without awaiting it (so it runs concurrently), then `await _animate_play(all_tiles)`. The score commits fire during the animation. After the animation completes, ensure `play_completed` still emits once as before in `scripts/controllers/play_executor.gd`
+- [x] T019 [US3] In `PlayExecutor._execute_play()`, launch `_commit_scores_staggered()` without awaiting it (so it runs concurrently), then `await _animate_play(all_tiles)`. The score commits fire during the animation. After the animation completes, ensure `play_completed` still emits once as before in `scripts/controllers/play_executor.gd`
 
-- [ ] T036 [US3] Update `PlayExecutor._auto_end_round()` to use the same stagger-matched scoring path as `_execute_play()`: call `_commit_scores_staggered()` concurrently (without await) before `await _animate_play()`, instead of calling `GameManager.commit_play(total_score)` directly. This ensures auto-ended rounds produce the same per-tile score ticking as manually submitted plays in `scripts/controllers/play_executor.gd`
+- [x] T036 [US3] Update `PlayExecutor._auto_end_round()` to use the same stagger-matched scoring path as `_execute_play()`: call `_commit_scores_staggered()` concurrently (without await) before `await _animate_play()`, instead of calling `GameManager.commit_play(total_score)` directly. This ensures auto-ended rounds produce the same per-tile score ticking as manually submitted plays in `scripts/controllers/play_executor.gd`
 
-- [ ] T020 [US3] Update `main.gd._on_play_completed()` to remove the score calculation and `GameManager.commit_play()` call (scores are now committed inside `PlayExecutor`). The method can remain for other purposes (logging the word list, etc.) but must not commit score a second time in `scenes/main.gd`
+- [x] T020 [US3] Update `main.gd._on_play_completed()` to remove the score calculation and `GameManager.commit_play()` call (scores are now committed inside `PlayExecutor`). The method can remain for other purposes (logging the word list, etc.) but must not commit score a second time in `scenes/main.gd`
 
-- [ ] T021 [P] [US3] Create `scenes/ui/score_panel/score_panel.gd`: `extends CanvasLayer` with `@onready` refs to `ScoreLabel` and `Particles` child nodes. Connect to `EventBus.run_round_ready` (update `_target`) and `EventBus.score_updated` (update `_cumulative`, snap label, play pulse). Label format: `"%d / %d" % [_cumulative, _target]` (score first, target second) in `scenes/ui/score_panel/score_panel.gd`
+- [x] T021 [P] [US3] Create `scenes/ui/score_panel/score_panel.gd`: `extends CanvasLayer` with `@onready` refs to `ScoreLabel` and `Particles` child nodes. Connect to `EventBus.run_round_ready` (update `_target`) and `EventBus.score_updated` (update `_cumulative`, snap label, play pulse). Label format: `"%d / %d" % [_cumulative, _target]` (score first, target second) in `scenes/ui/score_panel/score_panel.gd`
 
-- [ ] T022 [P] [US3] Create `scenes/ui/score_panel/score_panel.tscn`: root is `CanvasLayer` (layer=1), child `HBoxContainer` anchored top-left (offset 10, 10), children: `ScoreLabel` (Label, bold font size 22, white) and `Particles` (CPUParticles2D, hidden initially) in `scenes/ui/score_panel/score_panel.tscn`
+- [x] T022 [P] [US3] Create `scenes/ui/score_panel/score_panel.tscn`: root is `CanvasLayer` (layer=1), child `HBoxContainer` anchored top-left (offset 10, 10), children: `ScoreLabel` (Label, bold font size 22, white) and `Particles` (CPUParticles2D, hidden initially) in `scenes/ui/score_panel/score_panel.tscn`
 
-- [ ] T023 [US3] Implement pulse animation in `score_panel.gd`: on each `score_updated` signal, tween `HBoxContainer.scale` from `Vector2.ONE` to `Vector2(1.15, 1.15)` over 0.1s (EASE_OUT, TRANS_BACK) then back to `Vector2.ONE` over 0.15s (EASE_IN, TRANS_QUAD). Kill previous pulse tween before starting a new one in `scenes/ui/score_panel/score_panel.gd`
+- [x] T023 [US3] Implement pulse animation in `score_panel.gd`: on each `score_updated` signal, tween `HBoxContainer.scale` from `Vector2.ONE` to `Vector2(1.15, 1.15)` over 0.1s (EASE_OUT, TRANS_BACK) then back to `Vector2.ONE` over 0.15s (EASE_IN, TRANS_QUAD). Kill previous pulse tween before starting a new one in `scenes/ui/score_panel/score_panel.gd`
 
-- [ ] T024 [US3] Add ScorePanel instance to `scenes/main.tscn` (instantiate `res://scenes/ui/score_panel/score_panel.tscn` as a child of the main scene root). Add `@onready var _score_panel: CanvasLayer = $ScorePanel` in `scenes/main.gd` in `scenes/main.tscn` and `scenes/main.gd`
+- [x] T024 [US3] Add ScorePanel instance to `scenes/main.tscn` (instantiate `res://scenes/ui/score_panel/score_panel.tscn` as a child of the main scene root). Add `@onready var _score_panel: CanvasLayer = $ScorePanel` in `scenes/main.gd` in `scenes/main.tscn` and `scenes/main.gd`
 
 **Checkpoint**: Play a round. Watch the top-left panel. Score must tick up once per tile stomp, not in one jump. Panel must pulse each time. After all tiles stomp, the displayed value must exactly equal the new cumulative total. If a play scores 0 pts (no valid words), no change in panel is expected.
 

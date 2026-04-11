@@ -24,6 +24,7 @@ enum GamePhase {
 var _current_phase: GamePhase = GamePhase.SETUP
 var _current_round: int = 1
 var _current_score: int = 0
+var _previous_rounds_total: int = 0
 var _target_score: int = 100
 var _plays_remaining: int = 10
 var _plays_per_round: int = 10
@@ -42,6 +43,9 @@ func get_current_round() -> int:
 
 func get_current_score() -> int:
 	return _current_score
+
+func get_cumulative_score() -> int:
+	return _current_score + _previous_rounds_total
 
 func get_target_score() -> int:
 	return _target_score
@@ -110,15 +114,16 @@ func commit_play(score: int) -> void:
 	_current_score += score
 	_plays_remaining -= 1
 
-	EventBus.score_updated.emit(_current_score, score)
+	var cumulative: int = get_cumulative_score()
+	EventBus.score_updated.emit(cumulative, score)
 	EventBus.play_completed.emit(_plays_remaining)
 
-	print("[GameManager] Play committed: +%d pts | Total: %d | Plays left: %d" % [
-		score, _current_score, _plays_remaining
+	print("[GameManager] Play committed: +%d pts | Round: %d | Cumulative: %d | Target: %d | Plays left: %d" % [
+		score, _current_round, cumulative, _target_score, _plays_remaining
 	])
 
 	# Check win/lose conditions
-	if _current_score >= _target_score:
+	if cumulative >= _target_score:
 		_complete_round(true)
 	elif _plays_remaining <= 0:
 		if RunManager.is_debug_auto_win():
@@ -129,11 +134,12 @@ func commit_play(score: int) -> void:
 
 
 ## Starts a new round.
-func start_round(round_num: int, target: int = DEFAULT_TARGET_SCORE, plays: int = DEFAULT_PLAYS_PER_ROUND) -> void:
+func start_round(round_num: int, target: int = DEFAULT_TARGET_SCORE, plays: int = DEFAULT_PLAYS_PER_ROUND, previous_total: int = 0) -> void:
 	_current_round = round_num
 	_target_score = target
 	_plays_per_round = plays
 	_plays_remaining = plays
+	_previous_rounds_total = previous_total
 
 	_set_phase(GamePhase.PLAYING)
 	EventBus.round_started.emit(_current_round)
@@ -144,11 +150,12 @@ func start_round(round_num: int, target: int = DEFAULT_TARGET_SCORE, plays: int 
 
 
 ## Sets up a round from a RoundConfig object.
-func setup_round(config: RoundConfig) -> void:
+func setup_round(config: RoundConfig, previous_total: int = 0) -> void:
 	_current_round = config.round_number
 	_target_score = config.target_score
 	_plays_per_round = config.plays_per_round
 	_plays_remaining = config.plays_per_round
+	_previous_rounds_total = previous_total
 	_current_score = 0
 
 	_set_phase(GamePhase.PLAYING)
@@ -198,10 +205,16 @@ func _complete_round(success: bool) -> void:
 	_set_phase(GamePhase.ROUND_END)
 	EventBus.round_ended.emit(_current_round, success)
 
+	var cumulative: int = get_cumulative_score()
 	if success:
 		print("[GameManager] Round %d complete! Score: %d/%d" % [
 			_current_round, _current_score, _target_score
 		])
+		if cumulative > _target_score:
+			var excess: int = cumulative - _target_score
+			print("[GameManager] Target beaten! Cumulative: %d | Target: %d | Excess: %d" % [
+				cumulative, _target_score, excess
+			])
 		# RunManager handles what comes next (shop or victory)
 	else:
 		print("[GameManager] Round %d failed. Score: %d/%d" % [

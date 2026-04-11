@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/score_panel/score_panel.gd" id="1_script"]
+
+[node name="ScorePanel" type="CanvasLayer"]
+layer = 1
+script = ExtResource("1_script")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 210.0
+offset_bottom = 50.0
+
+[node name="ScoreLabel" type="Label" parent="HBoxContainer"]
+text = "0 / 0"
+
+[node name="Particles" type="CPUParticles2D" parent="HBoxContainer"]
+visible = false

@@ -82,9 +82,21 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	if _round_config and _round_config.boss:
 		await _execute_boss_post_play_effects(unplayed_tiles)
 
+	# Calculate total play score for emission
+	var total_score: int = 0
+	for word_info in words:
+		var score_result: Dictionary = _word_validator.calculate_placement_score(
+			word_info.tiles, word_info.cells
+		)
+		total_score += score_result.total
+		EventBus.score_calculated.emit(score_result.total, score_result)
+
 	# Animate ALL board tiles
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
 	await _animate_play(all_tiles)
+
+	# Commit play score after animation
+	GameManager.commit_play(total_score)
 
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
@@ -233,6 +245,7 @@ func _auto_end_round() -> void:
 			word_info.tiles, word_info.cells
 		)
 		total_score += score_result.total
+		EventBus.score_calculated.emit(score_result.total, score_result)
 
 	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
 
