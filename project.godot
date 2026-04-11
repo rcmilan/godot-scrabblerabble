@@ -28,6 +28,7 @@ HandManager="*res://autoload/hand_manager.gd"
 TileAnimator="*res://autoload/tile_animator.gd"
 RunManager="*res://autoload/run_manager.gd"
 KeybindingConfig="*res://scripts/managers/keybinding_config.gd"
+BackgroundManager="*res://autoload/background_manager.gd"
 
 [dotnet]
 

@@ -46,6 +46,7 @@ func _process(delta: float) -> void:
 ## Initializes a run from a Run object built by RunBuilder.
 func initialize_run_from_builder(run: Run) -> void:
 	_debug_auto_win = false
+	BackgroundManager.reset_to_default()
 	_active_run = run
 
 	# Set up RunState from the Run config

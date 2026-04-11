@@ -21,6 +21,7 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 	var target: int = _calculate_target_score(round_num)
 	var plays: int = run_state.plays_per_round
 	var hand: int = run_state.hand_size
+	var is_boss: bool = _is_boss_round(round_num)
 
 	return RoundConfig.new(
 		round_num,
@@ -28,7 +29,8 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 		board_size.x,  # columns
 		target,
 		plays,
-		hand
+		hand,
+		is_boss
 	)
 
 
@@ -41,3 +43,7 @@ func _calculate_board_size(round_number: int) -> Vector2i:
 
 func _calculate_target_score(round_number: int) -> int:
 	return _config.base_target_score + (round_number - 1) * _config.target_score_increment
+
+
+func _is_boss_round(round_number: int) -> bool:
+	return round_number % 3 == 0
