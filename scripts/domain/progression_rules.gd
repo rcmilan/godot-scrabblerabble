@@ -38,6 +38,9 @@ func peek_round_config(run_state: RunState) -> RoundConfig:
 		var plays_override: int = boss.hooks.get_plays_override()
 		if plays_override > 0:
 			plays = plays_override
+		# Log Hard Boss specifically per FR-026
+		if boss.id == &"hard":
+			print("[ProgressionRules] Hard Boss active | Per-round delta doubled | Final target: %d" % target)
 
 	print("[ProgressionRules] Round %d cumulative target: %d" % [round_num, target])
 
@@ -84,6 +87,9 @@ func get_round_config(run_state: RunState) -> RoundConfig:
 		var plays_override: int = boss.hooks.get_plays_override()
 		if plays_override > 0:
 			plays = plays_override
+		# Log Hard Boss specifically per FR-026
+		if boss.id == &"hard":
+			print("[ProgressionRules] Hard Boss active | Per-round delta doubled | Final target: %d" % target)
 
 	print("[ProgressionRules] Round %d cumulative target: %d" % [round_num, target])
 

@@ -119,11 +119,11 @@ This phase requires refactoring when scores are committed -- currently `main.gd.
 
 **Independent Test**: Force-score to just above target (5% over) -- no particles. Then score to 35% over target -- full particle burst visible on score panel.
 
-- [ ] T025 [US4] Implement `_setup_particles()` in `score_panel.gd`: configure the `CPUParticles2D` child with `one_shot=true`, `explosiveness=0.8`, `lifetime=0.8`, upward direction, color gradient gold->orange->transparent. Call from `_ready()` in `scenes/ui/score_panel/score_panel.gd`
+- [x] T025 [US4] Implement `_setup_particles()` in `score_panel.gd`: configure the `CPUParticles2D` child with `one_shot=true`, `explosiveness=0.8`, `lifetime=0.8`, upward direction, color gradient gold->orange->transparent. Call from `_ready()` in `scenes/ui/score_panel/score_panel.gd`
 
-- [ ] T026 [US4] Implement `_play_particles()` in `score_panel.gd`: compute `ratio = float(_cumulative - _target) / float(_target)`, then map to 4 tiers -- ratio < 0.05: return (no particles); 0.05-0.15: amount=8, velocity=30-60; 0.15-0.30: amount=20, velocity=60-90; >= 0.30: amount=40, velocity=90-130. Set `_particles.amount` and velocity fields, then call `_particles.show()` followed by `_particles.restart()` (`restart()` requires the node to be visible). Log the tier and ratio per FR-025 in `scenes/ui/score_panel/score_panel.gd`
+- [x] T026 [US4] Implement `_play_particles()` in `score_panel.gd`: compute `ratio = float(_cumulative - _target) / float(_target)`, then map to 4 tiers -- ratio < 0.05: return (no particles); 0.05-0.15: amount=8, velocity=30-60; 0.15-0.30: amount=20, velocity=60-90; >= 0.30: amount=40, velocity=90-130. Set `_particles.amount` and velocity fields, then call `_particles.show()` followed by `_particles.restart()` (`restart()` requires the node to be visible). Log the tier and ratio per FR-025 in `scenes/ui/score_panel/score_panel.gd`
 
-- [ ] T027 [US4] Call `_play_particles()` from `_on_score_updated()` whenever `_cumulative > _target` (re-evaluates every time, handles FR-016: already-beaten target still fires particles on subsequent plays) in `scenes/ui/score_panel/score_panel.gd`
+- [x] T027 [US4] Call `_play_particles()` from `_on_score_updated()` whenever `_cumulative > _target` (re-evaluates every time, handles FR-016: already-beaten target still fires particles on subsequent plays) in `scenes/ui/score_panel/score_panel.gd`
 
 **Checkpoint**: Win a round by exactly 5% -- no particles. Win by 20% -- moderate burst. Win by 40% -- full burst. After winning and continuing to score, each new play still triggers particles at the correct intensity.
 
@@ -135,11 +135,11 @@ This phase requires refactoring when scores are committed -- currently `main.gd.
 
 **Independent Test**: Trigger a Hard Boss round (advance to round 15 or swap boss order temporarily). Confirm target is higher than a normal round at the same position. Confirm metallic gray background. Win or lose, confirm next round uses normal targets.
 
-- [ ] T028 [P] [US5] Create `scripts/domain/bosses/hard_boss.gd`: `class_name HardBossHooks extends BossHooks`, override only `func get_target_score_multiplier() -> float: return 2.0`. No other overrides. No Godot engine imports in `scripts/domain/bosses/hard_boss.gd`
+- [x] T028 [P] [US5] Create `scripts/domain/bosses/hard_boss.gd`: `class_name HardBossHooks extends BossHooks`, override only `func get_target_score_multiplier() -> float: return 2.0`. No other overrides. No Godot engine imports in `scripts/domain/bosses/hard_boss.gd`
 
-- [ ] T029 [US5] Register Hard Boss in `BossRegistry._init()` after the Diagonal boss: `Boss.new(&"hard", "Hard", Color(0.6, 0.6, 0.65), HardBossHooks.new())`, append to `_bosses`, log registration in `scripts/domain/bosses/boss_registry.gd`
+- [x] T029 [US5] Register Hard Boss in `BossRegistry._init()` after the Diagonal boss: `Boss.new(&"hard", "Hard", Color(0.6, 0.6, 0.65), HardBossHooks.new())`, append to `_bosses`, log registration in `scripts/domain/bosses/boss_registry.gd`
 
-- [ ] T030 [US5] Add FR-026 logging: in `ProgressionRules.get_round_config()`, after `_apply_boss_target_modifiers()` and only if boss is the Hard boss (`boss.id == &"hard"`), log: `print("[ProgressionRules] Hard Boss active | Per-round delta doubled | Final target: %d" % target)` in `scripts/domain/progression_rules.gd`
+- [x] T030 [US5] Add FR-026 logging: in `ProgressionRules.get_round_config()`, after `_apply_boss_target_modifiers()` and only if boss is the Hard boss (`boss.id == &"hard"`), log: `print("[ProgressionRules] Hard Boss active | Per-round delta doubled | Final target: %d" % target)` in `scripts/domain/progression_rules.gd`
 
 **Checkpoint**: Run the game and reach a boss round with Hard Boss active (check log for "[BossRegistry] Registered boss: Hard"). Background is metallic gray. Target is higher. After boss round ends, next round target is not doubled.
 
@@ -151,9 +151,9 @@ This phase requires refactoring when scores are committed -- currently `main.gd.
 
 **Independent Test**: Open gameplay. Top-right panel shows Round, Plays, Deck, Hand, Discard -- no Score or Target rows.
 
-- [ ] T031 [US6] Open `scenes/ui/main_hud/main_hud.tscn` in Godot editor and delete the `ScoreLabel` and `TargetLabel` nodes from the scene tree in `scenes/ui/main_hud/main_hud.tscn`
+- [x] T031 [US6] Open `scenes/ui/main_hud/main_hud.tscn` in Godot editor and delete the `ScoreLabel` and `TargetLabel` nodes from the scene tree in `scenes/ui/main_hud/main_hud.tscn`
 
-- [ ] T032 [US6] Remove from `scenes/ui/main_hud/main_hud.gd`: `@onready var score_label`, `@onready var target_label`, the `_update_score()` method, the `_update_target()` method, the `_on_score_updated()` handler, the `EventBus.score_updated.connect(_on_score_updated)` line, and all calls to `_update_score()` / `_update_target()` in `_initialize_display()`, `_on_round_started()`, and `_on_run_round_ready()` in `scenes/ui/main_hud/main_hud.gd`
+- [x] T032 [US6] Remove from `scenes/ui/main_hud/main_hud.gd`: `@onready var score_label`, `@onready var target_label`, the `_update_score()` method, the `_update_target()` method, the `_on_score_updated()` handler, the `EventBus.score_updated.connect(_on_score_updated)` line, and all calls to `_update_score()` / `_update_target()` in `_initialize_display()`, `_on_round_started()`, and `_on_run_round_ready()` in `scenes/ui/main_hud/main_hud.gd`
 
 **Checkpoint**: No "Score:" or "Target:" text visible anywhere in the top-right panel during gameplay. ScorePanel at top-left still shows both values correctly.
 
@@ -161,11 +161,11 @@ This phase requires refactoring when scores are committed -- currently `main.gd.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T033 Manually verify all 16 checklist items from `specs/006-score-progression/plan.md` in Godot editor, checking off each item as confirmed
+- [x] T033 Manually verify all 16 checklist items from `specs/006-score-progression/plan.md` in Godot editor, checking off each item as confirmed
 
-- [ ] T034 [P] Update `specs/006-score-progression/research.md` "Score Countup Animation" section to reflect the stagger-matched approach chosen in clarification (replace the post-stomp countup description) in `specs/006-score-progression/research.md`
+- [x] T034 [P] Update `specs/006-score-progression/research.md` "Score Countup Animation" section to reflect the stagger-matched approach chosen in clarification (replace the post-stomp countup description) in `specs/006-score-progression/research.md`
 
-- [ ] T035 [P] Update `specs/006-score-progression/plan.md` Step 5 ScorePanel script to remove the `_countup_tween` variable and `_start_countup()` / `_set_displayed_score()` methods, since per-tile snap is now used instead in `specs/006-score-progression/plan.md`
+- [x] T035 [P] Update `specs/006-score-progression/plan.md` Step 5 ScorePanel script to remove the `_countup_tween` variable and `_start_countup()` / `_set_displayed_score()` methods, since per-tile snap is now used instead in `specs/006-score-progression/plan.md`
 
 ---
 

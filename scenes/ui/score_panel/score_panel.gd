@@ -37,6 +37,8 @@ func _setup_particles() -> void:
 	particles.lifetime = 0.8
 	particles.scale = Vector2(1.5, 1.5)
 
+	print("[ScorePanel] Particles configured")
+
 
 func _on_round_ready(config: RoundConfig) -> void:
 	print("[ScorePanel] _on_round_ready called")
@@ -59,7 +61,7 @@ func _on_score_updated(cumulative: int, delta: int) -> void:
 	_pulse_tween.tween_property($HBoxContainer, "scale", Vector2(1.15, 1.15), 0.1).set_ease(Tween.EASE_OUT)
 	_pulse_tween.tween_property($HBoxContainer, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 
-	# Particles if target beaten
+	# Particles if target beaten (re-evaluates every update, so particles fire on each new score past target)
 	if _cumulative > _target:
 		_play_particles()
 
@@ -91,4 +93,11 @@ func _play_particles() -> void:
 	particles.show()
 	particles.restart()
 
-	print("[ScorePanel] Particles triggered | Ratio: %.2f | Tier: %d" % [ratio, 1 if ratio < 0.15 else (2 if ratio < 0.30 else 3)])
+	var tier: int = 0
+	if ratio < 0.15:
+		tier = 1
+	elif ratio < 0.30:
+		tier = 2
+	else:
+		tier = 3
+	print("[ScorePanel] Particles triggered | Ratio: %.2f | Tier: %d" % [ratio, tier])

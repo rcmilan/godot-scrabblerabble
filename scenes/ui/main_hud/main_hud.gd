@@ -9,8 +9,6 @@ signal play_requested
 # === Node References ===
 @onready var round_label: Label = $RoundLabel
 @onready var plays_label: Label = $PlaysLabel
-@onready var score_label: Label = $ScoreLabel
-@onready var target_label: Label = $TargetLabel
 @onready var deck_label: Label = $DeckLabel
 @onready var hand_label: Label = $HandLabel
 @onready var discard_label: Label = $DiscardLabel
@@ -36,7 +34,6 @@ func _exit_tree() -> void:
 
 func _connect_signals() -> void:
 	# EventBus signals
-	EventBus.score_updated.connect(_on_score_updated)
 	EventBus.hand_count_changed.connect(_on_hand_count_changed)
 	EventBus.bag_count_changed.connect(_on_bag_count_changed)
 	EventBus.discard_count_changed.connect(_on_discard_count_changed)
@@ -54,18 +51,12 @@ func _initialize_display() -> void:
 	# Set initial values
 	_update_round(GameManager.get_current_round())
 	_update_plays(GameManager.get_plays_remaining())
-	_update_score(GameManager.get_current_score())
-	_update_target(GameManager.get_target_score())
 	_update_deck(TileBag.tiles_remaining())
 	_update_hand(HandManager.get_hand_size())
 	_update_discard(HandManager.get_discard_count())
 
 
 # === Signal Handlers ===
-
-func _on_score_updated(total: int, _delta: int) -> void:
-	_update_score(total)
-
 
 func _on_hand_count_changed(count: int) -> void:
 	_update_hand(count)
@@ -86,13 +77,11 @@ func _on_play_completed(plays_remaining: int) -> void:
 func _on_round_started(round_number: int) -> void:
 	_update_round(round_number)
 	_update_plays(GameManager.get_plays_remaining())
-	_update_target(GameManager.get_target_score())
 
 
 func _on_run_round_ready(config: RoundConfig) -> void:
 	_update_round(config.round_number)
 	_update_plays(config.plays_per_round)
-	_update_target(config.target_score)
 	_connect_timer_qualities()
 
 
@@ -104,14 +93,6 @@ func _update_round(round_number: int) -> void:
 
 func _update_plays(count: int) -> void:
 	plays_label.text = "Plays: %d" % count
-
-
-func _update_score(score: int) -> void:
-	score_label.text = "Score: %d" % score
-
-
-func _update_target(target: int) -> void:
-	target_label.text = "Target: %d" % target
 
 
 func _update_deck(count: int) -> void:
