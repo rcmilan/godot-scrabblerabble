@@ -14,6 +14,7 @@ var _pulse_tween: Tween = null
 
 
 func _ready() -> void:
+	print("[ScorePanel] Ready")
 	# Configure UI at runtime
 	score_label.add_theme_font_size_override("font_size", 22)
 	score_label.add_theme_color_override("font_color", Color.WHITE)
@@ -27,6 +28,7 @@ func _ready() -> void:
 	EventBus.run_round_ready.connect(_on_round_ready)
 	EventBus.score_updated.connect(_on_score_updated)
 	_setup_particles()
+	print("[ScorePanel] Connected to EventBus signals")
 
 
 func _setup_particles() -> void:
@@ -37,12 +39,15 @@ func _setup_particles() -> void:
 
 
 func _on_round_ready(config: RoundConfig) -> void:
+	print("[ScorePanel] _on_round_ready called")
 	_target = config.target_score
 	_cumulative = GameManager.get_cumulative_score()
 	score_label.text = "%d / %d" % [_cumulative, _target]
+	print("[ScorePanel] Initialized: %d / %d" % [_cumulative, _target])
 
 
 func _on_score_updated(cumulative: int, delta: int) -> void:
+	print("[ScorePanel] _on_score_updated: cumulative=%d, delta=%d, target=%d" % [cumulative, delta, _target])
 	_cumulative = cumulative
 	score_label.text = "%d / %d" % [_cumulative, _target]
 

@@ -32,6 +32,7 @@ var _focus_cursor: FocusCursor = null
 @onready var pause_menu: PauseMenu = $PauseMenu
 @onready var _background: ColorRect = $Background
 @onready var _round_indicator: Label = $RoundIndicator
+@onready var _score_panel: CanvasLayer = $ScorePanel
 
 # Animation state
 var _bg_tween: Tween = null
@@ -158,9 +159,10 @@ func _on_round_ready(config: RoundConfig) -> void:
 		previous_total = RunManager.run_state.total_score
 	GameManager.setup_round(config, previous_total)
 
-	# Notify ScorePanel directly (avoid re-emitting run_round_ready which would create a signal loop)
-	# ScorePanel listens to this and initializes with correct cumulative score and target
-	EventBus.run_round_ready.emit(config)
+	# Notify ScorePanel directly after GameManager is ready
+	# (avoid re-emitting run_round_ready which would create a signal loop)
+	if _score_panel:
+		_score_panel._on_round_ready(config)
 
 	# Pass RoundConfig to PlayExecutor for boss effect handling
 	_gameplay_controller.set_play_executor_round_config(config)
