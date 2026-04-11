@@ -140,6 +140,7 @@ func _on_round_ready(config: RoundConfig) -> void:
 	# Update background and round indicator
 	var bg_color := Color(1.0, 0.85, 0.85, 1.0) if config.is_boss_round else Color(0.85, 0.88, 0.92, 1.0)
 	_transition_background(bg_color)
+	BackgroundManager.set_color(bg_color)
 	_round_indicator.text = "Boss Round" if config.is_boss_round else "Round %d" % config.round_number
 
 	# Activate gameplay and show UI

@@ -38,9 +38,9 @@ No project setup required. All changes are in-place modifications to an existing
 
 **CRITICAL**: US2 and US5 depend on BackgroundManager.
 
-- [ ] T010 Create `autoload/background_manager.gd`: new autoload script with `var _current_color: Color` (default blue-gray 0.85, 0.88, 0.92), signal `color_changed(new_color: Color)`, method `set_color(color: Color)` that kills any active tween and tweens to the new color over 1.0s, method `reset_to_default()` that sets color back to blue-gray. No Godot nodes, pure state management.
-- [ ] T011 Register BackgroundManager in `project.godot` under `[autoload]` section as `BackgroundManager = "res://autoload/background_manager.gd"`.
-- [ ] T012 Update `autoload/run_manager.gd` in `initialize_run_from_builder()` to call `BackgroundManager.reset_to_default()` when a new run starts.
+- [x] T010 Create `autoload/background_manager.gd`: new autoload script with `var _current_color: Color` (default blue-gray 0.85, 0.88, 0.92), signal `color_changed(new_color: Color)`, method `set_color(color: Color)` that kills any active tween and tweens to the new color over 1.0s, method `reset_to_default()` that sets color back to blue-gray. No Godot nodes, pure state management.
+- [x] T011 Register BackgroundManager in `project.godot` under `[autoload]` section as `BackgroundManager = "res://autoload/background_manager.gd"`.
+- [x] T012 Update `autoload/run_manager.gd` in `initialize_run_from_builder()` to call `BackgroundManager.reset_to_default()` when a new run starts.
 
 **Checkpoint**: BackgroundManager is ready. All scenes can now access the global background color and react to changes.
 
@@ -67,9 +67,9 @@ No project setup required. All changes are in-place modifications to an existing
 
 - [x] T005 [US2] Edit `scenes/main.tscn`: insert a `[node name="Background" type="ColorRect" parent="."]` entry as the FIRST node under Main (before the Board node), with `layout_mode = 3`, `anchors_preset = 15`, `anchor_right = 1.0`, `anchor_bottom = 1.0`, `grow_horizontal = 2`, `grow_vertical = 2`, `color = Color(0.85, 0.88, 0.92, 1)` (blue-gray default)
 - [x] T006 [US2] Update `scenes/main.gd`: add `@onready var _background: ColorRect = $Background`; add `var _bg_tween: Tween = null`; add private method `_transition_background(target_color: Color) -> void` that kills any active `_bg_tween`, creates a new Tween, and tweens `_background.color` to `target_color` over 1.0s using `TRANS_SINE / EASE_IN_OUT`; in `_on_round_ready(config: RoundConfig)` call `_transition_background(Color(1.0, 0.85, 0.85, 1.0) if config.is_boss_round else Color(0.85, 0.88, 0.92, 1.0))`; also call `BackgroundManager.set_color(...)` with the same color to persist across scenes
-- [ ] T013 [P] [US2] Update `scenes/title_screen/title_screen.gd`: add signal connection to `BackgroundManager.color_changed` that updates a Background ColorRect (add as child of root node if not present) in real-time, respecting the persisted color from previous runs.
-- [ ] T014 [P] [US2] Verify `scenes/shop/shop_overlay.gd` exists. If it does, add a `@onready var _background: ColorRect` reference and connect `BackgroundManager.color_changed.connect(_on_background_color_changed)` where `_on_background_color_changed(color: Color)` updates `_background.color = color`. If file does not exist, create it with the above code as a new controller script for the shop overlay.
-- [ ] T015 [P] [US2] Update `scenes/ui/game_over_popup/game_over_popup.gd`: add Background ColorRect child and connect to `BackgroundManager.color_changed` signal.
+- [x] T013 [P] [US2] Update `scenes/title_screen/title_screen.gd`: add signal connection to `BackgroundManager.color_changed` that updates a Background ColorRect (add as child of root node if not present) in real-time, respecting the persisted color from previous runs.
+- [x] T014 [P] [US2] Verify `scenes/shop/shop_overlay.gd` exists. If it does, add a `@onready var _background: ColorRect` reference and connect `BackgroundManager.color_changed.connect(_on_background_color_changed)` where `_on_background_color_changed(color: Color)` updates `_background.color = color`. If file does not exist, create it with the above code as a new controller script for the shop overlay.
+- [x] T015 [P] [US2] Update `scenes/ui/game_over_popup/game_over_popup.gd`: add Background ColorRect child and connect to `BackgroundManager.color_changed` signal.
 
 **Checkpoint**: US2 complete. Background is blue-gray on Normal rounds, light red on Boss rounds, persists across all scenes, transitions smoothly over 1.0s, resets to blue-gray only on new game.
 
@@ -105,8 +105,8 @@ No project setup required. All changes are in-place modifications to an existing
 
 **Independent Test**: Play to Round 3 (red bg). Lose/complete round. Verify red bg persists on game over → title. Start new game. Verify bg resets to blue-gray.
 
-- [ ] T016 [US5] Read `autoload/background_manager.gd` and verify: (a) `_current_color` defaults to blue-gray; (b) `reset_to_default()` method exists and sets color back to blue-gray; (c) `set_color()` method tweens over 1.0s; (d) `color_changed` signal is emitted on color change.
-- [ ] T017 [US5] Verify all UI scenes have Background ColorRects and active connections to `BackgroundManager.color_changed`: inspect title_screen.gd, shop_overlay.gd, game_over_popup.gd for the signal connection. Each must update its local Background ColorRect on signal emit.
+- [x] T016 [US5] Read `autoload/background_manager.gd` and verify: (a) `_current_color` defaults to blue-gray; (b) `reset_to_default()` method exists and sets color back to blue-gray; (c) `set_color()` method tweens over 1.0s; (d) `color_changed` signal is emitted on color change.
+- [x] T017 [US5] Verify all UI scenes have Background ColorRects and active connections to `BackgroundManager.color_changed`: inspect title_screen.gd, shop_overlay.gd, game_over_popup.gd for the signal connection. Each must update its local Background ColorRect on signal emit.
 - [ ] T018 [US5] Manual test: Play to Boss Round, end round, verify color persists on shop/game-over screens, return to title, verify color still persists, start new game, verify color resets to blue-gray.
 
 **Checkpoint**: US5 complete. Global background system fully integrated and persistent.
@@ -117,7 +117,7 @@ No project setup required. All changes are in-place modifications to an existing
 
 **Purpose**: End-to-end manual validation across all user stories.
 
-- [ ] T009 Run all 6 test scenarios from `specs/004-boss-rounds/quickstart.md` manually in Godot 4.6 editor: Tests 1-4 verify round label and background across Rounds 1-9, Test 5 confirms MULTI [Q] is gone, Test 6 confirms Auto Win modifier text. Use Auto Win modifier fast path to reach Round 3 quickly.
+- [ ] T009 [Pending Manual Test] Run all 6 test scenarios from `specs/004-boss-rounds/quickstart.md` manually in Godot 4.6 editor: Tests 1-4 verify round label and background across Rounds 1-9, Test 5 confirms MULTI [Q] is gone, Test 6 confirms Auto Win modifier text. Use Auto Win modifier fast path to reach Round 3 quickly.
 
 ---
 

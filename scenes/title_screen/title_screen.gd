@@ -26,6 +26,13 @@ var _menu_controller: MenuController = null
 @onready var _new_game_button: Button = $MenuView/MenuContainer/VBoxContainer/NewGameButton
 @onready var _exit_button: Button = $MenuView/MenuContainer/VBoxContainer/ExitButton
 @onready var _run_setup_view: RunSetupView = $RunSetupView
+@onready var _background: ColorRect = $Background
+
+# =============================================================================
+# STATE
+# =============================================================================
+
+var _bg_tween: Tween = null
 
 # =============================================================================
 # LIFECYCLE
@@ -34,6 +41,7 @@ var _menu_controller: MenuController = null
 func _ready() -> void:
 	_setup_menu_controller()
 	_setup_signals()
+	_setup_background()
 
 
 func _setup_menu_controller() -> void:
@@ -48,6 +56,24 @@ func _setup_menu_controller() -> void:
 func _setup_signals() -> void:
 	_run_setup_view.run_confirmed.connect(_on_run_confirmed)
 	_run_setup_view.back_requested.connect(_on_run_setup_back)
+
+
+func _setup_background() -> void:
+	_background.color = BackgroundManager.get_current_color()
+	BackgroundManager.color_changed.connect(_on_background_color_changed)
+
+
+func _on_background_color_changed(new_color: Color) -> void:
+	_transition_background(new_color)
+
+
+func _transition_background(target_color: Color) -> void:
+	if _bg_tween:
+		_bg_tween.kill()
+	_bg_tween = create_tween()
+	_bg_tween.set_trans(Tween.TRANS_SINE)
+	_bg_tween.set_ease(Tween.EASE_IN_OUT)
+	_bg_tween.tween_property(_background, "color", target_color, 1.0)
 
 # =============================================================================
 # VIEW SWITCHING
