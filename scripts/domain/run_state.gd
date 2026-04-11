@@ -31,7 +31,9 @@ func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribu
 	# Initialize boss pool from registry
 	var boss_registry = BossRegistry.new()
 	var all_bosses = boss_registry.get_all_bosses()
+	print("[RunState] Boss registry returned %d bosses: %s" % [all_bosses.size(), all_bosses.map(func(b): return b.display_name)])
 	_boss_pool = BossPool.new(all_bosses)
+	print("[RunState] BossPool initialized with %d bosses | Pool ready: has_next=%s" % [_boss_pool.get_total_count(), _boss_pool.has_next()])
 
 
 func advance_round() -> void:

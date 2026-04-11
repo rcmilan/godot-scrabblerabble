@@ -13,7 +13,6 @@ extends TileAnimationStrategy
 
 ## Constructor: initialize motion parameters
 func _init() -> void:
-	super._init()
 	duration = 0.5
 	ease_type = Tween.EASE_IN
 	trans_type = Tween.TRANS_QUAD

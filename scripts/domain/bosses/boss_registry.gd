@@ -16,6 +16,7 @@ var _initialized: bool = false
 ## Initialize the registry with all boss definitions
 func _init() -> void:
 	if _initialized:
+		print("[BossRegistry] Already initialized, skipping")
 		return
 
 	# Register Gravity boss
@@ -26,6 +27,7 @@ func _init() -> void:
 		GravityBossHooks.new()
 	)
 	_bosses.append(gravity_boss)
+	print("[BossRegistry] Registered boss: %s | Total bosses: %d" % [gravity_boss.display_name, _bosses.size()])
 
 	_initialized = true
 

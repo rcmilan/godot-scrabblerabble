@@ -221,8 +221,8 @@ func _on_shop_requested(round_number: int) -> void:
 	_focus_cursor.deactivate()
 	_hide_gameplay_ui()
 
-	# Peek at next round config for display
-	var next_config: RoundConfig = RunManager.progression_rules.get_round_config(
+	# Peek at next round config for display (without consuming boss pool)
+	var next_config: RoundConfig = RunManager.progression_rules.peek_round_config(
 		RunManager.run_state
 	)
 	shop_overlay.show_shop(round_number, GameManager.get_current_score(), next_config)

@@ -113,7 +113,7 @@ func _execute_boss_post_play_effects(unplayed_tiles: Array[Tile]) -> void:
 	for row in range(board.rows):
 		var row_array: Array = []
 		for col in range(board.columns):
-			var cell = board.get_cell(Vector2i(col, row))
+			var cell = board.get_cell(row, col)
 			row_array.append(cell != null and cell.is_occupied())
 		grid_occupancy.append(row_array)
 
@@ -136,8 +136,8 @@ func _execute_boss_post_play_effects(unplayed_tiles: Array[Tile]) -> void:
 	for movement in movements_raw:
 		var from_pos: Vector2i = movement["from"]
 		var to_pos: Vector2i = movement["to"]
-		var from_cell = board.get_cell(from_pos)
-		var to_cell = board.get_cell(to_pos)
+		var from_cell = board.get_cell(from_pos.y, from_pos.x)
+		var to_cell = board.get_cell(to_pos.y, to_pos.x)
 
 		if from_cell and from_cell.is_occupied() and to_cell:
 			resolved_movements.append({

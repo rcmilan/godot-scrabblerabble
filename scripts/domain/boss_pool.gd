@@ -19,8 +19,10 @@ var _current_index: int = 0
 ## Constructor: duplicates and shuffles the input boss array
 func _init(bosses: Array) -> void:
 	_shuffled_bosses = bosses.duplicate()
+	print("[BossPool] Initialized with %d bosses: %s" % [_shuffled_bosses.size(), _shuffled_bosses.map(func(b): return b.display_name)])
 	_shuffled_bosses.shuffle()
 	_current_index = 0
+	print("[BossPool] After shuffle: %s | Index: %d" % [_shuffled_bosses.map(func(b): return b.display_name), _current_index])
 
 
 ## Returns true if unselected bosses remain
@@ -32,9 +34,11 @@ func has_next() -> bool:
 ## Returns null if pool is exhausted (caller should check has_next first)
 func next() -> Boss:
 	if not has_next():
+		print("[BossPool] next() called but pool exhausted (index=%d, total=%d)" % [_current_index, _shuffled_bosses.size()])
 		return null
 	var boss = _shuffled_bosses[_current_index]
 	_current_index += 1
+	print("[BossPool] next() returned: %s | New index: %d | Remaining: %d" % [boss.display_name, _current_index, get_remaining_count()])
 	return boss
 
 
