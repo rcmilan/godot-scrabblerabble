@@ -51,3 +51,4 @@ static func _ensure_initialized() -> void:
 	_factories[&"standard"] = func() -> DeckDefinition: return StandardDeck.new()
 	_factories[&"equal"]    = func() -> DeckDefinition: return EqualDeck.new()
 	_factories[&"cursed"]   = func() -> DeckDefinition: return CursedDeck.new()
+	_factories[&"random_modifiers"] = func() -> DeckDefinition: return RandomModifiersDeck.new()

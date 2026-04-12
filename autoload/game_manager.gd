@@ -136,7 +136,10 @@ func commit_play(score: int) -> void:
 
 ## Adds score from a single tile during stagger-matched scoring.
 ## Emits score_updated per tile. Does NOT check win/lose -- that happens in end_play().
+## Ignored if the round has already ended (guards against late stagger ticks).
 func add_tile_score(score: int) -> void:
+	if _current_phase != GamePhase.PLAYING:
+		return
 	_current_score += score
 	var cumulative: int = get_cumulative_score()
 	EventBus.score_updated.emit(cumulative, score)

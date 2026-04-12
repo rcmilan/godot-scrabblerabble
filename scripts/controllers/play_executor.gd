@@ -95,18 +95,14 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	# Animate ALL board tiles with stagger-matched scoring
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
 	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
-	var stomp_count: int = cats.stomp.size()
 
 	# Launch stagger scoring concurrently (runs during animation)
-	_commit_scores_staggered(total_score, stomp_count)
+	_commit_scores_staggered(total_score, cats.stomp.size(), cats.spin.size())
 
 	await _animate_play_from_cats(cats)
 
-	# Finalize play (decrement plays, check lose condition)
+	# Finalize play (decrement plays, check win/lose condition)
 	GameManager.end_play()
-
-	# Commit play score after animation
-	GameManager.commit_play(total_score)
 
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
@@ -201,33 +197,46 @@ func _rebind_cells_after_drop(movements: Array) -> void:
 		tile.attach_to_cell(to_cell)
 
 
-## Commits score per stomp tile at stagger intervals during animation.
-## Runs concurrently (not awaited by caller) so scores tick during stomps.
-func _commit_scores_staggered(total_score: int, stomp_count: int) -> void:
-	if stomp_count <= 0 or total_score <= 0:
+## Commits score per animated tile at stagger intervals during animation.
+## Runs concurrently (not awaited by caller) so scores tick during stomps/spins.
+func _commit_scores_staggered(total_score: int, stomp_count: int, spin_count: int) -> void:
+	var tile_count: int = stomp_count + spin_count
+	if tile_count <= 0 or total_score <= 0:
 		if total_score > 0:
 			GameManager.add_tile_score(total_score)
 		return
 
-	var per_tile: int = total_score / stomp_count
-	var remainder: int = total_score % stomp_count
+	var per_tile: int = total_score / tile_count
+	var remainder: int = total_score % tile_count
+	var scored: int = 0
 
-	# Read timing from stomp animation strategy (not hardcoded)
-	var stomp_config := StompTileAnimation.new()
-	var slam_time: float = stomp_config.rise_duration + stomp_config.slam_duration
-	var stagger: float = stomp_config.stagger_delay
+	if stomp_count > 0:
+		var stomp_config := StompTileAnimation.new()
+		var slam_time: float = stomp_config.rise_duration + stomp_config.slam_duration
+		await board.get_tree().create_timer(slam_time).timeout
 
-	# Wait for first tile's slam to land
-	await board.get_tree().create_timer(slam_time).timeout
+		for i in stomp_count:
+			var score: int = per_tile + (1 if scored < remainder else 0)
+			GameManager.add_tile_score(score)
+			scored += 1
+			if scored < tile_count:
+				await board.get_tree().create_timer(stomp_config.stagger_delay).timeout
 
-	for i in stomp_count:
-		var score: int = per_tile + (1 if i < remainder else 0)
-		GameManager.add_tile_score(score)
-		if i < stomp_count - 1:
-			await board.get_tree().create_timer(stagger).timeout
+	if spin_count > 0:
+		var spin_config := SpinTileAnimation.new()
+		if stomp_count == 0:
+			await board.get_tree().create_timer(spin_config.spin_up_duration).timeout
+
+		for i in spin_count:
+			var score: int = per_tile + (1 if scored < remainder else 0)
+			GameManager.add_tile_score(score)
+			scored += 1
+			if scored < tile_count:
+				await board.get_tree().create_timer(spin_config.stagger_delay).timeout
 
 
 ## Animates tiles from pre-categorized groups.
+## Stomp tiles animate first, then spin tiles -- sequential, not parallel.
 func _animate_play_from_cats(cats: Dictionary) -> void:
 	# Hide locked border during animations
 	var all_tiles: Array[Tile] = []
@@ -237,15 +246,12 @@ func _animate_play_from_cats(cats: Dictionary) -> void:
 		if tile.locked_border:
 			tile.locked_border.visible = false
 
-	var animation_count: int = 0
 	if not cats.stomp.is_empty():
 		TileAnimator.animate_stomp_batch(cats.stomp)
-		animation_count += 1
+		await TileAnimator.animation_completed
+
 	if not cats.spin.is_empty():
 		TileAnimator.animate_spin_batch(cats.spin)
-		animation_count += 1
-
-	for i in animation_count:
 		await TileAnimator.animation_completed
 
 
@@ -294,11 +300,10 @@ func _auto_end_round() -> void:
 
 	# Categorize once (modifiers don't change between loops)
 	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
-	var stomp_count: int = cats.stomp.size()
 
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
 		# Launch stagger scoring concurrently
-		_commit_scores_staggered(total_score, stomp_count)
+		_commit_scores_staggered(total_score, cats.stomp.size(), cats.spin.size())
 
 		await _animate_play_from_cats(cats)
 

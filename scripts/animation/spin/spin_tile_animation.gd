@@ -22,7 +22,7 @@ func _init() -> void:
 	duration = 0.35
 	ease_type = Tween.EASE_OUT
 	trans_type = Tween.TRANS_BACK
-	stagger_delay = 0.06
+	stagger_delay = 0.35
 
 
 # =============================================================================
