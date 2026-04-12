@@ -60,6 +60,17 @@ func on_play_requested() -> void:
 
 ## Executes a single play: validate, lock, animate, consume, emit.
 func _execute_play(unplayed_tiles: Array[Tile]) -> void:
+	# Lock unplayed tiles via modifier system
+	for tile in unplayed_tiles:
+		tile.set_locked(true)
+
+	_selection.deselect_all()
+
+	# Execute boss post-play effects (e.g., gravity drop)
+	if _round_config and _round_config.boss:
+		await _execute_boss_post_play_effects(unplayed_tiles)
+
+	# Build positions AFTER boss effects so words are detected at final positions
 	var positions: Array[Vector2i] = []
 	for tile in unplayed_tiles:
 		if tile.current_cell:
@@ -71,16 +82,6 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 		print("[Gameplay] Word formed: '%s' (%s, %d letters)" % [
 			word_info.word, word_info.direction, word_info.word.length()
 		])
-
-	# Lock unplayed tiles via modifier system
-	for tile in unplayed_tiles:
-		tile.set_locked(true)
-
-	_selection.deselect_all()
-
-	# Execute boss post-play effects (e.g., gravity drop)
-	if _round_config and _round_config.boss:
-		await _execute_boss_post_play_effects(unplayed_tiles)
 
 	# Calculate total play score for emission
 	var total_score: int = 0
