@@ -217,8 +217,6 @@ func _commit_scores_staggered(total_score: int, stomp_count: int) -> void:
 	await board.get_tree().create_timer(slam_time).timeout
 
 	for i in stomp_count:
-		if GameManager.get_current_phase() != GameManager.GamePhase.PLAYING:
-			break
 		var score: int = per_tile + (1 if i < remainder else 0)
 		GameManager.add_tile_score(score)
 		if i < stomp_count - 1:
