@@ -91,12 +91,18 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 		total_score += score_result.total
 		EventBus.score_calculated.emit(score_result.total, score_result)
 
-	# Animate ALL board tiles
+	# Animate ALL board tiles with stagger-matched scoring
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
-	await _animate_play(all_tiles)
+	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
+	var stomp_count: int = cats.stomp.size()
 
-	# Commit play score after animation
-	GameManager.commit_play(total_score)
+	# Launch stagger scoring concurrently (runs during animation)
+	_commit_scores_staggered(total_score, stomp_count)
+
+	await _animate_play_from_cats(cats)
+
+	# Finalize play (decrement plays, check lose condition)
+	GameManager.end_play()
 
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
@@ -191,11 +197,40 @@ func _rebind_cells_after_drop(movements: Array) -> void:
 		tile.attach_to_cell(to_cell)
 
 
-## Animates tiles using AnimationCategorizer dispatch.
-func _animate_play(all_tiles: Array[Tile]) -> void:
-	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
+## Commits score per stomp tile at stagger intervals during animation.
+## Runs concurrently (not awaited by caller) so scores tick during stomps.
+func _commit_scores_staggered(total_score: int, stomp_count: int) -> void:
+	if stomp_count <= 0 or total_score <= 0:
+		if total_score > 0:
+			GameManager.add_tile_score(total_score)
+		return
 
+	var per_tile: int = total_score / stomp_count
+	var remainder: int = total_score % stomp_count
+
+	# Read timing from stomp animation strategy (not hardcoded)
+	var stomp_config := StompTileAnimation.new()
+	var slam_time: float = stomp_config.rise_duration + stomp_config.slam_duration
+	var stagger: float = stomp_config.stagger_delay
+
+	# Wait for first tile's slam to land
+	await board.get_tree().create_timer(slam_time).timeout
+
+	for i in stomp_count:
+		if GameManager.get_current_phase() != GameManager.GamePhase.PLAYING:
+			break
+		var score: int = per_tile + (1 if i < remainder else 0)
+		GameManager.add_tile_score(score)
+		if i < stomp_count - 1:
+			await board.get_tree().create_timer(stagger).timeout
+
+
+## Animates tiles from pre-categorized groups.
+func _animate_play_from_cats(cats: Dictionary) -> void:
 	# Hide locked border during animations
+	var all_tiles: Array[Tile] = []
+	all_tiles.append_array(cats.stomp)
+	all_tiles.append_array(cats.spin)
 	for tile in all_tiles:
 		if tile.locked_border:
 			tile.locked_border.visible = false
@@ -210,6 +245,12 @@ func _animate_play(all_tiles: Array[Tile]) -> void:
 
 	for i in animation_count:
 		await TileAnimator.animation_completed
+
+
+## Animates tiles using AnimationCategorizer dispatch.
+func _animate_play(all_tiles: Array[Tile]) -> void:
+	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
+	await _animate_play_from_cats(cats)
 
 
 # =============================================================================
@@ -251,24 +292,16 @@ func _auto_end_round() -> void:
 
 	# Categorize once (modifiers don't change between loops)
 	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
+	var stomp_count: int = cats.stomp.size()
 
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
-		for tile in all_tiles:
-			if tile.locked_border:
-				tile.locked_border.visible = false
+		# Launch stagger scoring concurrently
+		_commit_scores_staggered(total_score, stomp_count)
 
-		var animation_count: int = 0
-		if not cats.stomp.is_empty():
-			TileAnimator.animate_stomp_batch(cats.stomp)
-			animation_count += 1
-		if not cats.spin.is_empty():
-			TileAnimator.animate_spin_batch(cats.spin)
-			animation_count += 1
+		await _animate_play_from_cats(cats)
 
-		for i in animation_count:
-			await TileAnimator.animation_completed
-
-		GameManager.commit_play(total_score)
+		# Finalize play
+		GameManager.end_play()
 
 	update_play_button_state()
 	print("[Gameplay] Auto end round complete")

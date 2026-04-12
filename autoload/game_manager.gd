@@ -107,6 +107,7 @@ func resume_game() -> void:
 # =============================================================================
 
 ## Commits the current play and processes scoring.
+## Used when stagger-matched scoring is NOT needed (legacy path).
 func commit_play(score: int) -> void:
 	if _current_phase != GamePhase.PLAYING:
 		return
@@ -126,6 +127,42 @@ func commit_play(score: int) -> void:
 	if cumulative >= _target_score:
 		_complete_round(true)
 	elif _plays_remaining <= 0:
+		if RunManager.is_debug_auto_win():
+			print("[GameManager] Debug auto-win enabled - treating as round win")
+			_complete_round(true)
+		else:
+			_complete_round(false)
+
+
+## Adds score from a single tile during stagger-matched scoring.
+## Emits score_updated per tile. Checks win condition but does NOT decrement plays.
+func add_tile_score(score: int) -> void:
+	if _current_phase != GamePhase.PLAYING:
+		return
+	_current_score += score
+	var cumulative: int = get_cumulative_score()
+	EventBus.score_updated.emit(cumulative, score)
+	print("[GameManager] Tile score: +%d | Cumulative: %d | Target: %d" % [
+		score, cumulative, _target_score
+	])
+	if cumulative >= _target_score:
+		print("[GameManager] Target reached! Cumulative %d >= %d (excess: %d)" % [
+			cumulative, _target_score, cumulative - _target_score
+		])
+		_complete_round(true)
+
+
+## Ends the current play after all tile scores have been committed.
+## Decrements plays remaining and checks lose condition.
+func end_play() -> void:
+	if _current_phase != GamePhase.PLAYING:
+		return
+	_plays_remaining -= 1
+	EventBus.play_completed.emit(_plays_remaining)
+	print("[GameManager] Play ended | Round: %d | Plays left: %d" % [
+		_current_round, _plays_remaining
+	])
+	if _plays_remaining <= 0:
 		if RunManager.is_debug_auto_win():
 			print("[GameManager] Debug auto-win enabled - treating as round win")
 			_complete_round(true)

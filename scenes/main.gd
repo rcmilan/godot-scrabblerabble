@@ -159,10 +159,9 @@ func _on_round_ready(config: RoundConfig) -> void:
 		previous_total = RunManager.run_state.total_score
 	GameManager.setup_round(config, previous_total)
 
-	# Notify ScorePanel directly after GameManager is ready
-	# (avoid re-emitting run_round_ready which would create a signal loop)
+	# Notify ScorePanel with round info and score state
 	if _score_panel:
-		_score_panel._on_round_ready(config)
+		_score_panel.set_round_info(config)
 
 	# Pass RoundConfig to PlayExecutor for boss effect handling
 	_gameplay_controller.set_play_executor_round_config(config)
@@ -204,14 +203,9 @@ func _on_round_ready(config: RoundConfig) -> void:
 			_hurry_timer = boss_timer
 			_hurry_timer.time_updated.connect(_on_hurry_timer_updated)
 
-	# Update round indicator with boss name if available
+	# Emit boss activation signal if applicable
 	if config.boss != null:
-		_round_indicator.text = config.boss.display_name
 		EventBus.boss_activated.emit(config.boss)
-	elif config.is_boss_round:
-		_round_indicator.text = "Boss Round"
-	else:
-		_round_indicator.text = "Round %d" % config.round_number
 
 	# Activate gameplay and show UI
 	_gameplay_controller.activate()
@@ -288,6 +282,9 @@ func _on_play_completed(tiles: Array[Tile], words: Array) -> void:
 
 func _on_shop_requested(round_number: int) -> void:
 	print("[Main] === ROUND %d END | score: %d ===" % [round_number, GameManager.get_current_score()])
+
+	# Brief pause so the player sees the final score before transitioning
+	await get_tree().create_timer(1.0).timeout
 
 	_gameplay_controller.deactivate()
 	_focus_cursor.deactivate()
