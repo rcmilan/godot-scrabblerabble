@@ -7,8 +7,6 @@ class_name ScorePanel
 
 @onready var round_label: Label = $VBoxContainer/RoundLabel
 @onready var score_label: Label = $VBoxContainer/ScoreLabel
-# --- DEAD CODE: particles removed per design ---
-# @onready var particles: CPUParticles2D = $VBoxContainer/Particles
 
 var _target: int = 0
 var _cumulative: int = 0
@@ -25,9 +23,6 @@ func _ready() -> void:
 	score_label.add_theme_color_override("font_color", Color.WHITE)
 
 	EventBus.score_updated.connect(_on_score_updated)
-
-	# --- DEAD CODE: particles setup removed per design ---
-	# _setup_particles()
 
 	print("[ScorePanel] Ready")
 
@@ -72,10 +67,6 @@ func _on_score_updated(cumulative: int, delta: int) -> void:
 		_rainbow_active = true
 		print("[ScorePanel] Target beaten! Rainbow animation activated")
 
-	# --- DEAD CODE: particles removed per design ---
-	# if _cumulative > _target:
-	#     _play_particles()
-
 
 func _play_pulse() -> void:
 	if _pulse_tween:
@@ -90,38 +81,3 @@ func _play_pulse() -> void:
 
 func _update_label() -> void:
 	score_label.text = "%d / %d" % [_cumulative, _target]
-
-
-# =============================================================================
-# DEAD CODE: Particle celebration removed per design.
-# Kept commented for reference.
-# =============================================================================
-
-# func _setup_particles() -> void:
-#     particles.one_shot = true
-#     particles.explosiveness = 0.8
-#     particles.lifetime = 0.8
-#     particles.scale = Vector2(1.5, 1.5)
-
-# func _play_particles() -> void:
-#     if _cumulative <= _target:
-#         return
-#     var ratio: float = float(_cumulative - _target) / float(_target) if _target > 0 else 0.0
-#     var amount: int = 0
-#     var velocity: int = 0
-#     if ratio < 0.05:
-#         return
-#     elif ratio < 0.15:
-#         amount = 8
-#         velocity = 45
-#     elif ratio < 0.30:
-#         amount = 20
-#         velocity = 75
-#     else:
-#         amount = 40
-#         velocity = 110
-#     particles.amount = amount
-#     particles.initial_velocity_min = velocity
-#     particles.initial_velocity_max = velocity
-#     particles.show()
-#     particles.restart()

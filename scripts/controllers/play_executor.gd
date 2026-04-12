@@ -105,6 +105,9 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	# Finalize play (decrement plays, check lose condition)
 	GameManager.end_play()
 
+	# Commit play score after animation
+	GameManager.commit_play(total_score)
+
 	# Consume CONSUMABLE modifiers on newly played tiles after animation
 	for tile in unplayed_tiles:
 		tile.consume_modifiers()
