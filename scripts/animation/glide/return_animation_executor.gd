@@ -28,8 +28,8 @@ func execute_single(tile: Tile, hand: Node, cell: Node, strategy: TileAnimationS
 	if current_parent:
 		current_parent.remove_child(tile)
 
-	# Add to hand (triggers layout)
-	hand.add_tile(tile)
+	# Add to hand (triggers layout) -- force=true bypasses hand size limit
+	hand.add_tile(tile, true)
 
 	# Update tile state atomically (clears cell binding and sets location)
 	tile.move_to_hand()
