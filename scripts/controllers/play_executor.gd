@@ -300,6 +300,9 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 	var labels_in_flight: int = 0
 	var cumulative_score: int = GameManager.get_current_score()
 
+	# Extract hype params for callback access (before they're cleared)
+	var target_score: int = _hype_params.get("target_score", 0)
+
 	for i in range(tile_count):
 		var tile: Tile = all_tiles[i]
 		var delta: int = per_tile + (1 if i < remainder else 0)
@@ -314,16 +317,8 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 		labels_in_flight += 1
 
 		# Create callback that triggers on label arrival
-		var on_arrive = func():
-			GameManager.add_tile_score(delta)
-			cumulative_score = GameManager.get_current_score()
-			EventBus.score_updated.emit(cumulative_score, delta)
-			labels_in_flight -= 1
-
-			if hype_config.debug_logging_enabled:
-				print("[Score] delta=%d cumulative=%d progress=%.2f%%" % [
-					delta, cumulative_score, float(cumulative_score) / float(_hype_params.get("target_score", 1)) * 100.0
-				])
+		# Capture delta and target_score values to avoid closure issues after _hype_params is cleared
+		var on_arrive = _create_score_callback(delta, target_score, hype_config)
 
 		# Get tile global position for label start
 		var tile_pos: Vector2 = tile.global_position if tile else Vector2.ZERO
@@ -333,6 +328,19 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 	# Wait for all labels to arrive
 	while labels_in_flight > 0:
 		await board.get_tree().create_timer(0.01).timeout
+
+
+## Helper to create score callback with proper value capture (avoids lambda capture-by-reference).
+## Pass delta and target_score explicitly to avoid closure issues after _hype_params is cleared.
+func _create_score_callback(delta: int, target_score: int, hype_config: HypeConfig) -> Callable:
+	return func():
+		GameManager.add_tile_score(delta)
+		var cumulative_score: int = GameManager.get_current_score()
+		EventBus.score_updated.emit(cumulative_score, delta)
+
+		if hype_config.debug_logging_enabled:
+			var progress = float(cumulative_score) / float(target_score) * 100.0 if target_score > 0 else 0.0
+			print("[Score] delta=%d cumulative=%d progress=%.2f%%" % [delta, cumulative_score, progress])
 
 
 # =============================================================================
