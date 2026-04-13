@@ -496,7 +496,7 @@ func _scale_animations_for_play(params: Dictionary) -> void:
 		TileAnimator._stomp_animation.duration = hype_config.scale_duration(
 			_original_strategy_values["stomp_duration"], effective_mult
 		)
-		TileAnimator._stomp_animation.stagger_delay = hype_config.scale_duration(
+		TileAnimator._stomp_animation.stagger_delay = hype_config.scale_stagger(
 			_original_strategy_values["stomp_stagger"], effective_mult
 		)
 
@@ -508,7 +508,7 @@ func _scale_animations_for_play(params: Dictionary) -> void:
 		TileAnimator._spin_animation.duration = hype_config.scale_duration(
 			_original_strategy_values["spin_duration"], effective_mult
 		)
-		TileAnimator._spin_animation.stagger_delay = hype_config.scale_duration(
+		TileAnimator._spin_animation.stagger_delay = hype_config.scale_stagger(
 			_original_strategy_values["spin_stagger"], effective_mult
 		)
 

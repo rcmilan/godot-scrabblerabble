@@ -45,6 +45,10 @@ extends Resource
 ## even with high speed multipliers. Ensures animations remain readable.
 @export var min_animation_duration: float = 0.08
 
+## Minimum stagger delay between tiles (seconds). Separate from min_animation_duration
+## so stagger can approach near-zero at high tile counts (rapid-fire effect).
+@export var min_stagger_delay: float = 0.01
+
 ## Normalized progress (0-1) at which a tile is considered "done" for score pop.
 ## For stomp: typically 0.65 = after slam, before recover.
 ## Used to emit score pop labels before animation fully completes.
@@ -155,3 +159,10 @@ func get_effective_multiplier(tile_count: int) -> float:
 ## Ensures no animation falls below readable minimum duration.
 func scale_duration(base: float, multiplier: float) -> float:
 	return maxf(base / multiplier, min_animation_duration)
+
+
+## Scales a stagger delay by the effective multiplier, with a much smaller floor.
+## Stagger should approach near-zero at high tile counts (rapid-fire effect).
+## Uses min_stagger_delay instead of min_animation_duration.
+func scale_stagger(base: float, multiplier: float) -> float:
+	return maxf(base / multiplier, min_stagger_delay)
