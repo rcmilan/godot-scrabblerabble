@@ -60,7 +60,18 @@ func set_round_info(config: RoundConfig) -> void:
 func _on_score_updated(cumulative: int, delta: int) -> void:
 	_cumulative = cumulative
 	_update_label()
-	_play_pulse()
+
+	# Compute pulse intensity locally: 1.0 + (delta / target), clamped
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	var intensity: float = 1.0
+	if hype_config:
+		intensity = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, hype_config.pulse_intensity_max)
+
+	_play_pulse(intensity)
+
+	# Trigger secondary effect if intensity is high enough
+	if hype_config and intensity >= hype_config.secondary_effect_threshold:
+		_play_shake()
 
 	# Activate rainbow when target is beaten
 	if _cumulative > _target and _target > 0 and not _rainbow_active:
@@ -68,15 +79,35 @@ func _on_score_updated(cumulative: int, delta: int) -> void:
 		print("[ScorePanel] Target beaten! Rainbow animation activated")
 
 
-func _play_pulse() -> void:
+func _play_pulse(intensity: float = 1.0) -> void:
 	if _pulse_tween:
 		_pulse_tween.kill()
+
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	var base_scale: float = hype_config.pulse_base_scale if hype_config else 1.15
+	var pulse_scale: float = base_scale * intensity
+
 	$VBoxContainer.scale = Vector2.ONE
 	_pulse_tween = create_tween()
-	_pulse_tween.tween_property($VBoxContainer, "scale", Vector2(1.15, 1.15), 0.1) \
+	_pulse_tween.tween_property($VBoxContainer, "scale", Vector2(pulse_scale, pulse_scale), 0.1) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	_pulse_tween.tween_property($VBoxContainer, "scale", Vector2.ONE, 0.15) \
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+
+
+func _play_shake() -> void:
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	if not hype_config:
+		return
+
+	var shake_tween: Tween = create_tween()
+	var original_x: float = score_label.position.x
+	var magnitude: float = hype_config.secondary_effect_magnitude
+
+	shake_tween.tween_property(score_label, "position:x", original_x - magnitude, 0.05)
+	shake_tween.tween_property(score_label, "position:x", original_x + magnitude, 0.05)
+	shake_tween.tween_property(score_label, "position:x", original_x - magnitude / 2.0, 0.05)
+	shake_tween.tween_property(score_label, "position:x", original_x, 0.05)
 
 
 func _update_label() -> void:

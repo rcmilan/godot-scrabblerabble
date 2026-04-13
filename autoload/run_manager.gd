@@ -30,6 +30,8 @@ var _boss_timer: BossTimerRelay = null
 
 func _ready() -> void:
 	EventBus.round_ended.connect(_on_round_ended)
+	EventBus.play_sequence_started.connect(_on_play_sequence_started)
+	EventBus.play_sequence_ended.connect(_on_play_sequence_ended)
 	print("[RunManager] Ready")
 
 
@@ -303,3 +305,13 @@ func _on_round_ended(round_number: int, success: bool) -> void:
 		return
 	EventBus.run_shop_requested.emit(run_state.current_round)
 	print("[RunManager] Round %d won - proceeding to shop" % round_number)
+
+
+func _on_play_sequence_started() -> void:
+	if _boss_timer:
+		_boss_timer.pause()
+
+
+func _on_play_sequence_ended() -> void:
+	if _boss_timer:
+		_boss_timer.resume()

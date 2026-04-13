@@ -13,6 +13,12 @@ signal animation_completed(tiles: Array[Tile])
 signal single_tile_animated(tile: Tile)
 
 # =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+var hype_config: HypeConfig = null
+
+# =============================================================================
 # SHARED CONTEXT
 # =============================================================================
 
@@ -27,6 +33,7 @@ var _glide_animation: GlideTileAnimation = null
 var _shake_animation: ShakeTileAnimation = null
 var _stomp_animation: StompTileAnimation = null
 var _spin_animation: SpinTileAnimation = null
+var _lift_animation: LiftTileAnimation = null
 var _slide_left_animation: SlideLeftAnimation = null
 var _slide_in_from_right_animation: SlideInFromRightAnimation = null
 var _slide_up_animation: SlideUpAnimation = null
@@ -47,10 +54,12 @@ var _stomp_executor: StompAnimationExecutor = null
 var _spin_executor: SpinAnimationExecutor = null
 var _drop_animation: DropTileAnimation = null
 var _drop_executor: DropAnimationExecutor = null
+var _lift_executor: BatchAnimationExecutor = null
 
 
 func _ready() -> void:
 	_setup_context()
+	_load_hype_config()
 
 
 func _setup_context() -> void:
@@ -113,6 +122,16 @@ func animate_spin_batch(tiles: Array[Tile]) -> void:
 
 	_ensure_spin_resources()
 	_spin_executor.execute(tiles, _spin_animation)
+
+
+## Animates a lift phase for all tiles (anticipation beat before main animations).
+## All tiles scale up and move upward simultaneously, then return to normal.
+func animate_lift_batch(tiles: Array[Tile]) -> void:
+	if tiles.is_empty():
+		return
+
+	_ensure_lift_resources()
+	_lift_executor.execute(tiles, _lift_animation)
 
 
 ## Animates gravity drop effect for a batch of tiles.
@@ -348,3 +367,17 @@ func _ensure_slide_in_from_left_resources() -> void:
 func _ensure_drop_resources() -> void:
 	_drop_animation = _ensure_strategy(_drop_animation, DropTileAnimation)
 	_drop_executor = _ensure_executor(_drop_executor, DropAnimationExecutor)
+
+
+func _ensure_lift_resources() -> void:
+	_lift_animation = _ensure_strategy(_lift_animation, LiftTileAnimation)
+	_lift_executor = _ensure_executor(_lift_executor, BatchAnimationExecutor)
+
+
+func _load_hype_config() -> void:
+	hype_config = load("res://scripts/animation/hype/hype_config.tres")
+	if hype_config == null:
+		push_error("[TileAnimator] Failed to load hype_config.tres")
+	else:
+		if hype_config.debug_logging_enabled:
+			print("[TileAnimator] Loaded HypeConfig from res://scripts/animation/hype/hype_config.tres")
