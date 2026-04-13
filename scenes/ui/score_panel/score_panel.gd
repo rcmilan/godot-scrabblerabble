@@ -73,6 +73,13 @@ func _on_score_updated(cumulative: int, delta: int) -> void:
 	if hype_config and intensity >= hype_config.secondary_effect_threshold:
 		_play_shake()
 
+	# Debug logging
+	if hype_config and hype_config.debug_logging_enabled:
+		var progress = float(cumulative) / float(_target) * 100.0 if _target > 0 else 0.0
+		print("[ScorePanel] delta=%d cumulative=%d progress=%.2f%% intensity=%.2f" % [
+			delta, cumulative, progress, intensity
+		])
+
 	# Activate rainbow when target is beaten
 	if _cumulative > _target and _target > 0 and not _rainbow_active:
 		_rainbow_active = true

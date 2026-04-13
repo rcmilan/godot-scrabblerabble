@@ -170,12 +170,12 @@ User Story 4: Compute and apply dynamic pulse intensity to score display based o
 
 ### Implementation Tasks
 
-- [ ] T037 [US4] Compute pulse intensity in `ScorePanel._on_score_updated()`: `var pulse_intensity: float = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, TileAnimator.hype_config.pulse_intensity_max)`. Guard against divide-by-zero when _target is zero or undefined.
-- [ ] T038 [US4] Verify `ScorePanel._on_score_updated()` computes intensity correctly with zero-guard: `intensity = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, max_intensity)`. (Note: T010 already implements this; this task verifies it works end-to-end.)
-- [ ] T039 [US4] Pass intensity to `_play_pulse(intensity)` method
-- [ ] T040 [US4] Implement secondary effect in `ScorePanel._play_shake()`: Horizontal tween at magnitude from config
-- [ ] T041 [US4] Add threshold check: Trigger shake only if `intensity >= hype_config.secondary_effect_threshold`
-- [ ] T042 [US4] Add debug logging: Log `[Score] delta=N progress=X.XX intensity=X.XX` for each score
+- [X] T037 [US4] Compute pulse intensity in `ScorePanel._on_score_updated()`: `var pulse_intensity: float = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, TileAnimator.hype_config.pulse_intensity_max)`. Guard against divide-by-zero when _target is zero or undefined.
+- [X] T038 [US4] Verify `ScorePanel._on_score_updated()` computes intensity correctly with zero-guard: `intensity = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, max_intensity)`. (Note: T010 already implements this; this task verifies it works end-to-end.)
+- [X] T039 [US4] Pass intensity to `_play_pulse(intensity)` method
+- [X] T040 [US4] Implement secondary effect in `ScorePanel._play_shake()`: Horizontal tween at magnitude from config
+- [X] T041 [US4] Add threshold check: Trigger shake only if `intensity >= hype_config.secondary_effect_threshold`
+- [X] T042 [US4] Add debug logging: Log `[Score] delta=N progress=X.XX intensity=X.XX` for each score
 - [ ] T043 [US4] Manual test: Play tiles worth 5%, 50%, 110% of target; observe pulse intensity and secondary effects
 
 ---
