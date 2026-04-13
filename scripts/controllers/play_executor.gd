@@ -91,6 +91,7 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 		)
 		total_score += score_result.total
 		EventBus.score_calculated.emit(score_result.total, score_result)
+		print("[Gameplay] Word '%s' scored: %d" % [word_info.word, score_result.total])
 
 	# Animate ALL board tiles with stagger-matched scoring
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
@@ -98,6 +99,7 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 
 	# Launch stagger scoring concurrently (runs during animation)
 	_commit_scores_staggered(total_score, cats.stomp.size(), cats.spin.size())
+	print("[Gameplay] Play total: %d pts across %d word(s)" % [total_score, words.size()])
 
 	await _animate_play_from_cats(cats)
 

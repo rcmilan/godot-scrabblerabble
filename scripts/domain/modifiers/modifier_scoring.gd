@@ -17,6 +17,7 @@ static func compute_tile_score(base_score: int, modifiers: Dictionary) -> Dictio
 		if mod.behavior != null:
 			score = mod.behavior.compute(score, mod.tier)
 			applied.append({"type": mod.type, "tier": mod.tier, "before": base_score, "after": score})
+		print("[Scoring]   RESET short-circuit: tile scores base only (%d)" % score)
 		return {"score": score, "modifiers_applied": applied}
 
 	for type in ModifierPipeline.execution_order:
@@ -28,5 +29,8 @@ static func compute_tile_score(base_score: int, modifiers: Dictionary) -> Dictio
 		var before: int = score
 		score = mod.behavior.compute(score, mod.tier)
 		applied.append({"type": mod.type, "tier": mod.tier, "before": before, "after": score})
+		print("[Scoring]   %s (tier %d): %d -> %d" % [
+			ModifierTypes.Type.keys()[mod.type], mod.tier, before, score
+		])
 
 	return {"score": score, "modifiers_applied": applied}
