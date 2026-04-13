@@ -39,8 +39,8 @@ func _apply_expo_to_all_bag_tiles() -> void:
 	for tile in TileBag.get_available_tiles():
 		var modifier: ModifierInstance = ModifierRegistry.create_modifier(
 			ModifierTypes.Type.EXPO,
-			ModifierTypes.Tier.BRONZE,
+			ModifierTypes.Tier.GOLD,
 			ModifierTypes.Lifetime.PER_ROUND
 		)
 		tile.add_modifier(modifier)
-	print("[AllExpoQuality] Applied EXPO to %d bag tiles" % TileBag.tiles_remaining())
+	print("[AllExpoQuality] Applied EXPO (SILVER) to %d bag tiles" % TileBag.tiles_remaining())

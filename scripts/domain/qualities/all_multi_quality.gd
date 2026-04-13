@@ -39,8 +39,8 @@ func _apply_multi_to_all_bag_tiles() -> void:
 	for tile in TileBag.get_available_tiles():
 		var modifier: ModifierInstance = ModifierRegistry.create_modifier(
 			ModifierTypes.Type.MULTI,
-			ModifierTypes.Tier.BRONZE,
+			ModifierTypes.Tier.SILVER,
 			ModifierTypes.Lifetime.PER_ROUND
 		)
 		tile.add_modifier(modifier)
-	print("[AllMultiQuality] Applied MULTI to %d bag tiles" % TileBag.tiles_remaining())
+	print("[AllMultiQuality] Applied MULTI (SILVER) to %d bag tiles" % TileBag.tiles_remaining())

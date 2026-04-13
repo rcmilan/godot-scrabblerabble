@@ -43,4 +43,4 @@ func _apply_extra_to_all_bag_tiles() -> void:
 			ModifierTypes.Lifetime.PER_ROUND
 		)
 		tile.add_modifier(modifier)
-	print("[AllExtraQuality] Applied EXTRA to %d bag tiles" % TileBag.tiles_remaining())
+	print("[AllExtraQuality] Applied EXTRA (SILVER) to %d bag tiles" % TileBag.tiles_remaining())
