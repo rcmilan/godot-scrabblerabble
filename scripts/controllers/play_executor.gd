@@ -22,6 +22,14 @@ var _word_validator: WordValidator = null
 var _selection: SelectionManager = null
 var _round_config: RoundConfig = null
 
+# =============================================================================
+# HYPE SEQUENCE STATE
+# =============================================================================
+
+var _is_sequence_active: bool = false
+var _hud: CanvasLayer = null
+var _hype_params: Dictionary = {}
+
 
 func setup(p_board: Board, p_selection: SelectionManager) -> void:
 	board = p_board
@@ -33,6 +41,16 @@ func setup(p_board: Board, p_selection: SelectionManager) -> void:
 ## Sets the current round config (called from Main._on_round_ready)
 func set_round_config(config: RoundConfig) -> void:
 	_round_config = config
+
+
+## Sets the HUD CanvasLayer for score pop label parenting
+func set_hud(hud: CanvasLayer) -> void:
+	_hud = hud
+
+
+## Returns true if a play sequence is currently active
+func is_sequence_active() -> bool:
+	return _is_sequence_active
 
 
 func get_word_validator() -> WordValidator:
@@ -60,11 +78,26 @@ func on_play_requested() -> void:
 
 ## Executes a single play: validate, lock, animate, consume, emit.
 func _execute_play(unplayed_tiles: Array[Tile]) -> void:
+	# Set sequence lock and notify systems
+	_is_sequence_active = true
+	EventBus.play_sequence_started.emit()
+
+	# Compute hype parameters for this play
+	_hype_params = _compute_hype_params(unplayed_tiles)
+
 	# Lock unplayed tiles via modifier system
 	for tile in unplayed_tiles:
 		tile.set_locked(true)
 
 	_selection.deselect_all()
+
+	# LIFT PHASE: All tiles lift uniformly before other animations
+	var all_tiles_for_lift: Array[Tile] = _get_all_board_tiles()
+	if not all_tiles_for_lift.is_empty():
+		_apply_duration_scaling(_hype_params, TileAnimator._lift_animation, "lift_duration")
+		TileAnimator.animate_lift_batch(all_tiles_for_lift)
+		await TileAnimator.animation_completed
+		_restore_duration_scaling(TileAnimator._lift_animation, "lift_duration")
 
 	# Execute boss post-play effects (e.g., gravity drop)
 	if _round_config and _round_config.boss:
@@ -116,6 +149,11 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	# Auto-refill hand after a brief delay so player sees the result
 	await board.get_tree().create_timer(0.5).timeout
 	HandManager.refill_hand()
+
+	# Sequence cleanup: clear sequence lock and notify
+	_is_sequence_active = false
+	_hype_params.clear()
+	EventBus.play_sequence_ended.emit()
 
 	print("[Gameplay] Play accepted: %d tiles locked, %d words found" % [
 		unplayed_tiles.size(), words.size()
@@ -249,12 +287,16 @@ func _animate_play_from_cats(cats: Dictionary) -> void:
 			tile.locked_border.visible = false
 
 	if not cats.stomp.is_empty():
+		_apply_duration_scaling(_hype_params, TileAnimator._stomp_animation, "duration")
 		TileAnimator.animate_stomp_batch(cats.stomp)
 		await TileAnimator.animation_completed
+		_restore_duration_scaling(TileAnimator._stomp_animation, "duration")
 
 	if not cats.spin.is_empty():
+		_apply_duration_scaling(_hype_params, TileAnimator._spin_animation, "duration")
 		TileAnimator.animate_spin_batch(cats.spin)
 		await TileAnimator.animation_completed
+		_restore_duration_scaling(TileAnimator._spin_animation, "duration")
 
 
 ## Animates tiles using AnimationCategorizer dispatch.
@@ -314,6 +356,90 @@ func _auto_end_round() -> void:
 
 	update_play_button_state()
 	print("[Gameplay] Auto end round complete")
+
+
+# =============================================================================
+# HYPE SEQUENCE SUPPORT
+# =============================================================================
+
+## Computes hype parameters for the current play (tile count, speed multiplier, scaled timings)
+func _compute_hype_params(unplayed_tiles: Array[Tile]) -> Dictionary:
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	if not hype_config:
+		return {}
+
+	var tile_count: int = unplayed_tiles.size()
+	var tile_count_mult: float = hype_config.get_tile_count_multiplier(tile_count)
+	var effective_mult: float = tile_count_mult * hype_config.master_speed_multiplier
+
+	var params := {
+		"tile_count": tile_count,
+		"tile_count_multiplier": tile_count_mult,
+		"effective_multiplier": effective_mult,
+		"target_score": _round_config.target_score if _round_config else 0,
+	}
+
+	# Compute scaled durations for all animation phases
+	# Stomp: rise + slam
+	var stomp_config := StompTileAnimation.new()
+	var stomp_slam_time: float = stomp_config.rise_duration + stomp_config.slam_duration
+	params["stomp_slam_time_scaled"] = hype_config.scale_duration(stomp_slam_time, effective_mult)
+	params["stomp_stagger_scaled"] = hype_config.scale_duration(stomp_config.stagger_delay, effective_mult)
+
+	# Spin
+	var spin_config := SpinTileAnimation.new()
+	params["spin_up_time_scaled"] = hype_config.scale_duration(spin_config.spin_up_duration, effective_mult)
+	params["spin_stagger_scaled"] = hype_config.scale_duration(spin_config.stagger_delay, effective_mult)
+
+	# Score pop travel
+	params["score_travel_duration_scaled"] = hype_config.scale_duration(hype_config.score_pop_travel_duration, effective_mult)
+
+	if hype_config.debug_logging_enabled:
+		print("[Play] tileCount=%d speedMultiplier=%.2f" % [tile_count, effective_mult])
+
+	return params
+
+
+## Applies duration scaling to an animation strategy before execution
+func _apply_duration_scaling(params: Dictionary, strategy: TileAnimationStrategy, base_field: String) -> void:
+	if strategy == null or params.is_empty():
+		return
+
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	if not hype_config:
+		return
+
+	var effective_mult: float = params.get("effective_multiplier", 1.0)
+
+	# Scale the animation duration
+	var base_value: float = strategy.get(base_field)
+	strategy.set(base_field, hype_config.scale_duration(base_value, effective_mult))
+
+	# Also scale stagger
+	var base_stagger: float = hype_config.inter_tile_stagger_delay
+	strategy.stagger_delay = hype_config.scale_duration(base_stagger, effective_mult)
+
+
+## Restores animation strategy durations to their original values
+func _restore_duration_scaling(strategy: TileAnimationStrategy, base_field: String) -> void:
+	if strategy == null:
+		return
+
+	# Restore from config defaults
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	if not hype_config:
+		return
+
+	if base_field == "lift_duration":
+		strategy.duration = hype_config.lift_duration
+	elif base_field == "duration":
+		# Generic restoration - get fresh instance to get defaults
+		if strategy is StompTileAnimation:
+			strategy.duration = 0.35
+		elif strategy is SpinTileAnimation:
+			strategy.duration = 0.35
+
+	strategy.stagger_delay = hype_config.inter_tile_stagger_delay
 
 
 # =============================================================================

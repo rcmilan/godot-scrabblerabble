@@ -110,6 +110,10 @@ func _input(event: InputEvent) -> void:
 		return
 	# Letter-based game actions (Q, Z) — only route when NOT in a typing session,
 	# otherwise the letter should be consumed by FocusCursor as a typed tile.
+	# Also block routing during play sequence.
+	if _play.is_sequence_active():
+		print("[Gameplay] Skipped routing (sequence active), key=%s" % event.as_text())
+		return
 	var has_typing := _cursor != null and _cursor.get_typing_session() != null
 	if not has_typing:
 		if _input_router.route(event):
@@ -141,6 +145,7 @@ func setup(p_board: Board, p_hand: Hand, p_discard_pile: Control, p_discard_dial
 
 	_play = PlayExecutor.new()
 	_play.setup(board, _selection)
+	_play.set_hud(main_hud)
 	_play.play_completed.connect(_on_play_completed_internal)
 	_play.play_completed.connect(func(tiles, words): play_completed.emit(tiles, words))
 	_play.play_button_changed.connect(
@@ -282,6 +287,8 @@ func debug_return_tile_to_hand(tile: Tile) -> void:
 func _on_tile_selected(tile: Tile) -> void:
 	if not _is_active:
 		return
+	if _play.is_sequence_active():
+		return
 	print("[Gameplay] Tile selected: %s" % tile.name)
 
 	match tile.location:
@@ -299,6 +306,8 @@ func _on_tile_selected(tile: Tile) -> void:
 
 func _on_tile_right_clicked(tile: Tile) -> void:
 	if not _is_active:
+		return
+	if _play.is_sequence_active():
 		return
 	if _selection.has_selection():
 		print("[Gameplay] Cannot remove tile while selection active")
@@ -476,6 +485,8 @@ func _collect_drag_candidates(tile: Tile) -> Array[Tile]:
 func _on_tile_drag_started(tile: Tile) -> void:
 	if not _is_active or not tile.can_interact():
 		return
+	if _play.is_sequence_active():
+		return
 
 	var valid_tiles := _collect_drag_candidates(tile)
 	if valid_tiles.is_empty():
@@ -504,6 +515,8 @@ func _on_tile_drag_ended(tile: Tile) -> void:
 
 func _handle_drag_release(tile: Tile) -> void:
 	if not _is_active or not _drag_mgr.is_dragging:
+		return
+	if _play.is_sequence_active():
 		return
 
 	var dragged_tiles: Array[Tile] = _drag_mgr.get_dragged_tiles()
@@ -563,6 +576,8 @@ func _handle_drag_release(tile: Tile) -> void:
 
 func _on_cell_clicked(cell: BoardCell) -> void:
 	if not _is_active:
+		return
+	if _play.is_sequence_active():
 		return
 
 	if not cell.is_occupied() and not _selection.has_selection():

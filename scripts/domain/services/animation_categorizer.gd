@@ -14,10 +14,15 @@ const SPIN_TYPES: Array[int] = [
 
 
 ## Categorizes tiles into animation groups based on provided mapping.
+## If mapping is empty, uses legacy hardcoded categorization (SPIN_TYPES -> "spin", others -> default).
 ## mapping: Dictionary mapping modifier type strings to animation preset names (e.g., {"EXTRA": "spin"})
 ## default_animation: Fallback animation type for tiles without explicit mapping
 ## Returns: Dictionary with animation type keys mapping to Array[Tile] (e.g., {"spin": [...], "stomp": [...]})
 static func categorize(tiles: Array[Tile], mapping: Dictionary = {}, default_animation: String = "stomp") -> Dictionary:
+	# If no mapping provided, use legacy categorization for backward compatibility
+	if mapping.is_empty():
+		return categorize_legacy(tiles)
+
 	var result: Dictionary = {}
 
 	for tile in tiles:

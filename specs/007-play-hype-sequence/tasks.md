@@ -20,15 +20,15 @@ Setup phase: Create foundational resources and extend existing systems. All task
 
 ### Implementation Tasks
 
-- [ ] T001 Create `HypeConfig` resource at `scripts/animation/hype/hype_config.gd` extending Resource with all fields (master_speed_multiplier, speed scaling constants, animation mapping, debug flag, etc.)
-- [ ] T002 Create `hype_config.tres` default resource instance at `scripts/animation/hype/hype_config.tres` with documented default values
-- [ ] T003 Extend `autoload/event_bus.gd` with new signals: `play_sequence_started()`, `play_sequence_ended()`. **KEEP existing `signal score_updated(total_score: int, delta: int)` unchanged** -- no pulse_intensity parameter. ScorePanel computes intensity locally from delta and its known _target.
-- [ ] T004 Add `pause()` and `resume()` methods to `scripts/controllers/boss_timer_relay.gd` with internal `_paused: bool` guard in `on_process()`
-- [ ] T005 Modify `autoload/run_manager.gd` to subscribe to `EventBus.play_sequence_started/ended` and call `_boss_timer_relay.pause()/resume()` respectively
-- [ ] T006 Modify `autoload/tile_animator.gd`: Add `var hype_config: HypeConfig` property, load in `_ready()`, prepare for `animate_lift_batch()` support
-- [ ] T007 Create `LiftTileAnimation` at `scripts/animation/lift/lift_tile_animation.gd` extending TileAnimationStrategy with parameters from HypeConfig (lift_scale, lift_offset_y, lift_duration)
-- [ ] T008 Register lift animation in `TileAnimator._ensure_lift_resources()` and add public `animate_lift_batch(tiles: Array[Tile])` method
-- [ ] T009 Refactor `scripts/domain/services/animation_categorizer.gd` to accept mapping and default animation as parameters instead of hardcoding (keep domain pure)
+- [X] T001 Create `HypeConfig` resource at `scripts/animation/hype/hype_config.gd` extending Resource with all fields (master_speed_multiplier, speed scaling constants, animation mapping, debug flag, etc.)
+- [X] T002 Create `hype_config.tres` default resource instance at `scripts/animation/hype/hype_config.tres` with documented default values
+- [X] T003 Extend `autoload/event_bus.gd` with new signals: `play_sequence_started()`, `play_sequence_ended()`. **KEEP existing `signal score_updated(total_score: int, delta: int)` unchanged** -- no pulse_intensity parameter. ScorePanel computes intensity locally from delta and its known _target.
+- [X] T004 Add `pause()` and `resume()` methods to `scripts/controllers/boss_timer_relay.gd` with internal `_paused: bool` guard in `on_process()`
+- [X] T005 Modify `autoload/run_manager.gd` to subscribe to `EventBus.play_sequence_started/ended` and call `_boss_timer_relay.pause()/resume()` respectively
+- [X] T006 Modify `autoload/tile_animator.gd`: Add `var hype_config: HypeConfig` property, load in `_ready()`, prepare for `animate_lift_batch()` support
+- [X] T007 Create `LiftTileAnimation` at `scripts/animation/lift/lift_tile_animation.gd` extending TileAnimationStrategy with parameters from HypeConfig (lift_scale, lift_offset_y, lift_duration)
+- [X] T008 Register lift animation in `TileAnimator._ensure_lift_resources()` and add public `animate_lift_batch(tiles: Array[Tile])` method
+- [X] T009 Refactor `scripts/domain/services/animation_categorizer.gd` to accept mapping and default animation as parameters instead of hardcoding (keep domain pure)
 
 ---
 
@@ -49,12 +49,12 @@ Foundational phase: Prepare core sequence orchestration, UI updates, and player 
 
 ### Implementation Tasks
 
-- [ ] T010 Modify `scenes/ui/score_panel/score_panel.gd`: In `_on_score_updated()`, compute intensity locally: `var intensity = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, hype_config.pulse_intensity_max)`. Update `_play_pulse()` to accept `intensity: float = 1.0` parameter, compute pulse scale as `base_scale * intensity`. Add `_play_shake()` for secondary effect at high intensity.
-- [ ] T011 Add `get_score_label_target_position() -> Vector2` method to `ScorePanel` returning global position of score label for label travel targeting
-- [ ] T012 Create `scenes/ui/score_pop/score_pop.gd` as Label node script with `launch(start_pos, end_pos, delta, travel_duration, on_arrive_callback)` method (entrance fade/scale, travel with easing, on-arrival callback, self-destruct)
-- [ ] T013 Add `var _is_sequence_active: bool = false` to `scripts/controllers/play_executor.gd` with `is_sequence_active() -> bool` getter
-- [ ] T014 [P] Add `var _hud: CanvasLayer = null` and `set_hud(hud: CanvasLayer)` to `PlayExecutor` for score pop label parent node
-- [ ] T015 [P] Add `var _hype_params: Dictionary = {}` to `PlayExecutor` for storing computed speed multiplier and scaled timings per play
+- [X] T010 Modify `scenes/ui/score_panel/score_panel.gd`: In `_on_score_updated()`, compute intensity locally: `var intensity = 1.0 if _target <= 0 else clamp(1.0 + delta / float(_target), 1.0, hype_config.pulse_intensity_max)`. Update `_play_pulse()` to accept `intensity: float = 1.0` parameter, compute pulse scale as `base_scale * intensity`. Add `_play_shake()` for secondary effect at high intensity.
+- [X] T011 Add `get_score_label_target_position() -> Vector2` method to `ScorePanel` returning global position of score label for label travel targeting
+- [X] T012 Create `scenes/ui/score_pop/score_pop.gd` as Label node script with `launch(start_pos, end_pos, delta, travel_duration, on_arrive_callback)` method (entrance fade/scale, travel with easing, on-arrival callback, self-destruct)
+- [X] T013 Add `var _is_sequence_active: bool = false` to `scripts/controllers/play_executor.gd` with `is_sequence_active() -> bool` getter
+- [X] T014 [P] Add `var _hud: CanvasLayer = null` and `set_hud(hud: CanvasLayer)` to `PlayExecutor` for score pop label parent node
+- [X] T015 [P] Add `var _hype_params: Dictionary = {}` to `PlayExecutor` for storing computed speed multiplier and scaled timings per play
 
 ---
 
@@ -78,11 +78,11 @@ User Story 1: Implement the lift phase that runs before all other animations, pr
 
 ### Implementation Tasks
 
-- [ ] T016 [US1] Refactor `scripts/controllers/play_executor.gd._execute_play()`: Add sequence lock (`_is_sequence_active = true`), emit `EventBus.play_sequence_started` at start
-- [ ] T017 [US1] Add lift phase execution in `PlayExecutor._execute_play()`: Scale lift strategy duration/stagger from `_hype_params`, call `TileAnimator.animate_lift_batch(all_tiles)`, await completion
-- [ ] T018 [US1] Restore animation strategy durations after each animation batch in `PlayExecutor` (scale before batch, restore after)
-- [ ] T019 [US1] Modify `scripts/controllers/gameplay_controller.gd`: Guard `_on_tile_drag_started`, `_on_cell_drop_attempted`, discard handler with `if _play.is_sequence_active(): return`
-- [ ] T020 [US1] Add final sequence cleanup in `PlayExecutor._execute_play()`: Emit `EventBus.play_sequence_ended` at end, set `_is_sequence_active = false`
+- [X] T016 [US1] Refactor `scripts/controllers/play_executor.gd._execute_play()`: Add sequence lock (`_is_sequence_active = true`), emit `EventBus.play_sequence_started` at start
+- [X] T017 [US1] Add lift phase execution in `PlayExecutor._execute_play()`: Scale lift strategy duration/stagger from `_hype_params`, call `TileAnimator.animate_lift_batch(all_tiles)`, await completion
+- [X] T018 [US1] Restore animation strategy durations after each animation batch in `PlayExecutor` (scale before batch, restore after)
+- [X] T019 [US1] Modify `scripts/controllers/gameplay_controller.gd`: Guard `_on_tile_drag_started`, `_on_cell_drop_attempted`, discard handler with `if _play.is_sequence_active(): return`
+- [X] T020 [US1] Add final sequence cleanup in `PlayExecutor._execute_play()`: Emit `EventBus.play_sequence_ended` at end, set `_is_sequence_active = false`
 - [ ] T021 [US1] Manual test: Place 5 tiles, press Play, observe lift phase, verify no gaps, verify player lock works during lift
 
 ---

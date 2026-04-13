@@ -112,3 +112,8 @@ func _play_shake() -> void:
 
 func _update_label() -> void:
 	score_label.text = "%d / %d" % [_cumulative, _target]
+
+
+## Returns the global position of the score label for score pop label targeting.
+func get_score_label_target_position() -> Vector2:
+	return score_label.global_position
