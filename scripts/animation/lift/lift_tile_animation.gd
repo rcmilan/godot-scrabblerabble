@@ -6,11 +6,8 @@ class_name LiftTileAnimation
 ## All parameters are derived from HypeConfig at runtime.
 
 func _init() -> void:
-	var hype_config: HypeConfig = TileAnimator.hype_config if TileAnimator else null
-	if hype_config:
-		duration = hype_config.lift_duration
-	else:
-		duration = 0.12
+	# Set defaults; actual values from HypeConfig will be used at animation time
+	duration = 0.12
 	ease_type = Tween.EASE_OUT
 	trans_type = Tween.TRANS_QUAD
 	stagger_delay = 0.0  # All tiles lift together, no stagger

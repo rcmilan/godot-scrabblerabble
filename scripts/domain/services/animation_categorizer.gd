@@ -40,12 +40,31 @@ static func categorize(tiles: Array[Tile], mapping: Dictionary = {}, default_ani
 static func _get_animation_type(tile: Tile, mapping: Dictionary, default_animation: String) -> String:
 	# Check if tile has a modifier that maps to an animation
 	for modifier in tile.modifiers:
-		var modifier_name: String = ModifierTypes.get_name(modifier.modifier_type)
+		var modifier_type: int = modifier.modifier_type
+		# Map enum values to their string names for lookup
+		var modifier_name: String = _get_modifier_type_name(modifier_type)
 		if mapping.has(modifier_name):
 			return mapping[modifier_name]
 
 	# Fallback: use default animation
 	return default_animation
+
+
+## Converts a ModifierTypes.Type enum value to its string name.
+static func _get_modifier_type_name(type: int) -> String:
+	match type:
+		ModifierTypes.Type.EXTRA:
+			return "EXTRA"
+		ModifierTypes.Type.MULTI:
+			return "MULTI"
+		ModifierTypes.Type.EXPO:
+			return "EXPO"
+		ModifierTypes.Type.RESET:
+			return "RESET"
+		ModifierTypes.Type.LOCKED:
+			return "LOCKED"
+		_:
+			return "NONE"
 
 
 ## Legacy method: Categorizes tiles into spin/stomp groups using hardcoded rules.

@@ -94,10 +94,8 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	# LIFT PHASE: All tiles lift uniformly before other animations
 	var all_tiles_for_lift: Array[Tile] = _get_all_board_tiles()
 	if not all_tiles_for_lift.is_empty():
-		_apply_duration_scaling(_hype_params, TileAnimator._lift_animation, "lift_duration")
 		TileAnimator.animate_lift_batch(all_tiles_for_lift)
 		await TileAnimator.animation_completed
-		_restore_duration_scaling(TileAnimator._lift_animation, "lift_duration")
 
 	# Execute boss post-play effects (e.g., gravity drop)
 	if _round_config and _round_config.boss:
@@ -287,16 +285,12 @@ func _animate_play_from_cats(cats: Dictionary) -> void:
 			tile.locked_border.visible = false
 
 	if not cats.stomp.is_empty():
-		_apply_duration_scaling(_hype_params, TileAnimator._stomp_animation, "duration")
 		TileAnimator.animate_stomp_batch(cats.stomp)
 		await TileAnimator.animation_completed
-		_restore_duration_scaling(TileAnimator._stomp_animation, "duration")
 
 	if not cats.spin.is_empty():
-		_apply_duration_scaling(_hype_params, TileAnimator._spin_animation, "duration")
 		TileAnimator.animate_spin_batch(cats.spin)
 		await TileAnimator.animation_completed
-		_restore_duration_scaling(TileAnimator._spin_animation, "duration")
 
 
 ## Animates tiles using AnimationCategorizer dispatch.
@@ -430,11 +424,11 @@ func _restore_duration_scaling(strategy: TileAnimationStrategy, base_field: Stri
 	if not hype_config:
 		return
 
-	if base_field == "lift_duration":
-		strategy.duration = hype_config.lift_duration
-	elif base_field == "duration":
+	if base_field == "duration":
 		# Generic restoration - get fresh instance to get defaults
-		if strategy is StompTileAnimation:
+		if strategy is LiftTileAnimation:
+			strategy.duration = hype_config.lift_duration
+		elif strategy is StompTileAnimation:
 			strategy.duration = 0.35
 		elif strategy is SpinTileAnimation:
 			strategy.duration = 0.35

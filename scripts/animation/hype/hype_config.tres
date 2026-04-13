@@ -1,6 +1,9 @@
-[gd_resource type="HypeConfig" format=3]
+[gd_resource type="Resource" script_class="HypeConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/hype/hype_config.gd" id="1_2cmpk"]
 
 [resource]
+script = ExtResource("1_2cmpk")
 master_speed_multiplier = 1.0
 master_speed_min = 0.5
 master_speed_max = 2.0

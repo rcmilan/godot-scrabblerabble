@@ -79,8 +79,8 @@ User Story 1: Implement the lift phase that runs before all other animations, pr
 ### Implementation Tasks
 
 - [X] T016 [US1] Refactor `scripts/controllers/play_executor.gd._execute_play()`: Add sequence lock (`_is_sequence_active = true`), emit `EventBus.play_sequence_started` at start
-- [X] T017 [US1] Add lift phase execution in `PlayExecutor._execute_play()`: Scale lift strategy duration/stagger from `_hype_params`, call `TileAnimator.animate_lift_batch(all_tiles)`, await completion
-- [X] T018 [US1] Restore animation strategy durations after each animation batch in `PlayExecutor` (scale before batch, restore after)
+- [X] T017 [US1] Add lift phase execution in `PlayExecutor._execute_play()`: Call `TileAnimator.animate_lift_batch(all_tiles)`, await completion
+- [ ] T018 [US1] Restore animation strategy durations after each animation batch in `PlayExecutor` (scale before batch, restore after) **DEFERRED to Phase 4 (US2) - requires strategy management refactor**
 - [X] T019 [US1] Modify `scripts/controllers/gameplay_controller.gd`: Guard `_on_tile_drag_started`, `_on_cell_drop_attempted`, discard handler with `if _play.is_sequence_active(): return`
 - [X] T020 [US1] Add final sequence cleanup in `PlayExecutor._execute_play()`: Emit `EventBus.play_sequence_ended` at end, set `_is_sequence_active = false`
 - [ ] T021 [US1] Manual test: Place 5 tiles, press Play, observe lift phase, verify no gaps, verify player lock works during lift
