@@ -460,6 +460,9 @@ func _scale_animations_for_play(params: Dictionary) -> void:
 	var effective_mult: float = params.get("effective_multiplier", 1.0)
 	_original_strategy_values.clear()
 
+	if hype_config.debug_logging_enabled:
+		print("[PlayExecutor] Scaling animations with effective_multiplier=%.2f" % effective_mult)
+
 	# Scale stomp animation if it will be used
 	if TileAnimator._stomp_animation:
 		_original_strategy_values["stomp_duration"] = TileAnimator._stomp_animation.duration
@@ -489,12 +492,18 @@ func _scale_animations_for_play(params: Dictionary) -> void:
 		_original_strategy_values["lift_duration"] = TileAnimator._lift_animation.duration
 		_original_strategy_values["lift_stagger"] = TileAnimator._lift_animation.stagger_delay
 
-		TileAnimator._lift_animation.duration = hype_config.scale_duration(
+		var scaled_duration = hype_config.scale_duration(
 			_original_strategy_values["lift_duration"], effective_mult
 		)
+		TileAnimator._lift_animation.duration = scaled_duration
 		TileAnimator._lift_animation.stagger_delay = hype_config.scale_duration(
 			_original_strategy_values["lift_stagger"], effective_mult
 		)
+
+		if hype_config.debug_logging_enabled:
+			print("[Lift] original=%.3f scaled=%.3f multiplier=%.2f" % [
+				_original_strategy_values["lift_duration"], scaled_duration, effective_mult
+			])
 
 
 ## Restores animation strategies to their original durations after play completes.
@@ -511,8 +520,12 @@ func _restore_animation_durations() -> void:
 		TileAnimator._spin_animation.stagger_delay = _original_strategy_values["spin_stagger"]
 
 	if TileAnimator._lift_animation and "lift_duration" in _original_strategy_values:
+		var hype_config: HypeConfig = TileAnimator.hype_config
 		TileAnimator._lift_animation.duration = _original_strategy_values["lift_duration"]
 		TileAnimator._lift_animation.stagger_delay = _original_strategy_values["lift_stagger"]
+
+		if hype_config and hype_config.debug_logging_enabled:
+			print("[Lift] restored to %.3f" % _original_strategy_values["lift_duration"])
 
 	_original_strategy_values.clear()
 
