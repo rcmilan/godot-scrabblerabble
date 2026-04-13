@@ -296,8 +296,8 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 	var target_pos: Vector2 = score_panel.get_score_label_target_position()
 	var travel_duration: float = _hype_params.get("score_travel_duration_scaled", hype_config.score_pop_travel_duration)
 
-	# Track labels in flight
-	var labels_in_flight: int = 0
+	# Track labels in flight using a dict (reference type) so callbacks can decrement it
+	var labels_state := {"in_flight": 0}
 	var cumulative_score: int = GameManager.get_current_score()
 
 	# Extract hype params for callback access (before they're cleared)
@@ -314,11 +314,11 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 		var score_pop: ScorePopLabel = ScorePopLabel.new()
 		_hud.add_child(score_pop)
 
-		labels_in_flight += 1
+		labels_state["in_flight"] += 1
 
 		# Create callback that triggers on label arrival
-		# Capture delta and target_score values to avoid closure issues after _hype_params is cleared
-		var on_arrive = _create_score_callback(delta, target_score, hype_config)
+		# Pass labels_state dict by reference so callback can decrement it
+		var on_arrive = _create_score_callback(delta, target_score, hype_config, labels_state)
 
 		# Get tile global position for label start
 		var tile_pos: Vector2 = tile.global_position if tile else Vector2.ZERO
@@ -326,17 +326,20 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 		score_pop.launch(tile_pos, target_pos, delta, travel_duration, on_arrive)
 
 	# Wait for all labels to arrive
-	while labels_in_flight > 0:
+	while labels_state["in_flight"] > 0:
 		await board.get_tree().create_timer(0.01).timeout
 
 
 ## Helper to create score callback with proper value capture (avoids lambda capture-by-reference).
-## Pass delta and target_score explicitly to avoid closure issues after _hype_params is cleared.
-func _create_score_callback(delta: int, target_score: int, hype_config: HypeConfig) -> Callable:
+## Pass delta, target_score, and labels_state dict (by reference) for proper tracking.
+func _create_score_callback(delta: int, target_score: int, hype_config: HypeConfig, labels_state: Dictionary) -> Callable:
 	return func():
 		GameManager.add_tile_score(delta)
 		var cumulative_score: int = GameManager.get_current_score()
 		EventBus.score_updated.emit(cumulative_score, delta)
+
+		# Decrement label counter
+		labels_state["in_flight"] -= 1
 
 		if hype_config.debug_logging_enabled:
 			var progress = float(cumulative_score) / float(target_score) * 100.0 if target_score > 0 else 0.0
