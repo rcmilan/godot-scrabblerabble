@@ -201,9 +201,9 @@ User Story 5: Verify animation mapping is fully config-driven. Tiles without exp
 
 ### Implementation Tasks
 
-- [ ] T044 [US5] Verify `AnimationCategorizer.categorize()` uses `hype_config.animation_mapping` correctly
-- [ ] T045 [US5] Test mapping lookup in `PlayExecutor._animate_play_from_cats()`: Verify categories match mapped animations
-- [ ] T046 [US5] Test fallback: Verify unmapped tile type uses `default_animation` from config
+- [X] T044 [US5] Verify `AnimationCategorizer.categorize()` uses `hype_config.animation_mapping` correctly
+- [X] T045 [US5] Test mapping lookup in `PlayExecutor._animate_play_from_cats()`: Verify categories match mapped animations
+- [X] T046 [US5] Test fallback: Verify unmapped tile type uses `default_animation` from config
 - [ ] T047 [US5] Manual test: Edit `hype_config.tres`, reassign an animation, play, verify change takes effect
 
 ---

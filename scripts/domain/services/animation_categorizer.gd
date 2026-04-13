@@ -38,10 +38,8 @@ static func categorize(tiles: Array[Tile], mapping: Dictionary = {}, default_ani
 ## Determines the animation type for a single tile.
 ## Uses mapping if provided, falls back to modifier-based categorization if not.
 static func _get_animation_type(tile: Tile, mapping: Dictionary, default_animation: String) -> String:
-	# Check if tile has a modifier that maps to an animation
-	for modifier in tile.modifiers:
-		var modifier_type: int = modifier.modifier_type
-		# Map enum values to their string names for lookup
+	# tile.modifiers is a Dictionary; iterating it yields int enum keys directly
+	for modifier_type in tile.modifiers:
 		var modifier_name: String = _get_modifier_type_name(modifier_type)
 		if mapping.has(modifier_name):
 			return mapping[modifier_name]

@@ -129,7 +129,12 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 
 	# Animate ALL board tiles with stagger-matched scoring
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
-	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
+	var hype_config_cats = TileAnimator.hype_config
+	var cats: Dictionary = AnimationCategorizer.categorize(
+		all_tiles,
+		hype_config_cats.animation_mapping if hype_config_cats else {},
+		hype_config_cats.default_animation if hype_config_cats else "stomp"
+	)
 
 	print("[Gameplay] Play total: %d pts across %d word(s)" % [total_score, words.size()])
 
@@ -254,22 +259,37 @@ func _rebind_cells_after_drop(movements: Array) -> void:
 
 ## Animates tiles from pre-categorized groups.
 ## Stomp tiles animate first, then spin tiles -- sequential, not parallel.
+## Unknown categories are logged and skipped gracefully (T046 fallback).
 func _animate_play_from_cats(cats: Dictionary) -> void:
 	# Hide locked border during animations
 	var all_tiles: Array[Tile] = []
-	all_tiles.append_array(cats.stomp)
-	all_tiles.append_array(cats.spin)
+	for key in cats:
+		all_tiles.append_array(cats[key])
 	for tile in all_tiles:
 		if tile.locked_border:
 			tile.locked_border.visible = false
 
-	if not cats.stomp.is_empty():
-		TileAnimator.animate_stomp_batch(cats.stomp)
+	var stomp_tiles: Array[Tile] = []
+	stomp_tiles.assign(cats.get("stomp", []))
+	var spin_tiles: Array[Tile] = []
+	spin_tiles.assign(cats.get("spin", []))
+
+	if not stomp_tiles.is_empty():
+		TileAnimator.animate_stomp_batch(stomp_tiles)
 		await TileAnimator.animation_completed
 
-	if not cats.spin.is_empty():
-		TileAnimator.animate_spin_batch(cats.spin)
+	if not spin_tiles.is_empty():
+		TileAnimator.animate_spin_batch(spin_tiles)
 		await TileAnimator.animation_completed
+
+	# Log any unhandled animation categories (graceful fallback for future types)
+	for key in cats:
+		if key != "stomp" and key != "spin" and not cats[key].is_empty():
+			print("[PlayExecutor] Warning: unhandled animation category '%s' (%d tiles) -- using stomp fallback" % [key, cats[key].size()])
+			var fallback_tiles: Array[Tile] = []
+			fallback_tiles.assign(cats[key])
+			TileAnimator.animate_stomp_batch(fallback_tiles)
+			await TileAnimator.animation_completed
 
 
 ## Animates tiles using AnimationCategorizer dispatch.
@@ -389,8 +409,13 @@ func _auto_end_round() -> void:
 
 	print("[Gameplay] Auto end round: scoring %d pts per play from %d words" % [total_score, words.size()])
 
-	# Categorize once (modifiers don't change between loops)
-	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
+	# Categorize once using config-driven mapping (modifiers don't change between loops)
+	var hype_config_cats = TileAnimator.hype_config
+	var cats: Dictionary = AnimationCategorizer.categorize(
+		all_tiles,
+		hype_config_cats.animation_mapping if hype_config_cats else {},
+		hype_config_cats.default_animation if hype_config_cats else "stomp"
+	)
 
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
 		await _animate_play_from_cats(cats)
