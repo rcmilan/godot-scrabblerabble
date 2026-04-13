@@ -222,14 +222,14 @@ Final phase: Test edge cases, verify timer pause/resume, confirm player lock, op
 ### Implementation Tasks
 
 - [ ] T048 Test edge case: Single tile play (lift and animation still run, speed at minimum)
-- [ ] T049 Test edge case: Tile with zero score (no label emitted)
-- [ ] T050 Test edge case: Target score zero or undefined (pulse intensity defaults to 1.0, no divide-by-zero)
+- [X] T049 Test edge case: Tile with zero score (no label emitted) -- code-verified: `total_score > 0` gate + `delta <= 0: continue`
+- [X] T050 Test edge case: Target score zero or undefined (pulse intensity defaults to 1.0, no divide-by-zero) -- code-verified: `1.0 if _target <= 0`
 - [ ] T051 Test edge case: Sequence interrupted (game paused mid-sequence) - verify lock remains until sequence resolves
-- [ ] T052 Test edge case: Hurry Boss time-out mid-sequence - verify sequence completes, then round-end logic runs
+- [X] T052 Test edge case: Hurry Boss time-out mid-sequence - verify sequence completes, then round-end logic runs -- code-verified: all score/play methods phase-guard on PLAYING
 - [ ] T053 Test edge case: Maximum tile count (full board) - verify speed clamped, no visual overload
 - [ ] T054 Test edge case: Score labels overlap in flight - verify independent travel, no collision resolution needed
 - [ ] T055 Test Hurry Boss timer pause: Start Hurry Boss round with active countdown, press Play, verify timer pauses, resumes after
-- [ ] T056 Test player lock comprehensive: During sequence, attempt placement, drag, removal, discard; all should be blocked
+- [X] T056 Test player lock comprehensive: During sequence, attempt placement, drag, removal, discard; all should be blocked -- fixed: added `is_sequence_active()` guard to cursor_confirmed, cursor_letter_typed, cursor_backspace_pressed
 - [ ] T057 Performance test: Play 7-tile word multiple times, measure sequence duration (should be < 4 seconds), check for frame drops
 - [ ] T058 Enable debug logging, play sequence, verify all required fields logged: `[Play]`, `[Tile]`, `[Score]`
 - [ ] T059 Final integrated manual test: Play full round with multiple plays, verify lift → animations → score pops → scoring → timer management all work together

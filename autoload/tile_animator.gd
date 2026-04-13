@@ -374,6 +374,14 @@ func _ensure_lift_resources() -> void:
 	_lift_executor = _ensure_executor(_lift_executor, BatchAnimationExecutor)
 
 
+## Ensures stomp and spin animation strategies are initialized.
+## Call this before inspecting or modifying animation durations for scaling,
+## so that strategies are not null on the first play of a run.
+func prepare_play_animations() -> void:
+	_ensure_stomp_resources()
+	_ensure_spin_resources()
+
+
 func _load_hype_config() -> void:
 	hype_config = load("res://scripts/animation/hype/hype_config.tres")
 	if hype_config == null:

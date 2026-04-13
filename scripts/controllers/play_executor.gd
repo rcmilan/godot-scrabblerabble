@@ -94,12 +94,6 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 
 	_selection.deselect_all()
 
-	# LIFT PHASE: All tiles lift uniformly before other animations
-	var all_tiles_for_lift: Array[Tile] = _get_all_board_tiles()
-	if not all_tiles_for_lift.is_empty():
-		TileAnimator.animate_lift_batch(all_tiles_for_lift)
-		await TileAnimator.animation_completed
-
 	# Execute boss post-play effects (e.g., gravity drop)
 	if _round_config and _round_config.boss:
 		await _execute_boss_post_play_effects(unplayed_tiles)
@@ -161,12 +155,6 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 
 	# Restore animation durations after play completes
 	_restore_animation_durations()
-
-	# Debug: Log final lift animation state after restoration
-	if hype_config and hype_config.debug_logging_enabled and TileAnimator._lift_animation:
-		print("[Lift] AFTER_RESTORE: duration=%.3f (should be ~0.12 unless HypeConfig customizes)" % [
-			TileAnimator._lift_animation.duration
-		])
 
 	# Sequence cleanup: clear sequence lock and notify
 	_is_sequence_active = false
@@ -360,14 +348,14 @@ func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
 ## Pass delta, target_score, and labels_state dict (by reference) for proper tracking.
 func _create_score_callback(delta: int, target_score: int, hype_config, labels_state: Dictionary) -> Callable:
 	return func():
+		# add_tile_score already emits score_updated(cumulative, delta) internally
 		GameManager.add_tile_score(delta)
-		var cumulative_score: int = GameManager.get_current_score()
-		EventBus.score_updated.emit(cumulative_score, delta)
 
 		# Decrement label counter
 		labels_state["in_flight"] -= 1
 
 		if hype_config.debug_logging_enabled:
+			var cumulative_score: int = GameManager.get_cumulative_score()
 			var progress = float(cumulative_score) / float(target_score) * 100.0 if target_score > 0 else 0.0
 			print("[Score] delta=%d cumulative=%d progress=%.2f%%" % [delta, cumulative_score, progress])
 
@@ -488,6 +476,12 @@ func _scale_animations_for_play(params: Dictionary) -> void:
 	if not hype_config:
 		return
 
+	# Force-initialize animation strategies before inspecting them.
+	# Without this, strategies created lazily on first animate_*_batch() call
+	# are null here on the very first play, so Round 1 Play 1 runs unscaled
+	# while all subsequent plays run scaled -- producing a visible speed difference.
+	TileAnimator.prepare_play_animations()
+
 	var effective_mult: float = params.get("effective_multiplier", 1.0)
 	_original_strategy_values.clear()
 
@@ -518,23 +512,6 @@ func _scale_animations_for_play(params: Dictionary) -> void:
 			_original_strategy_values["spin_stagger"], effective_mult
 		)
 
-	# Scale lift animation if it will be used
-	if TileAnimator._lift_animation:
-		_original_strategy_values["lift_duration"] = TileAnimator._lift_animation.duration
-		_original_strategy_values["lift_stagger"] = TileAnimator._lift_animation.stagger_delay
-
-		var scaled_duration = hype_config.scale_duration(
-			_original_strategy_values["lift_duration"], effective_mult
-		)
-		TileAnimator._lift_animation.duration = scaled_duration
-		TileAnimator._lift_animation.stagger_delay = hype_config.scale_duration(
-			_original_strategy_values["lift_stagger"], effective_mult
-		)
-
-		if hype_config.debug_logging_enabled:
-			print("[Lift] BEFORE_SCALE: current_duration=%.3f | original=%.3f scaled=%.3f multiplier=%.2f" % [
-				_original_strategy_values["lift_duration"], _original_strategy_values["lift_duration"], scaled_duration, effective_mult
-			])
 
 
 ## Restores animation strategies to their original durations after play completes.
@@ -553,13 +530,6 @@ func _restore_animation_durations() -> void:
 	if TileAnimator._spin_animation and "spin_duration" in _original_strategy_values:
 		TileAnimator._spin_animation.duration = _original_strategy_values["spin_duration"]
 		TileAnimator._spin_animation.stagger_delay = _original_strategy_values["spin_stagger"]
-
-	if TileAnimator._lift_animation and "lift_duration" in _original_strategy_values:
-		TileAnimator._lift_animation.duration = _original_strategy_values["lift_duration"]
-		TileAnimator._lift_animation.stagger_delay = _original_strategy_values["lift_stagger"]
-
-		if hype_config and hype_config.debug_logging_enabled:
-			print("[Lift] restored to %.3f (from scaled state)" % _original_strategy_values["lift_duration"])
 
 	_original_strategy_values.clear()
 

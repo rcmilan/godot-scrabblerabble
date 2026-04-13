@@ -339,6 +339,8 @@ func _on_tile_right_clicked(tile: Tile) -> void:
 func _on_cursor_confirmed(pos: CursorPosition) -> void:
 	if not _is_active:
 		return
+	if _play.is_sequence_active():
+		return
 
 	if pos.is_hand():
 		var tile: Tile = hand.get_tile_at(pos.hand_index)
@@ -393,6 +395,8 @@ func _on_cursor_moved(pos: CursorPosition) -> void:
 func _on_cursor_letter_typed(letter: String) -> void:
 	if not _is_active or _cursor == null:
 		return
+	if _play.is_sequence_active():
+		return
 	var session := _cursor.get_typing_session()
 	if session == null:
 		return
@@ -427,6 +431,8 @@ func _on_cursor_letter_typed(letter: String) -> void:
 
 func _on_cursor_backspace_pressed() -> void:
 	if not _is_active or _cursor == null:
+		return
+	if _play.is_sequence_active():
 		return
 	var session := _cursor.get_typing_session()
 	if session == null:

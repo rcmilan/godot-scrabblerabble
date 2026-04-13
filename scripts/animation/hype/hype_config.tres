@@ -7,15 +7,15 @@ script = ExtResource("1_2cmpk")
 master_speed_multiplier = 1.0
 master_speed_min = 0.5
 master_speed_max = 2.0
-speed_scale_k = 0.04
+speed_scale_k = 0.025
 speed_scale_n = 2.0
 tile_count_speed_min = 1.0
-tile_count_speed_max = 3.0
-min_animation_duration = 0.08
+tile_count_speed_max = 2.0
+min_animation_duration = 0.15
 animation_completion_threshold = 0.65
 lift_scale = Vector2(1.2, 1.2)
 lift_offset_y = -20.0
-lift_duration = 0.12
+lift_duration = 0.28
 animation_mapping = {
 "EXTRA": "spin",
 "EXPO": "spin",

@@ -58,14 +58,18 @@ func build_custom_tweens(tile: Tile, tween: Tween, delay: float) -> void:
 	# Tween is already parallel, so add scale and Y-offset tweens
 	var half_duration: float = duration / 2.0
 
-	# Scale up then down
+	# Scale up then return to ONE.
+	# Both tweeners need explicit delays since the tween is in parallel mode --
+	# without set_delay on the return tweener, it starts at t=0 simultaneous with
+	# the up tweener, they fight over the same property, and the lift is imperceptible.
 	tween.tween_property(tile, "scale", hype_config.lift_scale, half_duration) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD).set_delay(delay)
 	tween.tween_property(tile, "scale", Vector2.ONE, half_duration) \
-		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD).set_delay(delay + half_duration)
 
-	# Move up then down (Y-axis only)
-	tween.tween_property(tile, "position:y", tile.position.y + hype_config.lift_offset_y, half_duration) \
+	# Move up then return (Y-axis only).
+	var base_y: float = tile.position.y
+	tween.tween_property(tile, "position:y", base_y + hype_config.lift_offset_y, half_duration) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD).set_delay(delay)
-	tween.tween_property(tile, "position:y", tile.position.y, half_duration) \
-		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(tile, "position:y", base_y, half_duration) \
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD).set_delay(delay + half_duration)
