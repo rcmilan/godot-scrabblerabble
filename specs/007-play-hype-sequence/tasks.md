@@ -107,12 +107,12 @@ User Story 2: Implement exponential speed multiplier that scales all animation d
 
 ### Implementation Tasks
 
-- [ ] T022 [US2] Compute tile-count multiplier in `PlayExecutor._execute_play()`: `tileCount = unplayed_tiles.size()`, `tileCountMultiplier = hype_config.get_tile_count_multiplier(tileCount)`, `effectiveMultiplier = tileCountMultiplier * hype_config.master_speed_multiplier`
-- [ ] T023 [US2] Store computed timings in `_hype_params`: `stomp_slam_time_scaled`, `stomp_stagger_scaled`, `spin_up_time_scaled`, `spin_stagger_scaled`, `score_travel_duration_scaled`
-- [ ] T024 [US2] Implement duration scaling in animation batches: Before `TileAnimator.animate_stomp_batch()`, set `stomp_animation.duration = base / effectiveMultiplier`, restore after
-- [ ] T025 [US2] Implement stagger scaling: Set `strategy.stagger_delay = base_stagger / effectiveMultiplier` before batch, restore after
-- [ ] T026 [US2] Apply min_animation_duration clamp: Use `hype_config.scale_duration(base, multiplier)` which returns `max(base / multiplier, min_threshold)`
-- [ ] T027 [US2] Add debug logging if enabled: Log `[Play] tileCount=N speedMultiplier=X.XX` to console at start of sequence
+- [X] T022 [US2] Compute tile-count multiplier in `PlayExecutor._execute_play()`: `tileCount = unplayed_tiles.size()`, `tileCountMultiplier = hype_config.get_tile_count_multiplier(tileCount)`, `effectiveMultiplier = tileCountMultiplier * hype_config.master_speed_multiplier`
+- [X] T023 [US2] Store computed timings in `_hype_params`: `stomp_slam_time_scaled`, `stomp_stagger_scaled`, `spin_up_time_scaled`, `spin_stagger_scaled`, `score_travel_duration_scaled`
+- [X] T024 [US2] Implement duration scaling in animation batches: Before `TileAnimator.animate_stomp_batch()`, set `stomp_animation.duration = base / effectiveMultiplier`, restore after
+- [X] T025 [US2] Implement stagger scaling: Set `strategy.stagger_delay = base_stagger / effectiveMultiplier` before batch, restore after
+- [X] T026 [US2] Apply min_animation_duration clamp: Use `hype_config.scale_duration(base, multiplier)` which returns `max(base / multiplier, min_threshold)`
+- [X] T027 [US2] Add debug logging if enabled: Log `[Play] tileCount=N speedMultiplier=X.XX` to console at start of sequence
 - [ ] T028 [US2] Manual test: Play 1, 3, 7 tile words at master speed 1.0, 0.5, 2.0; verify speed scaling is exponential and compounded
 
 ---
@@ -139,13 +139,13 @@ User Story 3: Implement floating score labels that appear above tiles after anim
 
 ### Implementation Tasks
 
-- [ ] T029 [US3] Refactor `PlayExecutor._commit_scores_staggered()`: Delete entire method (replaced by label-based scoring)
-- [ ] T030 [US3] Add score transfer phase in `PlayExecutor._execute_play()`: After tile animations, iterate through unplayed tiles, emit score pop label for each with non-zero delta
-- [ ] T031 [US3] Implement score pop emission in `PlayExecutor`: Create `ScorePopLabel` instance, call `launch(tile_global_pos, score_panel_target, delta, scaled_travel_duration, on_arrive_callback)`
-- [ ] T032 [US3] Implement score callback in `PlayExecutor._execute_play()` score transfer phase: Create lambda `on_arrive_callback = func(): GameManager.add_tile_score(delta); EventBus.score_updated.emit(cumulative, delta)` and pass to `score_pop.launch()` as callback. GameManager.add_tile_score() updates cumulative score; EventBus signal triggers ScorePanel to compute intensity locally and pulse.
-- [ ] T033 [US3] Add score pop to HUD: Modify `GameplayController` to pass HUD CanvasLayer to `PlayExecutor.set_hud(hud)` during setup
-- [ ] T034 [US3] Track score transfer completion: Add counter or signal to know when all labels have arrived (await or busy-wait)
-- [ ] T035 [US3] Add debug logging: Log `[Score] delta=N progress=X.XX` for each tile score contribution
+- [X] T029 [US3] Refactor `PlayExecutor._commit_scores_staggered()`: Delete entire method (replaced by label-based scoring)
+- [X] T030 [US3] Add score transfer phase in `PlayExecutor._execute_play()`: After tile animations, iterate through unplayed tiles, emit score pop label for each with non-zero delta
+- [X] T031 [US3] Implement score pop emission in `PlayExecutor`: Create `ScorePopLabel` instance, call `launch(tile_global_pos, score_panel_target, delta, scaled_travel_duration, on_arrive_callback)`
+- [X] T032 [US3] Implement score callback in `PlayExecutor._execute_play()` score transfer phase: Create lambda `on_arrive_callback = func(): GameManager.add_tile_score(delta); EventBus.score_updated.emit(cumulative, delta)` and pass to `score_pop.launch()` as callback. GameManager.add_tile_score() updates cumulative score; EventBus signal triggers ScorePanel to compute intensity locally and pulse.
+- [X] T033 [US3] Add score pop to HUD: Modify `GameplayController` to pass HUD CanvasLayer to `PlayExecutor.set_hud(hud)` during setup
+- [X] T034 [US3] Track score transfer completion: Add counter or signal to know when all labels have arrived (await or busy-wait)
+- [X] T035 [US3] Add debug logging: Log `[Score] delta=N progress=X.XX` for each tile score contribution
 - [ ] T036 [US3] Manual test: Play any word, observe labels pop, travel, and arrive; verify score increments only on arrival
 
 ---

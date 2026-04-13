@@ -85,6 +85,9 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	# Compute hype parameters for this play
 	_hype_params = _compute_hype_params(unplayed_tiles)
 
+	# Apply speed scaling based on tile count and master speed
+	_scale_animations_for_play(_hype_params)
+
 	# Lock unplayed tiles via modifier system
 	for tile in unplayed_tiles:
 		tile.set_locked(true)
@@ -128,11 +131,14 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	var all_tiles: Array[Tile] = _get_all_board_tiles()
 	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
 
-	# Launch stagger scoring concurrently (runs during animation)
-	_commit_scores_staggered(total_score, cats.stomp.size(), cats.spin.size())
 	print("[Gameplay] Play total: %d pts across %d word(s)" % [total_score, words.size()])
 
 	await _animate_play_from_cats(cats)
+
+	# Score transfer phase: emit floating score labels
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	if hype_config and _hud and not all_tiles.is_empty() and total_score > 0:
+		await _emit_score_pops(all_tiles, total_score)
 
 	# Finalize play (decrement plays, check win/lose condition)
 	GameManager.end_play()
@@ -147,6 +153,9 @@ func _execute_play(unplayed_tiles: Array[Tile]) -> void:
 	# Auto-refill hand after a brief delay so player sees the result
 	await board.get_tree().create_timer(0.5).timeout
 	HandManager.refill_hand()
+
+	# Restore animation durations after play completes
+	_restore_animation_durations()
 
 	# Sequence cleanup: clear sequence lock and notify
 	_is_sequence_active = false
@@ -235,42 +244,6 @@ func _rebind_cells_after_drop(movements: Array) -> void:
 		tile.attach_to_cell(to_cell)
 
 
-## Commits score per animated tile at stagger intervals during animation.
-## Runs concurrently (not awaited by caller) so scores tick during stomps/spins.
-func _commit_scores_staggered(total_score: int, stomp_count: int, spin_count: int) -> void:
-	var tile_count: int = stomp_count + spin_count
-	if tile_count <= 0 or total_score <= 0:
-		if total_score > 0:
-			GameManager.add_tile_score(total_score)
-		return
-
-	var per_tile: int = total_score / tile_count
-	var remainder: int = total_score % tile_count
-	var scored: int = 0
-
-	if stomp_count > 0:
-		var stomp_config := StompTileAnimation.new()
-		var slam_time: float = stomp_config.rise_duration + stomp_config.slam_duration
-		await board.get_tree().create_timer(slam_time).timeout
-
-		for i in stomp_count:
-			var score: int = per_tile + (1 if scored < remainder else 0)
-			GameManager.add_tile_score(score)
-			scored += 1
-			if scored < tile_count:
-				await board.get_tree().create_timer(stomp_config.stagger_delay).timeout
-
-	if spin_count > 0:
-		var spin_config := SpinTileAnimation.new()
-		if stomp_count == 0:
-			await board.get_tree().create_timer(spin_config.spin_up_duration).timeout
-
-		for i in spin_count:
-			var score: int = per_tile + (1 if scored < remainder else 0)
-			GameManager.add_tile_score(score)
-			scored += 1
-			if scored < tile_count:
-				await board.get_tree().create_timer(spin_config.stagger_delay).timeout
 
 
 ## Animates tiles from pre-categorized groups.
@@ -297,6 +270,69 @@ func _animate_play_from_cats(cats: Dictionary) -> void:
 func _animate_play(all_tiles: Array[Tile]) -> void:
 	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
 	await _animate_play_from_cats(cats)
+
+
+## Emits floating score pop labels for each tile.
+## Divides total_score among tiles, creates labels, and awaits all arrivals.
+func _emit_score_pops(all_tiles: Array[Tile], total_score: int) -> void:
+	var hype_config: HypeConfig = TileAnimator.hype_config
+	if not hype_config or not _hud:
+		return
+
+	var tile_count: int = all_tiles.size()
+	if tile_count <= 0 or total_score <= 0:
+		return
+
+	# Distribute score evenly across tiles
+	var per_tile: int = total_score / tile_count
+	var remainder: int = total_score % tile_count
+
+	# Find score panel in scene tree
+	var score_panel: ScorePanel = board.get_tree().root.find_child("ScorePanel", true, false) as ScorePanel
+	if not score_panel:
+		print("[PlayExecutor] Warning: ScorePanel not found in scene")
+		return
+
+	var target_pos: Vector2 = score_panel.get_score_label_target_position()
+	var travel_duration: float = _hype_params.get("score_travel_duration_scaled", hype_config.score_pop_travel_duration)
+
+	# Track labels in flight
+	var labels_in_flight: int = 0
+	var cumulative_score: int = GameManager.get_current_score()
+
+	for i in range(tile_count):
+		var tile: Tile = all_tiles[i]
+		var delta: int = per_tile + (1 if i < remainder else 0)
+
+		if delta <= 0:
+			continue
+
+		# Create and launch score pop label
+		var score_pop: ScorePopLabel = ScorePopLabel.new()
+		_hud.add_child(score_pop)
+
+		labels_in_flight += 1
+
+		# Create callback that triggers on label arrival
+		var on_arrive = func():
+			GameManager.add_tile_score(delta)
+			cumulative_score = GameManager.get_current_score()
+			EventBus.score_updated.emit(cumulative_score, delta)
+			labels_in_flight -= 1
+
+			if hype_config.debug_logging_enabled:
+				print("[Score] delta=%d cumulative=%d progress=%.2f%%" % [
+					delta, cumulative_score, float(cumulative_score) / float(_hype_params.get("target_score", 1)) * 100.0
+				])
+
+		# Get tile global position for label start
+		var tile_pos: Vector2 = tile.global_position if tile else Vector2.ZERO
+
+		score_pop.launch(tile_pos, target_pos, delta, travel_duration, on_arrive)
+
+	# Wait for all labels to arrive
+	while labels_in_flight > 0:
+		await board.get_tree().create_timer(0.01).timeout
 
 
 # =============================================================================
@@ -340,10 +376,12 @@ func _auto_end_round() -> void:
 	var cats: Dictionary = AnimationCategorizer.categorize(all_tiles)
 
 	while GameManager.get_current_phase() == GameManager.GamePhase.PLAYING and GameManager.get_plays_remaining() > 0:
-		# Launch stagger scoring concurrently
-		_commit_scores_staggered(total_score, cats.stomp.size(), cats.spin.size())
-
 		await _animate_play_from_cats(cats)
+
+		# Score transfer phase for auto-end
+		var hype_config: HypeConfig = TileAnimator.hype_config
+		if hype_config and _hud and not all_tiles.is_empty() and total_score > 0:
+			await _emit_score_pops(all_tiles, total_score)
 
 		# Finalize play
 		GameManager.end_play()
@@ -394,9 +432,14 @@ func _compute_hype_params(unplayed_tiles: Array[Tile]) -> Dictionary:
 	return params
 
 
-## Applies duration scaling to an animation strategy before execution
-func _apply_duration_scaling(params: Dictionary, strategy: TileAnimationStrategy, base_field: String) -> void:
-	if strategy == null or params.is_empty():
+## Stores original animation strategy values before scaling
+var _original_strategy_values: Dictionary = {}
+
+
+## Scales animation strategies for the current play based on tile count and master speed.
+## This is a wrapper that ensures strategies are initialized, scaled, and restored properly.
+func _scale_animations_for_play(params: Dictionary) -> void:
+	if params.is_empty():
 		return
 
 	var hype_config: HypeConfig = TileAnimator.hype_config
@@ -404,36 +447,63 @@ func _apply_duration_scaling(params: Dictionary, strategy: TileAnimationStrategy
 		return
 
 	var effective_mult: float = params.get("effective_multiplier", 1.0)
+	_original_strategy_values.clear()
 
-	# Scale the animation duration
-	var base_value: float = strategy.get(base_field)
-	strategy.set(base_field, hype_config.scale_duration(base_value, effective_mult))
+	# Scale stomp animation if it will be used
+	if TileAnimator._stomp_animation:
+		_original_strategy_values["stomp_duration"] = TileAnimator._stomp_animation.duration
+		_original_strategy_values["stomp_stagger"] = TileAnimator._stomp_animation.stagger_delay
 
-	# Also scale stagger
-	var base_stagger: float = hype_config.inter_tile_stagger_delay
-	strategy.stagger_delay = hype_config.scale_duration(base_stagger, effective_mult)
+		TileAnimator._stomp_animation.duration = hype_config.scale_duration(
+			_original_strategy_values["stomp_duration"], effective_mult
+		)
+		TileAnimator._stomp_animation.stagger_delay = hype_config.scale_duration(
+			_original_strategy_values["stomp_stagger"], effective_mult
+		)
+
+	# Scale spin animation if it will be used
+	if TileAnimator._spin_animation:
+		_original_strategy_values["spin_duration"] = TileAnimator._spin_animation.duration
+		_original_strategy_values["spin_stagger"] = TileAnimator._spin_animation.stagger_delay
+
+		TileAnimator._spin_animation.duration = hype_config.scale_duration(
+			_original_strategy_values["spin_duration"], effective_mult
+		)
+		TileAnimator._spin_animation.stagger_delay = hype_config.scale_duration(
+			_original_strategy_values["spin_stagger"], effective_mult
+		)
+
+	# Scale lift animation if it will be used
+	if TileAnimator._lift_animation:
+		_original_strategy_values["lift_duration"] = TileAnimator._lift_animation.duration
+		_original_strategy_values["lift_stagger"] = TileAnimator._lift_animation.stagger_delay
+
+		TileAnimator._lift_animation.duration = hype_config.scale_duration(
+			_original_strategy_values["lift_duration"], effective_mult
+		)
+		TileAnimator._lift_animation.stagger_delay = hype_config.scale_duration(
+			_original_strategy_values["lift_stagger"], effective_mult
+		)
 
 
-## Restores animation strategy durations to their original values
-func _restore_duration_scaling(strategy: TileAnimationStrategy, base_field: String) -> void:
-	if strategy == null:
+## Restores animation strategies to their original durations after play completes.
+func _restore_animation_durations() -> void:
+	if _original_strategy_values.is_empty():
 		return
 
-	# Restore from config defaults
-	var hype_config: HypeConfig = TileAnimator.hype_config
-	if not hype_config:
-		return
+	if TileAnimator._stomp_animation and "stomp_duration" in _original_strategy_values:
+		TileAnimator._stomp_animation.duration = _original_strategy_values["stomp_duration"]
+		TileAnimator._stomp_animation.stagger_delay = _original_strategy_values["stomp_stagger"]
 
-	if base_field == "duration":
-		# Generic restoration - get fresh instance to get defaults
-		if strategy is LiftTileAnimation:
-			strategy.duration = hype_config.lift_duration
-		elif strategy is StompTileAnimation:
-			strategy.duration = 0.35
-		elif strategy is SpinTileAnimation:
-			strategy.duration = 0.35
+	if TileAnimator._spin_animation and "spin_duration" in _original_strategy_values:
+		TileAnimator._spin_animation.duration = _original_strategy_values["spin_duration"]
+		TileAnimator._spin_animation.stagger_delay = _original_strategy_values["spin_stagger"]
 
-	strategy.stagger_delay = hype_config.inter_tile_stagger_delay
+	if TileAnimator._lift_animation and "lift_duration" in _original_strategy_values:
+		TileAnimator._lift_animation.duration = _original_strategy_values["lift_duration"]
+		TileAnimator._lift_animation.stagger_delay = _original_strategy_values["lift_stagger"]
+
+	_original_strategy_values.clear()
 
 
 # =============================================================================
