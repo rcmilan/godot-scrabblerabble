@@ -42,6 +42,11 @@ var _hurry_timer: BossTimerRelay = null
 var _hurry_time_limit: float = 0.0
 var _hurry_base_color: Color = Color.SILVER
 
+# Configuration constants
+const SHOP_TRANSITION_DELAY: float = 1.0
+const FALLBACK_BOSS_COLOR: Color = Color(1.0, 0.85, 0.85, 1.0)
+const NORMAL_ROUND_COLOR: Color = Color(0.85, 0.88, 0.92, 1.0)
+
 
 # =============================================================================
 # LIFECYCLE
@@ -178,9 +183,7 @@ func _setup_round_state(config: RoundConfig) -> void:
 		HandManager.clear_discard_pile()
 		TileBag.populate_bag(RunManager.run_state.bag_config)
 	# Setup GameManager for this round
-	var previous_total: int = 0
-	if RunManager.run_state:
-		previous_total = RunManager.run_state.total_score
+	var previous_total: int = RunManager.run_state.total_score if RunManager.run_state else 0
 	GameManager.setup_round(config, previous_total)
 	# Notify ScorePanel with round info and score state
 	if _score_panel:
@@ -197,20 +200,21 @@ func _setup_round_state(config: RoundConfig) -> void:
 
 func _setup_round_background(config: RoundConfig) -> void:
 	_clear_background_shader()
-	var bg_color: Color
+	var bg_color: Color = _get_round_background_color(config)
+	_transition_background(bg_color)
+	BackgroundManager.set_color(bg_color)
+
+
+func _get_round_background_color(config: RoundConfig) -> Color:
 	if config.boss != null:
 		var gradient: Dictionary = config.boss.hooks.get_background_gradient()
 		if not gradient.is_empty():
 			_apply_shader_background(gradient)
-		bg_color = config.boss.background_color
+		return config.boss.background_color
 	elif config.is_boss_round:
-		# Fallback boss color if is_boss_round but boss is null (shouldn't happen normally)
-		bg_color = Color(1.0, 0.85, 0.85, 1.0)
+		return FALLBACK_BOSS_COLOR
 	else:
-		# Normal round color
-		bg_color = Color(0.85, 0.88, 0.92, 1.0)
-	_transition_background(bg_color)
-	BackgroundManager.set_color(bg_color)
+		return NORMAL_ROUND_COLOR
 
 
 func _setup_hurry_timer(config: RoundConfig) -> void:
@@ -292,7 +296,7 @@ func _on_shop_requested(round_number: int) -> void:
 	print("[Main] === ROUND %d END | score: %d ===" % [round_number, GameManager.get_current_score()])
 
 	# Brief pause so the player sees the final score before transitioning
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(SHOP_TRANSITION_DELAY).timeout
 
 	_deactivate_gameplay()
 	_hide_gameplay_ui()
