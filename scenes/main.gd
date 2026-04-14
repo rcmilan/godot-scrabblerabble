@@ -113,68 +113,89 @@ func _on_round_ready(config: RoundConfig) -> void:
 	print("[Main] === ROUND %d START | board: %dx%d | target: %d ===" % [
 		config.round_number, config.board_columns, config.board_rows, config.target_score
 	])
+	_deactivate_gameplay()
+	TileAnimator.cancel_all()
+	_setup_board_for_round(config)
+	await _setup_round_state(config)
+	_setup_round_background(config)
+	_setup_hurry_timer(config)
+	if config.boss != null:
+		EventBus.boss_activated.emit(config.boss)
+	_activate_gameplay()
+	_show_gameplay_ui()
+	print("[Main] Round %d ready - %dx%d board" % [
+		config.round_number, config.board_columns, config.board_rows
+	])
 
-	# Deactivate controller during setup
+
+# =============================================================================
+# ROUND SETUP HELPERS
+# =============================================================================
+
+func _deactivate_gameplay() -> void:
 	_gameplay_controller.deactivate()
 	_focus_cursor.deactivate()
 
-	# Cancel any in-flight animations from the previous round before freeing tiles
-	TileAnimator.cancel_all()
 
+func _activate_gameplay() -> void:
+	_gameplay_controller.activate()
+	_focus_cursor.activate()
+
+
+func _setup_board_for_round(config: RoundConfig) -> void:
 	# Configure board size for this round
 	board.resize_board(config.board_rows, config.board_columns)
 	_gameplay_controller.reset_for_board(config.board_rows, config.board_columns)
 	board.clear_board()
+	# Apply boss cells (must happen after board is created and cleared)
+	_apply_boss_cells(config)
 
-	# Apply boss unavailable cells (must happen after board is created and cleared)
-	if config.boss != null:
-		var unavailable: Array = config.boss.hooks.get_unavailable_cells(config.board_rows, config.board_columns)
-		if not unavailable.is_empty():
-			for pos in unavailable:
-				var cell: BoardCell = board.get_cell(pos.y, pos.x)
-				if cell:
-					cell.set_unavailable(true, config.boss.background_color)
-			print("[Main] Applied %d unavailable cells for boss '%s'" % [unavailable.size(), config.boss.display_name])
 
-	# Apply boss tile multipliers and highlights (e.g., golden diagonal cells)
-	if config.boss != null:
-		var highlighted: Array = config.boss.hooks.get_highlighted_cells(config.board_rows, config.board_columns)
-		for pos in highlighted:
+func _apply_boss_cells(config: RoundConfig) -> void:
+	if config.boss == null:
+		return
+	var unavailable: Array = config.boss.hooks.get_unavailable_cells(config.board_rows, config.board_columns)
+	if not unavailable.is_empty():
+		for pos in unavailable:
 			var cell: BoardCell = board.get_cell(pos.y, pos.x)
 			if cell:
-				cell.set_boss_tile_multiplier(config.boss.hooks.get_tile_multiplier(pos))
-				cell.set_boss_highlight(true)
-		if not highlighted.is_empty():
-			print("[Main] Applied %d highlighted cells for boss '%s'" % [highlighted.size(), config.boss.display_name])
+				cell.set_unavailable(true, config.boss.background_color)
+		print("[Main] Applied %d unavailable cells for boss '%s'" % [unavailable.size(), config.boss.display_name])
+	var highlighted: Array = config.boss.hooks.get_highlighted_cells(config.board_rows, config.board_columns)
+	for pos in highlighted:
+		var cell: BoardCell = board.get_cell(pos.y, pos.x)
+		if cell:
+			cell.set_boss_tile_multiplier(config.boss.hooks.get_tile_multiplier(pos))
+			cell.set_boss_highlight(true)
+	if not highlighted.is_empty():
+		print("[Main] Applied %d highlighted cells for boss '%s'" % [highlighted.size(), config.boss.display_name])
 
+
+func _setup_round_state(config: RoundConfig) -> void:
 	# Reset per-round tile state for rounds after the first
 	if config.round_number > 1:
 		hand.clear_hand()
 		HandManager.clear_discard_pile()
 		TileBag.populate_bag(RunManager.run_state.bag_config)
-
 	# Setup GameManager for this round
 	var previous_total: int = 0
 	if RunManager.run_state:
 		previous_total = RunManager.run_state.total_score
 	GameManager.setup_round(config, previous_total)
-
 	# Notify ScorePanel with round info and score state
 	if _score_panel:
 		_score_panel.set_round_info(config)
-
 	# Pass RoundConfig to PlayExecutor for boss effect handling
 	_gameplay_controller.set_play_executor_round_config(config)
-
 	# Configure hand size
 	HandManager.set_hand_size(config.hand_size)
-
 	# Ensure HandManager is ready, then refill hand
 	if not HandManager.is_initialized():
 		await HandManager.initialized
 	HandManager.refill_hand()
 
-	# Update background and round indicator
+
+func _setup_round_background(config: RoundConfig) -> void:
 	_clear_background_shader()
 	var bg_color: Color
 	if config.boss != null:
@@ -188,11 +209,11 @@ func _on_round_ready(config: RoundConfig) -> void:
 	else:
 		# Normal round color
 		bg_color = Color(0.85, 0.88, 0.92, 1.0)
-
 	_transition_background(bg_color)
 	BackgroundManager.set_color(bg_color)
 
-	# Connect hurry background color transition
+
+func _setup_hurry_timer(config: RoundConfig) -> void:
 	_disconnect_hurry_timer()
 	var boss_timer := RunManager.get_boss_timer()
 	if boss_timer and config.boss != null:
@@ -202,19 +223,6 @@ func _on_round_ready(config: RoundConfig) -> void:
 			_hurry_base_color = config.boss.background_color
 			_hurry_timer = boss_timer
 			_hurry_timer.time_updated.connect(_on_hurry_timer_updated)
-
-	# Emit boss activation signal if applicable
-	if config.boss != null:
-		EventBus.boss_activated.emit(config.boss)
-
-	# Activate gameplay and show UI
-	_gameplay_controller.activate()
-	_focus_cursor.activate()
-	_show_gameplay_ui()
-
-	print("[Main] Round %d ready - %dx%d board" % [
-		config.round_number, config.board_columns, config.board_rows
-	])
 
 
 # =============================================================================
@@ -286,8 +294,7 @@ func _on_shop_requested(round_number: int) -> void:
 	# Brief pause so the player sees the final score before transitioning
 	await get_tree().create_timer(1.0).timeout
 
-	_gameplay_controller.deactivate()
-	_focus_cursor.deactivate()
+	_deactivate_gameplay()
 	_hide_gameplay_ui()
 
 	# Peek at next round config for display (without consuming boss pool)
@@ -308,8 +315,7 @@ func _on_shop_continue() -> void:
 # =============================================================================
 
 func _on_run_ended(victory: bool, total_score: int) -> void:
-	_gameplay_controller.deactivate()
-	_focus_cursor.deactivate()
+	_deactivate_gameplay()
 	main_hud.hide_hint_bar()
 	if victory:
 		game_over_popup.show_victory(total_score)
@@ -332,16 +338,14 @@ func _on_pause_requested() -> void:
 
 
 func _pause_game() -> void:
-	_gameplay_controller.deactivate()
-	_focus_cursor.deactivate()
+	_deactivate_gameplay()
 	GameManager.pause_game()
 	pause_menu.show_pause_menu_animated()
 
 
 func _resume_game() -> void:
 	GameManager.resume_game()
-	_gameplay_controller.activate()
-	_focus_cursor.activate()
+	_activate_gameplay()
 
 
 # =============================================================================
@@ -376,11 +380,9 @@ func register_tile(tile: Tile) -> void:
 
 ## Pauses gameplay (e.g., for menus or dialogs).
 func pause_gameplay() -> void:
-	_gameplay_controller.deactivate()
-	_focus_cursor.deactivate()
+	_deactivate_gameplay()
 
 
 ## Resumes gameplay.
 func resume_gameplay() -> void:
-	_gameplay_controller.activate()
-	_focus_cursor.activate()
+	_activate_gameplay()
