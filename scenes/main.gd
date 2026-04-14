@@ -31,7 +31,6 @@ var _focus_cursor: FocusCursor = null
 @onready var game_over_popup: GameOverPopup = $GameOverPopup
 @onready var pause_menu: PauseMenu = $PauseMenu
 @onready var _background: ColorRect = $Background
-@onready var _round_indicator: Label = $RoundIndicator
 @onready var _score_panel: CanvasLayer = $ScorePanel
 
 # Animation state
