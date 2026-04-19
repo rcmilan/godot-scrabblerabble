@@ -13,6 +13,13 @@ Patch 1.0.2 (2026-04-03): Added constraint forbidding modals, popups, and dialog
 Rationale: Modal overlays cause input leakage between UI layers. Replace with
 view-swapping (sibling Control visibility toggles) or scene changes. Learned during
 title screen refactor: modals can never fully prevent focus bleed to hidden UI.
+
+Patch 1.0.3 (2026-04-19): Added Principle VI: Non-Representable Invalid States.
+Rationale: Complement to immutability principle. Structure data so invalid states
+cannot exist in the type system. Example: TileState.pre_loaded_modifier and
+session_modifier are mutually exclusive—only one can be active. Don't validate
+at runtime; make the invalid state impossible to construct. Prevents entire
+categories of bugs from existing in the codebase.
 -->
 
 # Wordatro Constitution
@@ -48,6 +55,12 @@ Controllers (`/scripts/controllers`) perform orchestration only: routing input e
 Before automated testing frameworks are integrated, manual testing in the Godot editor is the verification method. When writing features, verify behavior by playing the game. Document edge cases that need manual verification. When automated tests are added later, these manual cases become the acceptance criteria.
 
 **Rationale**: Allows rapid iteration without test infrastructure overhead while the codebase stabilizes. Manual testing directly validates user experience and catches integration issues that unit tests might miss.
+
+### VI. Non-Representable Invalid States
+
+Structure domain data so invalid states cannot be constructed or represented in the type system. Rather than validating at runtime ("this state is invalid"), design the data so invalid states are impossible. Example: Instead of allowing a tile to have both pre_loaded_modifier AND session_modifier simultaneously, use an enum or union type that enforces "exactly one or neither."
+
+**Rationale**: Eliminates entire categories of bugs. Impossible states can't leak into controllers or cause runtime errors. Forces design clarity: what are the truly valid state combinations? Answer that question in the type structure, not in validation code.
 
 ## Architecture Constraints
 
