@@ -423,6 +423,7 @@ func _show_gameplay_ui() -> void:
 func _hide_gameplay_ui() -> void:
 	board.hide()
 	hand.hide()
+	main_hud.hide()
 	main_hud.hide_hint_bar()
 
 

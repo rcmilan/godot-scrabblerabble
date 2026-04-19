@@ -49,6 +49,22 @@ func _setup_ui() -> void:
 
 	print("[Shop] Building UI...")
 
+	# Clean up any previous shop UI from earlier shop sessions
+	# Remove all ShopUI and debug children to prevent duplicates
+	for child in shop_overlay.get_children():
+		if child.name == "ShopUI" or child.name.begins_with("DebugRect_"):
+			shop_overlay.remove_child(child)
+			child.queue_free()
+
+	# Clean up debug rect tracking
+	_debug_rects.clear()
+	print("[Shop] Cleaned up previous shop UI")
+
+	# Clear all UI tracking arrays (reset for new shop session)
+	_modifier_cards.clear()
+	_tile_displays.clear()
+	_used_modifier_indices.clear()
+
 	# Hide the existing content (round label, score, etc.)
 	var content_container = shop_overlay.find_child("ContentContainer", true, false)
 	if content_container:
@@ -112,29 +128,6 @@ func _setup_ui() -> void:
 			_apply_modifier_visual_to_tile(i)
 
 	_scatter_tiles()
-
-	# Buttons section (Revert and Commit)
-	var buttons_container = HBoxContainer.new()
-	buttons_container.name = "ButtonsSection"
-	buttons_container.add_theme_constant_override("separation", 20)
-	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	shop_ui.add_child(buttons_container)
-
-	_revert_button = Button.new()
-	_revert_button.name = "RevertButton"
-	_revert_button.text = "REVERT"
-	_revert_button.custom_minimum_size = Vector2(120, 50)
-	_revert_button.pressed.connect(_on_revert_pressed)
-	buttons_container.add_child(_revert_button)
-	print("[Shop] Created Revert button")
-
-	_commit_button = Button.new()
-	_commit_button.name = "CommitButton"
-	_commit_button.text = "COMMIT"
-	_commit_button.custom_minimum_size = Vector2(120, 50)
-	_commit_button.pressed.connect(_on_commit_pressed)
-	buttons_container.add_child(_commit_button)
-	print("[Shop] Created Commit button")
 
 	print("[Shop] UI setup complete")
 
@@ -217,7 +210,7 @@ func _create_tile_display(index: int, tile_state: TileState) -> Control:
 	return display
 
 func _scatter_tiles() -> void:
-	# Simple grid-with-jitter layout: 2 rows x 5 cols
+	# Simple grid-with-jitter layout: 2 rows x 5 cols, centered within container
 	# With overlap validation (SC-004: 100% success required)
 	var grid_cols = 5
 	var grid_rows = 2
@@ -226,12 +219,22 @@ func _scatter_tiles() -> void:
 	var jitter_range = 15.0
 	var tile_size = Vector2(64.0, 64.0)
 
-	# Calculate base positions
+	# Calculate total grid width to center it
+	var total_grid_width = (grid_cols - 1) * col_spacing + tile_size.x
+
+	# Get the tiles container from the shop overlay
+	var tiles_container = shop_overlay.find_child("TilesSection", true, false)
+	# Use viewport width as fallback, adjusted for shop UI margins (anchor 0.1 to 0.9 = 80% of viewport)
+	var container_width = tiles_container.size.x if tiles_container and tiles_container.size.x > 0 else get_viewport().get_visible_rect().size.x * 0.8
+	var offset_x = (container_width - total_grid_width) / 2.0
+	var offset_y = 10.0  # Small top padding
+
+	# Calculate base positions (centered)
 	for i in range(_tile_displays.size()):
 		var col = i % grid_cols
 		var row = i / grid_cols
-		var x = col * col_spacing + randf_range(-jitter_range, jitter_range)
-		var y = row * row_spacing + randf_range(-jitter_range, jitter_range)
+		var x = offset_x + col * col_spacing + randf_range(-jitter_range, jitter_range)
+		var y = offset_y + row * row_spacing + randf_range(-jitter_range, jitter_range)
 		_tile_displays[i].position = Vector2(x, y)
 
 	# Validate no overlaps using Rect2.intersects()
@@ -576,9 +579,9 @@ func _draw_debug_zones() -> void:
 		print("[Shop] Debug zone created for tile %d at %s" % [i, tile.global_position])
 
 
-func _on_revert_pressed() -> void:
+func _revert_session() -> void:
 	# Revert all player-applied modifiers, preserve pre-loaded ones
-	print("[Shop] Revert pressed")
+	print("[Shop] Revert: clearing session changes")
 	shop_session = shop_session.revert_all()
 	_used_modifier_indices.clear()
 	_refresh_ui_after_revert()
@@ -593,9 +596,9 @@ func _refresh_ui_after_revert() -> void:
 	print("[Shop] UI refreshed after revert")
 
 
-func _on_commit_pressed() -> void:
+func _commit_session() -> void:
 	# Finalize assignments and trigger shop continue (animation + hand integration)
-	print("[Shop] Commit pressed")
+	print("[Shop] Commit: finalizing tile assignments")
 	var final_tiles = shop_session.get_final_tiles()
 	print("[Shop] Final tiles: %d tiles with applied modifiers" % final_tiles.size())
 	# Update shop_session so Main can access it via shop_controller
@@ -613,12 +616,18 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Fires AFTER gui_input on controls - safe fallback for releases not handled by tiles/modifiers
+	# Keyboard-driven shop interaction
 	if event.is_action_pressed("ui_cancel"):
-		# ESC key: close shop without committing (discard preview state)
-		print("[Shop] ESC pressed - closing shop without committing")
-		shop_overlay.hide()
-		# Return to gameplay without applying changes
+		# ESC: Revert all changes and proceed to next round (same as ENTER but without applying modifiers)
+		print("[Shop] ESC pressed - reverting changes and proceeding to next round")
+		_revert_session()
+		# Skip applying modifiers and go straight to round continuation
+		shop_overlay.continue_requested.emit()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_accept"):
+		# ENTER: Commit changes and proceed to next round
+		print("[Shop] ENTER pressed - committing changes")
+		_commit_session()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and not event.pressed:
 		if _dragging_modifier != null and _ghost_node:
