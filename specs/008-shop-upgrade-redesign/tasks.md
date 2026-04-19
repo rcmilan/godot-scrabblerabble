@@ -5,9 +5,10 @@
 **Created**: 2026-04-19  
 **Status**: Ready for Implementation
 
-**Total Tasks**: 58  
-**MVP Scope**: US1–US5 (Core functionality, ~35 tasks)  
-**Extended Scope**: US6–US7 (Accessibility & Polish, ~23 tasks)
+**Total Tasks**: 84  
+**MVP Scope**: US1–US5 (Core functionality, ~56 tasks)  
+**Extended Scope**: US6–US7 (Accessibility & Polish, ~17 tasks)  
+**Polish & Integration**: ~11 tasks
 
 ---
 
@@ -30,15 +31,16 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 ### Task ID Scheme
 
 - **Setup Phase**: T001–T010
-- **Foundational Phase**: T011–T025
-- **US1 Phase**: T026–T035
-- **US2 Phase**: T036–T046
-- **US3 Phase**: T047–T050
-- **US4 Phase**: T051–T053
-- **US5 Phase**: T054–T056
-- **US6 Phase**: T057–T065
-- **US7 Phase**: T066–T073
-- **Polish Phase**: T074–T084
+- **Foundational Phase**: T011–T026
+- **US1 Phase**: T027–T036
+- **US2 Phase**: T037–T047
+- **US3 Phase**: T048–T051
+- **US4 Phase**: T052–T054
+- **US5 Phase**: T055–T057
+- **US6 Phase**: T058–T066
+- **US7 Phase**: T067–T074
+- **Critical Fixes Phase**: T075–T077
+- **Polish Phase**: T078–T088
 
 ---
 
@@ -86,35 +88,38 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 - [ ] T023 Extend RunManager (autoload/run_manager.gd): Add `get_shop_tiles(count: int) -> Array[TileState]` method
 - [ ] T024 Extend RunManager: Add `get_shop_modifiers(count: int) -> Array[ModifierType]` method
-- [ ] T025 [P] Test TileState and ShopSession manually in Godot editor; create test tiles/mods; verify immutability and state transitions
+- [ ] T024-B Extend RunManager: Add `finalize_shop_commit(tiles: Array[TileState])` method to create hand tiles and proceed to next round
+- [ ] T025 Implement Principle VI enforcement in TileState: Restructure pre_loaded_modifier and session_modifier as mutually-exclusive (enum or union pattern) to ensure non-representable invalid states; validate that max 1 modifier active per tile
+- [ ] T026 [P] Test TileState and ShopSession manually in Godot editor; create test tiles/mods; verify immutability, state transitions, and Principle VI enforcement
 
 ---
 
-## Phase 3: User Story 1 - Enter Shop After Round Win (T026–T035)
+## Phase 3: User Story 1 - Enter Shop After Round Win (T027–T036)
 
 **Goal**: Shop entrance animation, tile display, modifier options visibility.  
 **Test**: Win a round → shop slides in from bottom → board slides up off-screen → 10 tiles displayed, 2-3 modifiers visible.  
-**Independent Test**: Complete with T026–T035; all other user stories depend on this.
+**Independent Test**: Complete with T027–T037; all other user stories depend on this.
 
 ### Shop Animation Infrastructure
 
-- [ ] T026 Implement ShopSlideAnimation (scripts/animation/shop/shop_slide_animation.gd) extending TileAnimationStrategy
-- [ ] T027 Implement ShopSlideAnimation.get_entrance_animation(shop, board) method; returns Tween for simultaneous animations
-- [ ] T028 Implement ShopSlideAnimation.get_exit_animation(shop, board) method; returns Tween for exit animations
-- [ ] T029 [P] Verify existing TileAnimationStrategy base class exists; document inheritance pattern
+- [ ] T027 Implement ShopSlideAnimation (scripts/animation/shop/shop_slide_animation.gd) extending TileAnimationStrategy
+- [ ] T028 Implement ShopSlideAnimation.get_entrance_animation(shop, board) method; returns Tween for simultaneous animations (500ms)
+- [ ] T029 Implement ShopSlideAnimation.get_exit_animation(shop, board) method; returns Tween for exit animations (500ms)
+- [ ] T029-B [P] **CRITICAL FIX**: Explicitly implement board animation counterpart in T028-T029; ensure shop and board animations start/end simultaneously. Document in quickstart.md how board animation is orchestrated in scenes/main.gd
+- [ ] T030 [P] Verify existing TileAnimationStrategy base class exists; document inheritance pattern
 
 ### Shop Entrance Integration
 
-- [ ] T030 Update scenes/main.gd: Modify `_on_shop_requested()` to create ShopSession and trigger entrance animation
-- [ ] T031 Update ShopOverlay.show_shop() to accept ShopSession state (if needed); populate UI labels and tile display
-- [ ] T032 Verify ShopOverlay scene has TitleLabel, Upgrades section (2-3 modifier cards), Tiles section, buttons
-- [ ] T033 Update ShopOverlay._ready() to connect signals for animation orchestration
-- [ ] T034 Update scenes/main.gd to call shop_overlay.show_shop() after entrance animation completes
-- [ ] T035 [P] Manual test US1: Win round → verify entrance animation (500ms, simultaneous), 10 tiles displayed, 2-3 modifiers shown
+- [ ] T031 Update scenes/main.gd: Modify `_on_shop_requested()` to create ShopSession and trigger entrance animation (T028 for shop, matching board animation)
+- [ ] T032 Update ShopOverlay.show_shop() to accept ShopSession state (if needed); populate UI labels and tile display
+- [ ] T033 Verify ShopOverlay scene has TitleLabel, Upgrades section (2-3 modifier cards), Tiles section, buttons
+- [ ] T034 Update ShopOverlay._ready() to connect signals for animation orchestration
+- [ ] T035 Update scenes/main.gd to call shop_overlay.show_shop() after entrance animation completes
+- [ ] T036 [P] Manual test US1: Win round → verify entrance animation (500ms, simultaneous shop+board), 10 tiles displayed, 2-3 modifiers shown
 
 ---
 
-## Phase 4: User Story 2 - Drag Modifier Onto Tile (T036–T046)
+## Phase 4: User Story 2 - Drag Modifier Onto Tile (T037–T047)
 
 **Goal**: Core drag-drop interaction, ghost preview, badge display, invalid drop feedback.  
 **Test**: Click modifier → drag to tile → ghost follows → drop on valid tile → badge appears; drop on occupied → red X + shake.  
@@ -122,24 +127,24 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ### Input & Drag-Drop Handler
 
-- [ ] T036 Implement ShopController (scripts/controllers/shop_controller.gd): Track input state (selected modifier, dragging, ghost node)
-- [ ] T037 Implement ShopController._input() for InputEventMouseButton: Detect modifier card clicks
-- [ ] T038 Implement modifier selection logic: Visual highlight when modifier card clicked
-- [ ] T039 Implement drag start logic: Create ghost node on mouse down, update ShopSession if needed
-- [ ] T040 Implement drag tracking: Update ghost position on InputEventMouseMotion; track current drop target
-- [ ] T041 Implement drop zone validation: Check if tile can accept modifier (no existing mod)
-- [ ] T042 Implement drop completion: Apply modifier to tile, update ShopSession, show badge
-- [ ] T043 Implement invalid drop feedback: Red X overlay + trigger ShakeTileAnimation (reuse existing)
-- [ ] T044 [P] Implement ghost node creation & destruction: Full modifier card visual, smooth cursor tracking
+- [ ] T037 Implement ShopController (scripts/controllers/shop_controller.gd): Track input state (selected modifier, dragging, ghost node)
+- [ ] T038 Implement ShopController._input() for InputEventMouseButton: Detect modifier card clicks
+- [ ] T039 Implement modifier selection logic: Visual highlight when modifier card clicked
+- [ ] T040 Implement drag start logic: Create ghost node on mouse down, update ShopSession if needed
+- [ ] T041 Implement drag tracking: Update ghost position on InputEventMouseMotion; track current drop target
+- [ ] T042 Implement drop zone validation: Check if tile can accept modifier (no existing mod)
+- [ ] T043 Implement drop completion: Apply modifier to tile, update ShopSession, show badge
+- [ ] T044 Implement invalid drop feedback: Red X overlay + trigger ShakeTileAnimation (reuse existing)
+- [ ] T045 [P] Implement ghost node creation & destruction: Full modifier card visual (matches Upgrades card design, 0.7 opacity), smooth 60fps cursor tracking
 
 ### UI Display Updates
 
-- [ ] T045 Update ShopOverlay to display modifier badges on tiles (modifier applied visual indicator)
-- [ ] T046 [P] Manual test US2: Click modifier → drag to clean tile → badge appears; drag to occupied → red X + shake
+- [ ] T046 Update ShopOverlay to display modifier badges on tiles (modifier applied visual indicator)
+- [ ] T047 [P] Manual test US2: Click modifier → drag to clean tile → badge appears; drag to occupied → red X + shake; verify ghost responsive (≤50ms appear, 60fps)
 
 ---
 
-## Phase 5: User Story 3 - Swap Modifier on Pre-Loaded Tile (T047–T050)
+## Phase 5: User Story 3 - Swap Modifier on Pre-Loaded Tile (T048–T051)
 
 **Goal**: Allow swapping pre-loaded modifiers with new ones; ensure pre-load persists on revert.  
 **Test**: Drag new modifier onto pre-loaded tile → old mod returns to pool → new mod on tile; Revert → old mod returns.  
@@ -147,14 +152,14 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ### Modifier Swapping Logic
 
-- [ ] T047 Implement ShopController.swap_modifier() logic: Detect pre-loaded mod; remove from current tile; apply new one
-- [ ] T048 Implement pre-loaded modifier return to available pool: Update Upgrades section UI
-- [ ] T049 Update ShopSession to track both pre-loaded and session mods; enforce mutual exclusivity (non-representable invalid states)
-- [ ] T050 [P] Manual test US3: Drag modifier onto pre-loaded tile → swap happens; Revert → pre-load restored
+- [ ] T048 Implement ShopController.swap_modifier() logic: Detect pre-loaded mod; remove from current tile; apply new one
+- [ ] T049 Implement pre-loaded modifier return to available pool: Update Upgrades section UI
+- [ ] T050 Verify ShopSession enforces mutual exclusivity (pre-loaded XOR session mod) per T025 Principle VI implementation
+- [ ] T051 [P] Manual test US3: Drag modifier onto pre-loaded tile → swap happens; Revert → pre-load restored
 
 ---
 
-## Phase 6: User Story 4 - Revert Session Changes (T051–T053)
+## Phase 6: User Story 4 - Revert Session Changes (T052–T055)
 
 **Goal**: Clear all player-applied modifiers; preserve pre-loaded; keep shop open; reset modifier pool.  
 **Test**: Apply mods → click Revert → all session mods gone, pre-loads remain, shop stays open.  
@@ -162,13 +167,14 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ### Revert Implementation
 
-- [ ] T051 Implement Revert button handler: Call ShopSession.revert_all(), update UI to reflect reset state
-- [ ] T052 Implement ShopOverlay refresh logic after revert: Clear all session badges, keep pre-loaded badges, restore modifier availability
-- [ ] T053 [P] Manual test US4: Apply modifiers → click Revert → all player changes gone, pre-loads stay, shop stays open
+- [ ] T052 Implement Revert button handler: Call ShopSession.revert_all(), update UI to reflect reset state (target ≤100ms latency per SC-007)
+- [ ] T053 Implement ShopOverlay refresh logic after revert: Clear all session badges, keep pre-loaded badges, restore modifier availability
+- [ ] T054 **CRITICAL FIX**: Implement ESC key handler (FR-018): Close shop without commit, discard preview state, return to gameplay without applying changes
+- [ ] T055 [P] Manual test US4: Apply modifiers → click Revert → all player changes gone, pre-loads stay, shop stays open (≤100ms latency); test ESC close
 
 ---
 
-## Phase 7: User Story 5 - Commit Changes and Return to Hand (T054–T056)
+## Phase 7: User Story 5 - Commit Changes and Return to Hand (T056–T058)
 
 **Goal**: Finalize assignments, add to hand, trigger exit animation, proceed to next round.  
 **Test**: Click Commit → exit animation (500ms) → next round has modified tiles.  
@@ -176,13 +182,13 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ### Commit & Hand Integration
 
-- [ ] T054 Implement Commit button handler: Call ShopSession.get_final_tiles(), emit signal to RunManager
-- [ ] T055 Extend RunManager to receive committed tiles: Add method `finalize_shop_commit(tiles)` to create hand tiles
-- [ ] T056 [P] Update scenes/main.gd to orchestrate exit animation and round progression after commit; manual test US5
+- [ ] T056 Implement Commit button handler: Call ShopSession.get_final_tiles(), emit signal to RunManager
+- [ ] T057 Verify RunManager.finalize_shop_commit(tiles) method (T024-B) creates hand tiles and proceeds
+- [ ] T058 [P] Update scenes/main.gd to orchestrate exit animation (500ms) and round progression after commit; manual test US5
 
 ---
 
-## Phase 8: User Story 6 - Keyboard Navigation & Accessibility (T057–T065)
+## Phase 8: User Story 6 - Keyboard Navigation & Accessibility (T059–T067)
 
 **Goal**: TAB cycling, arrow key navigation, Enter/Space activation; keyboard-only flow.  
 **Test**: Use only keyboard (no mouse) to open shop, apply modifiers, revert, commit.  
@@ -190,19 +196,19 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ### Keyboard Input Handling
 
-- [ ] T057 Implement TAB focus cycling: Modifiers → Tiles → Buttons → loop
-- [ ] T058 Implement arrow key navigation: Move focus left/right/up/down between tiles based on scattered layout
-- [ ] T059 Implement Enter/Space on modifier: Select modifier (same as click)
-- [ ] T060 Implement keyboard drag simulation: Arrow keys move focus to tile, Enter applies selected modifier
-- [ ] T061 Implement Enter on Revert button: Trigger revert (keyboard)
-- [ ] T062 Implement Enter on Commit button: Trigger commit (keyboard)
-- [ ] T063 Implement Escape key: Close shop without commit (optional, if in scope)
-- [ ] T064 Verify focus visual indicators are clear (highlight, border, color change)
-- [ ] T065 [P] Manual test US6: Play through full shop interaction using only keyboard (TAB, arrows, Enter)
+- [ ] T059 Implement TAB focus cycling: Modifiers → Tiles → Buttons → loop
+- [ ] T060 Implement arrow key navigation: Move focus left/right/up/down between tiles based on scattered layout
+- [ ] T061 Implement Enter/Space on modifier: Select modifier (same as click)
+- [ ] T062 Implement keyboard drag simulation: Arrow keys move focus to tile, Enter applies selected modifier
+- [ ] T063 Implement Enter on Revert button: Trigger revert (keyboard)
+- [ ] T064 Implement Enter on Commit button: Trigger commit (keyboard)
+- [ ] T065 Implement Escape key: Close shop without commit (optional, if in scope)
+- [ ] T066 Verify focus visual indicators are clear (highlight, border, color change)
+- [ ] T067 [P] Manual test US6: Play through full shop interaction using only keyboard (TAB, arrows, Enter)
 
 ---
 
-## Phase 9: User Story 7 - Scattered Tile Layout Without Overlaps (T066–T073)
+## Phase 9: User Story 7 - Scattered Tile Layout Without Overlaps (T068–T075)
 
 **Goal**: Non-grid, naturalistic tile positioning; no overlaps; visual variation across visits.  
 **Test**: Open shop multiple times → tiles scattered differently each time → no overlaps.  
@@ -210,37 +216,44 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ### Scattered Layout Implementation
 
-- [ ] T066 Implement scatter algorithm in ShopOverlay: Grid-with-jitter (2 rows × 5 cols, ±15px random offset)
-- [ ] T067 Generate tile positions for 10 tiles; validate no overlaps using Rect2.intersects() checks
-- [ ] T068 Apply random jitter to grid positions; ensure variation between shop visits (use randf_range)
-- [ ] T069 Clamp positions to viewport bounds; verify all tiles fit within Tiles section
-- [ ] T070 Test with multiple random seeds; verify tile positions vary
-- [ ] T071 Update ShopOverlay scene to position tiles based on generated positions (dynamic, not hardcoded)
-- [ ] T072 Verify scattered layout is visually distinct from orderly board grid
-- [ ] T073 [P] Manual test US7: Open shop multiple times; tiles scattered differently each time; no overlaps
+- [ ] T068 Implement scatter algorithm in ShopOverlay: Grid-with-jitter (2 rows × 5 cols, ±15px random offset)
+- [ ] T069 Generate tile positions for 10 tiles; validate no overlaps using Rect2.intersects() checks (100% success per SC-004)
+- [ ] T070 Apply random jitter to grid positions; ensure variation between shop visits (use randf_range)
+- [ ] T071 Clamp positions to viewport bounds; verify all tiles fit within Tiles section
+- [ ] T072 Test with multiple random seeds; verify tile positions vary
+- [ ] T073 Update ShopOverlay scene to position tiles based on generated positions (dynamic, not hardcoded)
+- [ ] T074 Verify scattered layout is visually distinct from orderly board grid
+- [ ] T075 [P] Manual test US7: Open shop 5 times; tiles scattered differently each time; visually inspect no overlaps; verify SC-004
 
 ---
 
-## Phase 10: Polish, Integration & Final Testing (T074–T084)
+## Phase 10: Polish, Integration & Final Testing (T076–T090)
 
 **Goal**: Cross-cutting concerns, animation polish, integration validation, manual end-to-end test.
 
+### Performance Validation (Success Criteria)
+
+- [ ] T076 Measure and validate entrance/exit animation timing: Verify 500ms target and sync (SC-001)
+- [ ] T077 Measure and validate ghost appearance latency: Verify ≤50ms appear, 60fps tracking (SC-002)
+- [ ] T078 Measure and validate full interaction timing: Verify player completes view+apply+commit in <30s (SC-003)
+- [ ] T079 Measure and validate revert latency: Verify ≤100ms button response (SC-007)
+
 ### Animation & Visual Polish
 
-- [ ] T074 Polish entrance/exit animations: Fine-tune timing, easing; verify 500ms target and sync
-- [ ] T075 Polish ghost drag preview: Ensure smooth 60fps tracking, no lag
-- [ ] T076 Polish red X invalid drop feedback: Ensure visibility, timing, clear rejection signal
-- [ ] T077 Polish modifier badge visuals: Clear, readable, visually distinct from pre-loaded vs session
-- [ ] T078 [P] Verify no visual glitches during drag-drop (ghost clipping, badges misaligned, etc.)
+- [ ] T080 Polish entrance/exit animations: Fine-tune easing; verify smooth sync
+- [ ] T081 Polish ghost drag preview: Ensure smooth 60fps tracking per T077 measurement
+- [ ] T082 Polish red X invalid drop feedback: Ensure visibility, timing, clear rejection signal
+- [ ] T083 Polish modifier badge visuals: Clear, readable, visually distinct from pre-loaded vs session
+- [ ] T084 [P] Verify no visual glitches during drag-drop (ghost clipping, badges misaligned, etc.)
 
 ### Integration & Edge Cases
 
-- [ ] T079 Verify shop properly integrates with RunManager.proceed_from_shop()
-- [ ] T080 Verify committed tiles persist in hand across round transitions
-- [ ] T081 Test edge case: Multiple pre-loaded tiles (5+) in same shop
-- [ ] T082 Test edge case: All 2-3 modifiers applied to tiles (Upgrades section empty)
-- [ ] T083 Test edge case: Boss round (3 modifiers) vs normal (2 modifiers)
-- [ ] T084 [P] Full end-to-end manual test: Title → Run Setup → Play → Win → Shop → All interactions → Commit → Next round → Verify tiles
+- [ ] T085 Verify shop properly integrates with RunManager.finalize_shop_commit() (T024-B)
+- [ ] T086 Verify committed tiles persist in hand across round transitions
+- [ ] T087 Test edge case: Multiple pre-loaded tiles (5+) in same shop
+- [ ] T088 Test edge case: All 2-3 modifiers applied to tiles (Upgrades section empty)
+- [ ] T089 Test edge case: Boss round (3 modifiers) vs normal (2 modifiers)
+- [ ] T090 [P] Full end-to-end manual test: Title → Run Setup → Play → Win → Shop → All interactions → Commit → Next round → Verify tiles active
 
 ---
 
@@ -248,15 +261,15 @@ This document breaks down the Shop Upgrade Redesign feature into testable, indep
 
 ```
 Setup (T001–T010)
-├── Foundational (T011–T025)
-│   └── US1 (T026–T035) — Shop entrance
-│       └── US2 (T036–T046) — Drag-drop core
-│           ├── US3 (T047–T050) — Swap modifiers
-│           ├── US4 (T051–T053) — Revert
-│           └── US5 (T054–T056) — Commit
-│       ├── US6 (T057–T065) — Keyboard (parallel with US2–US5)
-│       └── US7 (T066–T073) — Layout (parallel with US2)
-└── Polish (T074–T084) — Final integration & testing
+├── Foundational (T011–T026)
+│   └── US1 (T027–T036) — Shop entrance
+│       └── US2 (T037–T047) — Drag-drop core
+│           ├── US3 (T048–T051) — Swap modifiers
+│           ├── US4 (T052–T055) — Revert
+│           └── US5 (T056–T058) — Commit
+│       ├── US6 (T059–T067) — Keyboard (parallel with US2–US5)
+│       └── US7 (T068–T075) — Layout (parallel with US2)
+└── Polish (T076–T090) — Final integration & testing
 ```
 
 ---
@@ -269,15 +282,15 @@ Setup (T001–T010)
 ```
 T001–T010 (Setup)
   ↓
-T011–T025 (Foundational)
+T011–T026 (Foundational)
   ↓
-T026–T035 (US1 — Required for all)
+T027–T036 (US1 — Required for all)
   ↓
-T036–T046 (US2 — Core interaction)
+T037–T047 (US2 — Core interaction)
   ↓
-T047–T053 (US3 + US4 — Parallel safe)
+T048–T055 (US3 + US4 — Parallel safe)
   ↓
-T054–T056 (US5 — Requires US2+US3+US4)
+T056–T058 (US5 — Requires US2+US3+US4)
 ```
 
 **Estimated Duration**: ~5–7 sprints (1 sprint = 2–3 story-related tasks)
@@ -287,30 +300,30 @@ T054–T056 (US5 — Requires US2+US3+US4)
 **Parallel opportunities after US1**:
 ```
 US2–US5 (Main path)
-  ├── US6 (T057–T065) — Keyboard [Parallel after US1, completes with US5]
-  └── US7 (T066–T073) — Layout [Parallel after US1, independent]
+  ├── US6 (T059–T067) — Keyboard [Parallel after US1, completes with US5]
+  └── US7 (T068–T075) — Layout [Parallel after US1, independent]
 ```
 
 **Parallel Example**:
-- Team A: T036–T046 (US2 drag-drop)
-- Team B: T057–T065 (US6 keyboard) — can start after T026–T035
-- Team C: T066–T073 (US7 layout) — can start after T026–T035
+- Team A: T037–T047 (US2 drag-drop)
+- Team B: T059–T067 (US6 keyboard) — can start after T027–T036
+- Team C: T068–T075 (US7 layout) — can start after T027–T036
 
 ---
 
 ## MVP Scope & Timeline
 
 **Minimum Viable Product**: US1–US5  
-**Task Count**: ~35 tasks (T001–T056 + polish subset)  
+**Task Count**: ~56 tasks (T001–T058 + polish subset)  
 **Sprint Estimate**: 5–7 two-week sprints  
 **Parallel Potential**: 30% task overlap (US6, US7, polish can run in parallel)
 
 **Critical Path** (blocks everything else):
 - T001–T010: Setup (1 sprint)
-- T011–T025: Foundational (1 sprint)
-- T026–T035: US1 (1 sprint)
-- T036–T046: US2 (1–2 sprints)
-- T047–T056: US3–US5 (1–2 sprints)
+- T011–T026: Foundational (1 sprint)
+- T027–T036: US1 (1 sprint)
+- T037–T047: US2 (1–2 sprints)
+- T048–T058: US3–US5 (1–2 sprints)
 
 ---
 
