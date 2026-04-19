@@ -102,9 +102,8 @@ func revert_session_modifier(preload_modifiers: ModifierCollection = null) -> Ti
 
 func get_active_modifier() -> ModifierInstance:
 	# Return first active modifier (for shop display/tracking)
-	if not _modifiers.is_empty():
-		return _modifiers.get_first() if _modifiers.has_method("get_first") else null
-	return null
+	var all: Array[ModifierInstance] = _modifiers.get_all()
+	return all[0] if not all.is_empty() else null
 
 
 func can_accept_modifier() -> bool:

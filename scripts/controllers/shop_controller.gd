@@ -104,6 +104,11 @@ func _setup_ui() -> void:
 		_tile_displays.append(tile_display)
 		print("[Shop] Created tile display %d: %s" % [i, shop_session.available_tiles[i].get_letter()])
 
+	# Apply existing modifier visuals for tiles that were already modified in prior shops
+	for i in range(shop_session.available_tiles.size()):
+		if shop_session.available_tiles[i].get_active_modifier() != null:
+			_apply_modifier_visual_to_tile(i)
+
 	_scatter_tiles()
 	print("[Shop] UI setup complete")
 
@@ -451,6 +456,11 @@ func _attempt_drop_tile_on_modifier(modifier_index: int) -> void:
 		return
 
 	if _dragging_tile_index < 0:
+		return
+
+	if modifier_index in _used_modifier_indices:
+		print("[Shop] Drop attempt: modifier %d already consumed - ignoring" % modifier_index)
+		_show_invalid_tile_drop()
 		return
 
 	var tile = shop_session.available_tiles[_dragging_tile_index]

@@ -158,6 +158,16 @@ func _reclaim_board_tiles_from_scene() -> void:
 				tile.get_parent().remove_child(tile)
 
 
+func _reclaim_all_tiles_to_bag() -> void:
+	# Orphan every tile currently on the board, in the hand, or on the discard pile,
+	# then reshuffle so TileBag._available_tiles contains the full deck again.
+	TileAnimator.cancel_all()
+	_reclaim_board_tiles_from_scene()
+	hand.clear_hand()
+	HandManager.clear_discard_pile()
+	TileBag.reshuffle_for_round()
+
+
 func _setup_board_for_round(config: RoundConfig) -> void:
 	# Configure board size for this round
 	board.resize_board(config.board_rows, config.board_columns)
@@ -311,6 +321,10 @@ func _on_shop_requested(round_number: int) -> void:
 
 	_deactivate_gameplay()
 	_hide_gameplay_ui()
+
+	# Reclaim all tiles back to the bag so shop always has enough to sample.
+	# Without this, a big play can empty the bag and the shop assertion fails.
+	_reclaim_all_tiles_to_bag()
 
 	# Create shop session with tiles and modifiers
 	var tiles = RunManager.get_shop_tiles(10)
