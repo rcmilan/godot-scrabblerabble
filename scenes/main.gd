@@ -120,6 +120,7 @@ func _on_round_ready(config: RoundConfig) -> void:
 	])
 	_deactivate_gameplay()
 	TileAnimator.cancel_all()
+	_reclaim_board_tiles_from_scene()
 	_setup_board_for_round(config)
 	await _setup_round_state(config)
 	_setup_round_background(config)
@@ -145,6 +146,16 @@ func _deactivate_gameplay() -> void:
 func _activate_gameplay() -> void:
 	_gameplay_controller.activate()
 	_focus_cursor.activate()
+
+
+func _reclaim_board_tiles_from_scene() -> void:
+	# Remove board tiles from cell.tile_anchor BEFORE board is resized/cleared.
+	# Tiles parented to cell nodes get freed when those nodes are destroyed by resize_board.
+	# Removing them here makes them orphan nodes that survive the board reset.
+	for row in board.get_grid_state():
+		for tile in row:
+			if tile and is_instance_valid(tile) and tile.get_parent():
+				tile.get_parent().remove_child(tile)
 
 
 func _setup_board_for_round(config: RoundConfig) -> void:
