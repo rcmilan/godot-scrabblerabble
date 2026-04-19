@@ -6,7 +6,7 @@ class_name ShopSlideAnimation
 
 const ANIMATION_DURATION: float = 0.5  # 500ms
 
-func get_entrance_animation(shop: Control, board: Control) -> Tween:
+static func get_entrance_animation(shop: Control, board: Control, context: Node) -> Tween:
 	# Shop slides in from bottom (y: screen_height → 0)
 	# Board slides up off-screen (y: 0 → -screen_height)
 	# Both start and end simultaneously (500ms)
@@ -16,7 +16,7 @@ func get_entrance_animation(shop: Control, board: Control) -> Tween:
 	shop.position.y = screen_height
 	board.position.y = 0
 
-	var tween = create_tween()
+	var tween = context.create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_SINE)
 	tween.set_ease(Tween.EASE_IN_OUT)
@@ -27,14 +27,14 @@ func get_entrance_animation(shop: Control, board: Control) -> Tween:
 	return tween
 
 
-func get_exit_animation(shop: Control, board: Control) -> Tween:
+static func get_exit_animation(shop: Control, board: Control, context: Node) -> Tween:
 	# Shop slides out top (y: 0 → -screen_height)
 	# Board slides down back in (y: -screen_height → 0)
 	# Both start and end simultaneously (500ms)
 
 	var screen_height: float = shop.get_viewport_rect().size.y
 
-	var tween = create_tween()
+	var tween = context.create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_SINE)
 	tween.set_ease(Tween.EASE_IN_OUT)

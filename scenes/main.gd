@@ -311,8 +311,7 @@ func _on_shop_requested(round_number: int) -> void:
 	# (In full implementation, this would be passed to ShopController)
 
 	# Trigger entrance animation (shop slides in from bottom, board slides up)
-	var shop_anim = ShopSlideAnimation.new()
-	var entrance_tween = shop_anim.get_entrance_animation(shop_overlay, board)
+	var entrance_tween = ShopSlideAnimation.get_entrance_animation(shop_overlay, board, self)
 	await entrance_tween
 
 	# Peek at next round config for display (without consuming boss pool)
@@ -327,8 +326,7 @@ func _on_shop_continue() -> void:
 	print("[Main] === SHOP END | proceeding to next round ===")
 
 	# Trigger exit animation (shop slides out top, board slides back down)
-	var shop_anim = ShopSlideAnimation.new()
-	var exit_tween = shop_anim.get_exit_animation(shop_overlay, board)
+	var exit_tween = ShopSlideAnimation.get_exit_animation(shop_overlay, board, self)
 	await exit_tween
 
 	shop_overlay.hide()

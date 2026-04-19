@@ -103,14 +103,12 @@ func proceed_from_shop() -> void:
 ## Draw tiles from the active deck for shop.
 func get_shop_tiles(count: int) -> Array[TileState]:
 	var tiles: Array[TileState] = []
-	if not run_state or not run_state.tile_bag:
-		push_error("[RunManager] Cannot get shop tiles - run_state or tile_bag not initialized")
-		return tiles
-
 	for i in range(count):
-		var tile = run_state.tile_bag.draw_tile()
+		var tile = TileBag.draw_tile()
 		if tile:
-			tiles.append(tile.create_shop_copy())
+			var tile_state = tile.get_state()
+			if tile_state:
+				tiles.append(tile_state.create_shop_copy())
 	return tiles
 
 
@@ -125,15 +123,12 @@ func get_shop_modifiers(count: int) -> Array[ModifierTypes.Type]:
 	return selected
 
 
-## Finalize shop commit and add tiles to player hand.
+## Finalize shop commit (currently a no-op; tiles are drawn fresh for next round).
 func finalize_shop_commit(tiles: Array[TileState]) -> void:
-	if not run_state or not run_state.hand:
-		push_error("[RunManager] Cannot finalize shop commit - run_state or hand not initialized")
-		return
-
-	for tile in tiles:
-		run_state.hand.add_tile(tile)
-	print("[RunManager] Shop commit finalized: %d tiles added to hand" % tiles.size())
+	# Shop tiles are drawn from the bag and previewed.
+	# Committed tiles remain in the bag for the next round.
+	# The next round will draw fresh tiles, which may include the modified versions.
+	print("[RunManager] Shop commit finalized: %d tiles" % tiles.size())
 
 
 func _get_available_modifiers() -> Array[ModifierTypes.Type]:
