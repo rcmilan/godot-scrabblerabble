@@ -10,6 +10,7 @@ class_name Main
 # =============================================================================
 
 var _gameplay_controller: GameplayController = null
+var _shop_controller: ShopController = null
 
 # =============================================================================
 # LOCAL MANAGERS
@@ -307,8 +308,13 @@ func _on_shop_requested(round_number: int) -> void:
 	var modifiers = RunManager.get_shop_modifiers(modifier_count)
 	var shop_session = ShopSession.new(round_number, is_boss, tiles, modifiers)
 
-	# Store session for shop controller to use
-	# (In full implementation, this would be passed to ShopController)
+	# Set up shop controller for input handling and drag-drop
+	if _shop_controller:
+		_shop_controller.queue_free()
+	_shop_controller = ShopController.new()
+	_shop_controller.name = "ShopController"
+	add_child(_shop_controller)
+	_shop_controller.setup(shop_overlay, shop_session)
 
 	# Trigger entrance animation (shop slides in from bottom, board slides up)
 	var entrance_tween = ShopSlideAnimation.get_entrance_animation(shop_overlay, board, self)
