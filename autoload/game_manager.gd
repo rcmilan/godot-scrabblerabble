@@ -107,6 +107,7 @@ func resume_game() -> void:
 # =============================================================================
 
 ## Commits the current play and processes scoring.
+## Used when stagger-matched scoring is NOT needed (legacy path).
 func commit_play(score: int) -> void:
 	if _current_phase != GamePhase.PLAYING:
 		return
@@ -124,6 +125,47 @@ func commit_play(score: int) -> void:
 
 	# Check win/lose conditions
 	if cumulative >= _target_score:
+		_complete_round(true)
+	elif _plays_remaining <= 0:
+		if RunManager.is_debug_auto_win():
+			print("[GameManager] Debug auto-win enabled - treating as round win")
+			_complete_round(true)
+		else:
+			_complete_round(false)
+
+
+## Adds score from a single tile during stagger-matched scoring.
+## Emits score_updated per tile. Does NOT check win/lose -- that happens in end_play().
+## Ignored if the round has already ended (guards against late stagger ticks).
+func add_tile_score(score: int) -> void:
+	if _current_phase != GamePhase.PLAYING:
+		print("[GameManager] Skipped tile score (not PLAYING): +%d | Phase: %s" % [score, _current_phase])
+		return
+	_current_score += score
+	var cumulative: int = get_cumulative_score()
+	EventBus.score_updated.emit(cumulative, score)
+	print("[GameManager] Tile score: +%d | Current round score: %d | Previous total: %d | Cumulative: %d | Target: %d" % [
+		score, _current_score, _previous_rounds_total, cumulative, _target_score
+	])
+
+
+## Ends the current play after all tile scores have been committed.
+## Decrements plays remaining, then checks win condition first, lose condition second.
+func end_play() -> void:
+	if _current_phase != GamePhase.PLAYING:
+		return
+	_plays_remaining -= 1
+	EventBus.play_completed.emit(_plays_remaining)
+
+	var cumulative: int = get_cumulative_score()
+	print("[GameManager] Play ended | Round: %d | Cumulative: %d | Target: %d | Plays left: %d" % [
+		_current_round, cumulative, _target_score, _plays_remaining
+	])
+
+	if cumulative >= _target_score:
+		print("[GameManager] Target reached! Cumulative %d >= %d (excess: %d)" % [
+			cumulative, _target_score, cumulative - _target_score
+		])
 		_complete_round(true)
 	elif _plays_remaining <= 0:
 		if RunManager.is_debug_auto_win():
@@ -161,8 +203,8 @@ func setup_round(config: RoundConfig, previous_total: int = 0) -> void:
 	_set_phase(GamePhase.PLAYING)
 	EventBus.round_started.emit(_current_round)
 
-	print("[GameManager] Round %d setup - Target: %d | Plays: %d" % [
-		_current_round, _target_score, _plays_remaining
+	print("[GameManager] === ROUND %d START === | Target: %d | Plays: %d | Previous rounds total: %d | This round score: 0 | Cumulative: %d" % [
+		_current_round, _target_score, _plays_remaining, _previous_rounds_total, get_cumulative_score()
 	])
 
 
@@ -207,17 +249,12 @@ func _complete_round(success: bool) -> void:
 
 	var cumulative: int = get_cumulative_score()
 	if success:
-		print("[GameManager] Round %d complete! Score: %d/%d" % [
-			_current_round, _current_score, _target_score
+		print("[GameManager] === ROUND %d END (SUCCESS) === | This round: %d | Previous rounds: %d | Cumulative: %d | Target: %d | Excess: %d" % [
+			_current_round, _current_score, _previous_rounds_total, cumulative, _target_score, cumulative - _target_score
 		])
-		if cumulative > _target_score:
-			var excess: int = cumulative - _target_score
-			print("[GameManager] Target beaten! Cumulative: %d | Target: %d | Excess: %d" % [
-				cumulative, _target_score, excess
-			])
 		# RunManager handles what comes next (shop or victory)
 	else:
-		print("[GameManager] Round %d failed. Score: %d/%d" % [
-			_current_round, _current_score, _target_score
+		print("[GameManager] === ROUND %d END (FAILED) === | This round: %d | Previous rounds: %d | Cumulative: %d | Target: %d | Short by: %d" % [
+			_current_round, _current_score, _previous_rounds_total, cumulative, _target_score, _target_score - cumulative
 		])
 		# RunManager handles game over

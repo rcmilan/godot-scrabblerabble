@@ -43,8 +43,9 @@ func get_fan_layout() -> HandFanLayout:
 # === Public API: Tile Management ===
 
 ## Adds a tile to the hand.
-func add_tile(tile: Tile) -> bool:
-	if get_tile_count() >= max_hand_size:
+## Pass force=true to bypass the hand size limit (used when returning tiles from the board).
+func add_tile(tile: Tile, force: bool = false) -> bool:
+	if not force and get_tile_count() >= max_hand_size:
 		push_warning("[Hand] Cannot add tile - hand is full")
 		return false
 

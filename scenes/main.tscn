@@ -37,6 +37,7 @@ offset_right = 120.0
 offset_bottom = 34.0
 theme_override_font_sizes/font_size = 11
 text = "Round 1"
+visible = false
 
 [node name="Board" parent="." instance=ExtResource("1_idj7w")]
 layout_mode = 1

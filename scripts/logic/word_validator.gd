@@ -116,6 +116,21 @@ func calculate_placement_score(tiles: Array, cells: Array) -> Dictionary:
 
 	var total: int = letter_score * word_multiplier
 
+	for entry in breakdown:
+		var mod_names: Array = []
+		for m in entry.modifiers_applied:
+			mod_names.append("%s %d->%d" % [
+				ModifierTypes.Type.keys()[m.type], m.before, m.after
+			])
+		var mods_str: String = ", ".join(mod_names) if mod_names.size() > 0 else "none"
+		print("[Scoring] Tile '%s': base=%d mods=[%s] cell_mult=%dx%.1f -> %d" % [
+			entry.letter, entry.base, mods_str,
+			entry.letter_mult, entry.boss_mult, entry.tile_score
+		])
+	print("[Scoring] Word total: letter_score=%d x word_mult=%d = %d" % [
+		letter_score, word_multiplier, total
+	])
+
 	return {
 		"total": total,
 		"letter_score": letter_score,
