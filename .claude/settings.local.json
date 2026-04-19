@@ -4,7 +4,8 @@
       "Bash(rm:*)",
       "Bash(xargs grep:*)",
       "Bash(xargs cat:*)",
-      "Bash(powershell.exe:*)"
+      "Bash(powershell.exe:*)",
+      "Bash(mkdir *)"
     ]
   }
 }

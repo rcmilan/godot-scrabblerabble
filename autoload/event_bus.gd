@@ -152,3 +152,15 @@ signal run_ended(victory: bool, total_score: int)
 
 ## Emitted when the board is resized (dimensions or position change).
 signal board_resized(board_state: BoardState)
+
+# =============================================================================
+# HYPE SEQUENCE EVENTS
+# =============================================================================
+
+## Emitted when a play sequence begins (lift phase starts).
+## Consumed by RunManager to pause the boss timer.
+signal play_sequence_started()
+
+## Emitted when a play sequence ends (all score transfers complete).
+## Consumed by RunManager to resume the boss timer.
+signal play_sequence_ended()
