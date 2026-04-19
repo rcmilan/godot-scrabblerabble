@@ -182,6 +182,7 @@ func _setup_round_state(config: RoundConfig) -> void:
 		hand.clear_hand()
 		HandManager.clear_discard_pile()
 		TileBag.populate_bag(RunManager.run_state.bag_config)
+		TileBag.apply_pending_modifiers(RunManager.run_state.consume_pending_modifiers())
 	# Setup GameManager for this round
 	var previous_total: int = RunManager.run_state.total_score if RunManager.run_state else 0
 	GameManager.setup_round(config, previous_total)
@@ -330,6 +331,11 @@ func _on_shop_requested(round_number: int) -> void:
 
 func _on_shop_continue() -> void:
 	print("[Main] === SHOP END | proceeding to next round ===")
+
+	# Commit modifier assignments to the actual tiles before leaving shop
+	if _shop_controller and _shop_controller.shop_session:
+		var final_tiles = _shop_controller.shop_session.get_final_tiles()
+		RunManager.finalize_shop_commit(final_tiles)
 
 	# Trigger exit animation (shop slides out top, board slides back down)
 	var exit_tween = ShopSlideAnimation.get_exit_animation(shop_overlay, board, self)
