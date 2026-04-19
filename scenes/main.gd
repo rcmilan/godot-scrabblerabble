@@ -300,6 +300,21 @@ func _on_shop_requested(round_number: int) -> void:
 	_deactivate_gameplay()
 	_hide_gameplay_ui()
 
+	# Create shop session with tiles and modifiers
+	var tiles = RunManager.get_shop_tiles(10)
+	var is_boss = RunManager.current_round_config.is_boss_round
+	var modifier_count = 3 if is_boss else 2
+	var modifiers = RunManager.get_shop_modifiers(modifier_count)
+	var shop_session = ShopSession.new(round_number, is_boss, tiles, modifiers)
+
+	# Store session for shop controller to use
+	# (In full implementation, this would be passed to ShopController)
+
+	# Trigger entrance animation (shop slides in from bottom, board slides up)
+	var shop_anim = ShopSlideAnimation.new()
+	var entrance_tween = shop_anim.get_entrance_animation(shop_overlay, board)
+	await entrance_tween
+
 	# Peek at next round config for display (without consuming boss pool)
 	var next_config: RoundConfig = RunManager.progression_rules.peek_round_config(
 		RunManager.run_state
@@ -310,6 +325,13 @@ func _on_shop_requested(round_number: int) -> void:
 
 func _on_shop_continue() -> void:
 	print("[Main] === SHOP END | proceeding to next round ===")
+
+	# Trigger exit animation (shop slides out top, board slides back down)
+	var shop_anim = ShopSlideAnimation.new()
+	var exit_tween = shop_anim.get_exit_animation(shop_overlay, board)
+	await exit_tween
+
+	shop_overlay.hide()
 	RunManager.proceed_from_shop()
 
 

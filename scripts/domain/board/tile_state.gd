@@ -78,3 +78,35 @@ func with_cleared_round_modifiers() -> TileState:
 
 func with_modifiers(new_modifiers: ModifierCollection) -> TileState:
 	return TileState.new(_letter, _base_points, new_modifiers, _location)
+
+
+# === Shop-Specific Methods ===
+
+func create_shop_copy() -> TileState:
+	# Create independent copy for shop session; preserves modifiers, clears session state
+	return TileState.new(_letter, _base_points, _modifiers, _location)
+
+
+func with_session_modifier(modifier: ModifierInstance) -> TileState:
+	# Apply session modifier (player-selected in shop preview)
+	# Returns new TileState with the modifier added
+	return TileState.new(_letter, _base_points, _modifiers.with_added(modifier), _location)
+
+
+func revert_session_modifier(preload_modifiers: ModifierCollection = null) -> TileState:
+	# Revert session changes; restore to pre-loaded state
+	# If preload_modifiers provided, restore to that state; else clear session state
+	var restored = preload_modifiers if preload_modifiers else ModifierCollection.empty()
+	return TileState.new(_letter, _base_points, restored, _location)
+
+
+func get_active_modifier() -> ModifierInstance:
+	# Return first active modifier (for shop display/tracking)
+	if not _modifiers.is_empty():
+		return _modifiers.get_first() if _modifiers.has_method("get_first") else null
+	return null
+
+
+func can_accept_modifier() -> bool:
+	# Check if tile can accept another modifier (max 1 for shop)
+	return _modifiers.is_empty() if _modifiers.has_method("is_empty") else _modifiers.get_size() == 0

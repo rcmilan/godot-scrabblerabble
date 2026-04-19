@@ -96,6 +96,56 @@ func proceed_from_shop() -> void:
 	_advance_to_next_round()
 
 
+# =============================================================================
+# PUBLIC API: SHOP INTEGRATION
+# =============================================================================
+
+## Draw tiles from the active deck for shop.
+func get_shop_tiles(count: int) -> Array[TileState]:
+	var tiles: Array[TileState] = []
+	if not run_state or not run_state.tile_bag:
+		push_error("[RunManager] Cannot get shop tiles - run_state or tile_bag not initialized")
+		return tiles
+
+	for i in range(count):
+		var tile = run_state.tile_bag.draw_tile()
+		if tile:
+			tiles.append(tile.create_shop_copy())
+	return tiles
+
+
+## Get random modifiers from available pool.
+func get_shop_modifiers(count: int) -> Array[ModifierTypes.Type]:
+	var pool = _get_available_modifiers()
+	var selected: Array[ModifierTypes.Type] = []
+	for i in range(count):
+		if pool.is_empty():
+			break
+		selected.append(pool[randi() % pool.size()])
+	return selected
+
+
+## Finalize shop commit and add tiles to player hand.
+func finalize_shop_commit(tiles: Array[TileState]) -> void:
+	if not run_state or not run_state.hand:
+		push_error("[RunManager] Cannot finalize shop commit - run_state or hand not initialized")
+		return
+
+	for tile in tiles:
+		run_state.hand.add_tile(tile)
+	print("[RunManager] Shop commit finalized: %d tiles added to hand" % tiles.size())
+
+
+func _get_available_modifiers() -> Array[ModifierTypes.Type]:
+	# Return all available modifier types for random selection
+	# This can be expanded based on game design (all types, or filtered pool)
+	var all_types: Array[ModifierTypes.Type] = []
+	for type in ModifierTypes.Type.values():
+		if type != ModifierTypes.Type.NONE:
+			all_types.append(type)
+	return all_types
+
+
 ## Returns the active Run object (null if not initialized).
 func get_active_run() -> Run:
 	return _active_run
