@@ -17,6 +17,8 @@ var _used_modifier_indices: Array[int] = []  # Tracks consumed modifier cards
 # UI references (created dynamically)
 var _modifier_cards: Array[Control] = []
 var _tile_displays: Array[Control] = []
+var _revert_button: Button = null
+var _commit_button: Button = null
 
 func _ready() -> void:
 	pass
@@ -110,6 +112,30 @@ func _setup_ui() -> void:
 			_apply_modifier_visual_to_tile(i)
 
 	_scatter_tiles()
+
+	# Buttons section (Revert and Commit)
+	var buttons_container = HBoxContainer.new()
+	buttons_container.name = "ButtonsSection"
+	buttons_container.add_theme_constant_override("separation", 20)
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	shop_ui.add_child(buttons_container)
+
+	_revert_button = Button.new()
+	_revert_button.name = "RevertButton"
+	_revert_button.text = "REVERT"
+	_revert_button.custom_minimum_size = Vector2(120, 50)
+	_revert_button.pressed.connect(_on_revert_pressed)
+	buttons_container.add_child(_revert_button)
+	print("[Shop] Created Revert button")
+
+	_commit_button = Button.new()
+	_commit_button.name = "CommitButton"
+	_commit_button.text = "COMMIT"
+	_commit_button.custom_minimum_size = Vector2(120, 50)
+	_commit_button.pressed.connect(_on_commit_pressed)
+	buttons_container.add_child(_commit_button)
+	print("[Shop] Created Commit button")
+
 	print("[Shop] UI setup complete")
 
 func _create_modifier_card(index: int, mod_type: ModifierTypes.Type) -> Control:
@@ -192,18 +218,34 @@ func _create_tile_display(index: int, tile_state: TileState) -> Control:
 
 func _scatter_tiles() -> void:
 	# Simple grid-with-jitter layout: 2 rows x 5 cols
+	# With overlap validation (SC-004: 100% success required)
 	var grid_cols = 5
 	var grid_rows = 2
 	var col_spacing = 150.0
 	var row_spacing = 200.0
 	var jitter_range = 15.0
+	var tile_size = Vector2(64.0, 64.0)
 
+	# Calculate base positions
 	for i in range(_tile_displays.size()):
 		var col = i % grid_cols
 		var row = i / grid_cols
 		var x = col * col_spacing + randf_range(-jitter_range, jitter_range)
 		var y = row * row_spacing + randf_range(-jitter_range, jitter_range)
 		_tile_displays[i].position = Vector2(x, y)
+
+	# Validate no overlaps using Rect2.intersects()
+	var overlap_detected = false
+	for i in range(_tile_displays.size()):
+		var rect_i = Rect2(_tile_displays[i].position, tile_size)
+		for j in range(i + 1, _tile_displays.size()):
+			var rect_j = Rect2(_tile_displays[j].position, tile_size)
+			if rect_i.intersects(rect_j):
+				overlap_detected = true
+				print("[Shop] WARNING: Tile overlap detected at indices %d and %d" % [i, j])
+
+	if overlap_detected:
+		print("[Shop] WARNING: Layout has overlaps - consider reducing jitter or increasing spacing")
 
 func _connect_signals() -> void:
 	# Signals will be set up as needed
@@ -534,6 +576,35 @@ func _draw_debug_zones() -> void:
 		print("[Shop] Debug zone created for tile %d at %s" % [i, tile.global_position])
 
 
+func _on_revert_pressed() -> void:
+	# Revert all player-applied modifiers, preserve pre-loaded ones
+	print("[Shop] Revert pressed")
+	shop_session = shop_session.revert_all()
+	_used_modifier_indices.clear()
+	_refresh_ui_after_revert()
+
+
+func _refresh_ui_after_revert() -> void:
+	# Clear all session badges and reset modifier card visuals
+	for i in range(_modifier_cards.size()):
+		_modifier_cards[i].modulate = Color.WHITE
+	for i in range(_tile_displays.size()):
+		_restore_tile_visual(i)
+	print("[Shop] UI refreshed after revert")
+
+
+func _on_commit_pressed() -> void:
+	# Finalize assignments and trigger shop continue (animation + hand integration)
+	print("[Shop] Commit pressed")
+	var final_tiles = shop_session.get_final_tiles()
+	print("[Shop] Final tiles: %d tiles with applied modifiers" % final_tiles.size())
+	# Update shop_session so Main can access it via shop_controller
+	shop_session = ShopSession.new(shop_session.round_number, shop_session.is_boss_round, final_tiles, shop_session.available_modifiers)
+	# Emit continue signal which triggers Main to handle exit animation + finalize
+	shop_overlay.continue_requested.emit()
+	print("[Shop] Committed changes, continue signal emitted")
+
+
 func _input(event: InputEvent) -> void:
 	# Only handle motion here - use _unhandled_input for releases so GUI controls get first shot
 	if event is InputEventMouseMotion and _ghost_node:
@@ -543,7 +614,13 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Fires AFTER gui_input on controls - safe fallback for releases not handled by tiles/modifiers
-	if event is InputEventMouseButton and not event.pressed:
+	if event.is_action_pressed("ui_cancel"):
+		# ESC key: close shop without committing (discard preview state)
+		print("[Shop] ESC pressed - closing shop without committing")
+		shop_overlay.hide()
+		# Return to gameplay without applying changes
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and not event.pressed:
 		if _dragging_modifier != null and _ghost_node:
 			print("[Shop] Fallback release: modifier drag cancelled (not over any tile)")
 			_end_drag()
