@@ -354,8 +354,7 @@ func _attempt_drop(tile_index: int) -> void:
 	print("[Shop] Drop attempt: modifier '%s' on tile '%s' (index %d)" % [mod_name, tile.get_letter(), tile_index])
 
 	if shop_session.can_apply_modifier(tile):
-		# Create modifier instance and apply
-		var mod_instance = ModifierInstance.new(_dragging_modifier)
+		var mod_instance = ModifierRegistry.create_modifier(_dragging_modifier, ModifierTypes.Tier.BRONZE, ModifierTypes.Lifetime.PERMANENT)
 		shop_session = shop_session.apply_modifier(tile, mod_instance)
 		print("[Shop] Modifier Applied | Tile: '%s' (index %d) | Modifier: %s" % [tile.get_letter(), tile_index, mod_name])
 		_mark_modifier_used(_selected_modifier_index)
@@ -460,8 +459,7 @@ func _attempt_drop_tile_on_modifier(modifier_index: int) -> void:
 	print("[Shop] Drop attempt: tile '%s' on modifier '%s' (modifier index %d)" % [tile.get_letter(), mod_name, modifier_index])
 
 	if shop_session.can_apply_modifier(tile):
-		# Create modifier instance and apply
-		var mod_instance = ModifierInstance.new(mod_type)
+		var mod_instance = ModifierRegistry.create_modifier(mod_type, ModifierTypes.Tier.BRONZE, ModifierTypes.Lifetime.PERMANENT)
 		shop_session = shop_session.apply_modifier(tile, mod_instance)
 		print("[Shop] Modifier Applied | Tile: '%s' (index %d) | Modifier: %s" % [tile.get_letter(), _dragging_tile_index, mod_name])
 		_mark_modifier_used(modifier_index)

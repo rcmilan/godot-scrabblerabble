@@ -133,19 +133,16 @@ func finalize_shop_commit(final_tiles: Array[TileState]) -> void:
 	var applied_count: int = 0
 	for i in range(mini(final_tiles.size(), _shop_source_tiles.size())):
 		var tile_state: TileState = final_tiles[i]
+		var source_tile: Tile = _shop_source_tiles[i]
 		var active_modifier = tile_state.get_active_modifier()
 		if active_modifier != null:
-			var letter: String = tile_state.get_letter()
-			run_state.add_pending_modifier(letter, active_modifier)
+			source_tile.update_state(tile_state)
 			applied_count += 1
-			print("[RunManager] Queued modifier '%s' for letter '%s'" % [_modifier_name(active_modifier.type), letter])
+			var keys: Array = ModifierTypes.Type.keys()
+			var name: String = keys[active_modifier.type] if active_modifier.type < keys.size() else str(active_modifier.type)
+			print("[RunManager] Committed modifier '%s' to tile '%s'" % [name, tile_state.get_letter()])
 	_shop_source_tiles.clear()
-	print("[RunManager] Shop commit finalized: %d modifier(s) queued" % applied_count)
-
-
-func _modifier_name(type: ModifierTypes.Type) -> String:
-	var keys: Array = ModifierTypes.Type.keys()
-	return keys[type] if type >= 0 and type < keys.size() else str(type)
+	print("[RunManager] Shop commit finalized: %d modifier(s) applied" % applied_count)
 
 
 func _get_available_modifiers() -> Array[ModifierTypes.Type]:

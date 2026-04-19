@@ -119,23 +119,15 @@ func draw_tiles(count: int) -> Array[Tile]:
 	return result
 
 
-## Applies pending modifier assignments from the shop to matching tiles in the bag.
-## Each entry: {letter: String, modifier: ModifierInstance}.
-## Consumes entries as they are matched (first available tile per letter).
-func apply_pending_modifiers(pending: Array[Dictionary]) -> void:
-	if pending.is_empty():
-		return
-	var applied: int = 0
-	for entry in pending:
-		var letter: String = entry.letter
-		var modifier: ModifierInstance = entry.modifier
-		for tile in _available_tiles:
-			if tile.letter == letter and not tile.get_state().has_modifier(modifier.type):
-				tile.update_state(tile.get_state().with_modifier(modifier))
-				applied += 1
-				print("[TileBag] Applied modifier '%s' to tile '%s' in bag" % [modifier.type, letter])
-				break
-	print("[TileBag] Pending modifiers applied: %d/%d" % [applied, pending.size()])
+## Resets bag for a new round: returns all drawn tiles (preserving permanent modifiers) and reshuffles.
+## Use this between rounds instead of populate_bag to preserve tile identity and modifiers.
+func reshuffle_for_round() -> void:
+	for tile in _drawn_tiles:
+		tile.reset()
+		_available_tiles.append(tile)
+	_drawn_tiles.clear()
+	shuffle_bag()
+	print("[TileBag] Reshuffled for new round - %d tiles available" % _available_tiles.size())
 
 
 ## Returns a tile to the bag (for special effects).

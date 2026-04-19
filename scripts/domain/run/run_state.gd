@@ -18,10 +18,6 @@ var _bag_config: BagDistribution = null
 var _boss_pool: BossPool = null
 var _bosses_defeated: int = 0
 
-# Modifier assignments from shop, applied to bag tiles at next round start
-var _pending_tile_modifiers: Array[Dictionary] = []
-
-
 func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribution) -> void:
 	_current_round = 0
 	_total_score = 0
@@ -53,16 +49,6 @@ func complete_round(round_score: int) -> void:
 
 func end_run() -> void:
 	_is_run_active = false
-
-
-func add_pending_modifier(letter: String, modifier: ModifierInstance) -> void:
-	_pending_tile_modifiers.append({"letter": letter, "modifier": modifier})
-
-
-func consume_pending_modifiers() -> Array[Dictionary]:
-	var result := _pending_tile_modifiers.duplicate()
-	_pending_tile_modifiers.clear()
-	return result
 
 
 func record_boss_defeat() -> void:

@@ -181,8 +181,7 @@ func _setup_round_state(config: RoundConfig) -> void:
 	if config.round_number > 1:
 		hand.clear_hand()
 		HandManager.clear_discard_pile()
-		TileBag.populate_bag(RunManager.run_state.bag_config)
-		TileBag.apply_pending_modifiers(RunManager.run_state.consume_pending_modifiers())
+		TileBag.reshuffle_for_round()
 	# Setup GameManager for this round
 	var previous_total: int = RunManager.run_state.total_score if RunManager.run_state else 0
 	GameManager.setup_round(config, previous_total)
