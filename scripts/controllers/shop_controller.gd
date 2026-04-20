@@ -132,35 +132,64 @@ func _setup_ui() -> void:
 	print("[Shop] UI setup complete")
 
 func _create_modifier_card(index: int, mod_type: ModifierTypes.Type) -> Control:
-	var card = Panel.new()
+	# Create a modifier card as a styled tile showing the modifier's letter
+	var letter = _get_modifier_letter(mod_type)
+	var tile_data_path: String = "res://data/tile_data/tiles/tile_%s.tres" % letter.to_lower()
+	var tile_data: LetterTileData = load(tile_data_path) as LetterTileData
+
+	# Create container for the modifier tile (same size as player tiles)
+	var card = Control.new()
 	card.name = "ModifierCard_%d" % index
-	card.custom_minimum_size = Vector2(140, 50)
+	card.custom_minimum_size = Vector2(64, 64)
 	card.modulate = Color.WHITE
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	card.gui_input.connect(func(event: InputEvent) -> void:
 		_on_modifier_card_input(index, event)
 	)
 
-	# Apply a themed style for modifier cards
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.2, 0.3, 0.5, 0.8)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = Color(0.5, 0.7, 1.0, 1.0)
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_right = 4
-	style.corner_radius_bottom_left = 4
-	card.add_theme_stylebox_override("panel", style)
+	# Create TextureRect for the tile
+	var texture_rect = TextureRect.new()
+	texture_rect.name = "TextureRect"
+	texture_rect.custom_minimum_size = Vector2(64, 64)
+	texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if tile_data and tile_data.texture:
+		texture_rect.texture = tile_data.texture
+	texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	card.add_child(texture_rect)
 
-	var label = Label.new()
-	label.text = _get_modifier_name(mod_type)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_color_override("font_color", Color.WHITE)
-	card.add_child(label)
+	# Create a temporary tile state with the modifier to get visual effects
+	var temp_tile = TileState.create(letter, 0)
+	var mod_instance = ModifierRegistry.create_modifier(mod_type, ModifierTypes.Tier.BRONZE, ModifierTypes.Lifetime.PERMANENT)
+	var modified_tile = temp_tile.with_modifier(mod_instance)
+	var modifiers_dict: Dictionary = modified_tile.get_modifiers().to_dictionary()
+	var visual: Dictionary = ModifierVisualPipeline.compute_tile_visual(modifiers_dict)
+
+	# Apply visual effects to the tile
+	card.modulate = visual.tint
+	if visual.invert:
+		var shader: Shader = load("res://scenes/tile/invert.gdshader")
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		texture_rect.material = mat
+
+	# Add badge symbols if the modifier has them
+	if visual.has("badges") and not visual.badges.is_empty():
+		var badge_container := HBoxContainer.new()
+		badge_container.name = "BadgeContainer"
+		badge_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge_container.position = Vector2(0, 0)
+		badge_container.z_index = 10
+		card.add_child(badge_container)
+		for badge_info in visual.badges:
+			var label := Label.new()
+			label.text = badge_info.symbol
+			label.add_theme_font_size_override("font_size", 18)
+			label.add_theme_color_override("font_color", Color.WHITE)
+			label.add_theme_color_override("font_outline_color", Color.BLACK)
+			label.add_theme_constant_override("outline_size", 3)
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			badge_container.add_child(label)
 
 	return card
 
@@ -273,6 +302,11 @@ func _get_modifier_name(mod_type: ModifierTypes.Type) -> String:
 		ModifierTypes.Type.EXPO: return "Expo"
 		ModifierTypes.Type.LOCKED: return "Locked"
 		_: return "Unknown"
+
+
+func _get_modifier_letter(mod_type: ModifierTypes.Type) -> String:
+	# Get first letter of modifier name (used for tile display)
+	return _get_modifier_name(mod_type).substr(0, 1).to_upper()
 
 func _on_modifier_card_input(index: int, event: InputEvent) -> void:
 	if event is InputEventMouseButton:
