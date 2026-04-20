@@ -10,6 +10,7 @@ class_name Main
 # =============================================================================
 
 var _gameplay_controller: GameplayController = null
+var _shop_controller: ShopController = null
 
 # =============================================================================
 # LOCAL MANAGERS
@@ -119,6 +120,7 @@ func _on_round_ready(config: RoundConfig) -> void:
 	])
 	_deactivate_gameplay()
 	TileAnimator.cancel_all()
+	_reclaim_board_tiles_from_scene()
 	_setup_board_for_round(config)
 	await _setup_round_state(config)
 	_setup_round_background(config)
@@ -144,6 +146,26 @@ func _deactivate_gameplay() -> void:
 func _activate_gameplay() -> void:
 	_gameplay_controller.activate()
 	_focus_cursor.activate()
+
+
+func _reclaim_board_tiles_from_scene() -> void:
+	# Remove board tiles from cell.tile_anchor BEFORE board is resized/cleared.
+	# Tiles parented to cell nodes get freed when those nodes are destroyed by resize_board.
+	# Removing them here makes them orphan nodes that survive the board reset.
+	for row in board.get_grid_state():
+		for tile in row:
+			if tile and is_instance_valid(tile) and tile.get_parent():
+				tile.get_parent().remove_child(tile)
+
+
+func _reclaim_all_tiles_to_bag() -> void:
+	# Orphan every tile currently on the board, in the hand, or on the discard pile,
+	# then reshuffle so TileBag._available_tiles contains the full deck again.
+	TileAnimator.cancel_all()
+	_reclaim_board_tiles_from_scene()
+	hand.clear_hand()
+	HandManager.clear_discard_pile()
+	TileBag.reshuffle_for_round()
 
 
 func _setup_board_for_round(config: RoundConfig) -> void:
@@ -180,7 +202,7 @@ func _setup_round_state(config: RoundConfig) -> void:
 	if config.round_number > 1:
 		hand.clear_hand()
 		HandManager.clear_discard_pile()
-		TileBag.populate_bag(RunManager.run_state.bag_config)
+		TileBag.reshuffle_for_round()
 	# Setup GameManager for this round
 	var previous_total: int = RunManager.run_state.total_score if RunManager.run_state else 0
 	GameManager.setup_round(config, previous_total)
@@ -300,6 +322,29 @@ func _on_shop_requested(round_number: int) -> void:
 	_deactivate_gameplay()
 	_hide_gameplay_ui()
 
+	# Reclaim all tiles back to the bag so shop always has enough to sample.
+	# Without this, a big play can empty the bag and the shop assertion fails.
+	_reclaim_all_tiles_to_bag()
+
+	# Create shop session with tiles and modifiers
+	var tiles = RunManager.get_shop_tiles(10)
+	var is_boss = RunManager.current_round_config.is_boss_round
+	var modifier_count = 3 if is_boss else 2
+	var modifiers = RunManager.get_shop_modifiers(modifier_count)
+	var shop_session = ShopSession.new(round_number, is_boss, tiles, modifiers)
+
+	# Set up shop controller for input handling and drag-drop
+	if _shop_controller:
+		_shop_controller.queue_free()
+	_shop_controller = ShopController.new()
+	_shop_controller.name = "ShopController"
+	add_child(_shop_controller)
+	_shop_controller.setup(shop_overlay, shop_session)
+
+	# Trigger entrance animation (shop slides in from bottom, board slides up)
+	var entrance_tween = ShopSlideAnimation.get_entrance_animation(shop_overlay, board, self)
+	await entrance_tween
+
 	# Peek at next round config for display (without consuming boss pool)
 	var next_config: RoundConfig = RunManager.progression_rules.peek_round_config(
 		RunManager.run_state
@@ -310,6 +355,17 @@ func _on_shop_requested(round_number: int) -> void:
 
 func _on_shop_continue() -> void:
 	print("[Main] === SHOP END | proceeding to next round ===")
+
+	# Commit modifier assignments to the actual tiles before leaving shop
+	if _shop_controller and _shop_controller.shop_session:
+		var final_tiles = _shop_controller.shop_session.get_final_tiles()
+		RunManager.finalize_shop_commit(final_tiles)
+
+	# Trigger exit animation (shop slides out top, board slides back down)
+	var exit_tween = ShopSlideAnimation.get_exit_animation(shop_overlay, board, self)
+	await exit_tween
+
+	shop_overlay.hide()
 	RunManager.proceed_from_shop()
 
 
@@ -367,6 +423,7 @@ func _show_gameplay_ui() -> void:
 func _hide_gameplay_ui() -> void:
 	board.hide()
 	hand.hide()
+	main_hud.hide()
 	main_hud.hide_hint_bar()
 
 

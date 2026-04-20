@@ -119,6 +119,25 @@ func draw_tiles(count: int) -> Array[Tile]:
 	return result
 
 
+## Resets bag for a new round: returns all drawn tiles (preserving permanent modifiers) and reshuffles.
+## Use this between rounds instead of populate_bag to preserve tile identity and modifiers.
+func reshuffle_for_round() -> void:
+	var skipped: int = 0
+	for tile in _drawn_tiles:
+		if not is_instance_valid(tile):
+			skipped += 1
+			continue
+		if tile.get_parent():
+			tile.get_parent().remove_child(tile)
+		tile.reset()
+		_available_tiles.append(tile)
+	_drawn_tiles.clear()
+	shuffle_bag()
+	if skipped > 0:
+		push_warning("[TileBag] reshuffle_for_round: skipped %d freed tile(s)" % skipped)
+	print("[TileBag] Reshuffled for new round - %d tiles available" % _available_tiles.size())
+
+
 ## Returns a tile to the bag (for special effects).
 func return_tile(tile: Tile) -> void:
 	if tile in _drawn_tiles:

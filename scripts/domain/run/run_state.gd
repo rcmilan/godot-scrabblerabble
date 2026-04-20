@@ -18,7 +18,6 @@ var _bag_config: BagDistribution = null
 var _boss_pool: BossPool = null
 var _bosses_defeated: int = 0
 
-
 func start_run(config_plays: int, config_hand_size: int, config_bag: BagDistribution) -> void:
 	_current_round = 0
 	_total_score = 0

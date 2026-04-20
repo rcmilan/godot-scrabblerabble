@@ -341,8 +341,9 @@ func get_primary_modifier_type() -> ModifierTypes.Type:
 func reset() -> void:
 	detach_from_cell()
 	is_selected = false
-	_state = TileState.create(_state.get_letter(), _state.get_base_points())
-	_remove_spark_effect()
+	_state = _state.with_cleared_round_modifiers()
+	if not _state.has_modifier(ModifierTypes.Type.EXPO):
+		_remove_spark_effect()
 	location = TileLocation.IN_BAG
 	selection_order = -1
 	scale = NORMAL_SCALE

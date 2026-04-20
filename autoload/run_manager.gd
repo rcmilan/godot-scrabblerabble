@@ -96,6 +96,65 @@ func proceed_from_shop() -> void:
 	_advance_to_next_round()
 
 
+# =============================================================================
+# PUBLIC API: SHOP INTEGRATION
+# =============================================================================
+
+## Draw tiles from the active deck for shop.
+## Stores source Tile references so modifiers can be committed back after shop.
+var _shop_source_tiles: Array[Tile] = []
+
+func get_shop_tiles(count: int) -> Array[TileState]:
+	_shop_source_tiles.clear()
+	var tiles: Array[TileState] = []
+	for i in range(count):
+		var tile = TileBag.draw_tile()
+		if tile:
+			var tile_state = tile.get_state()
+			if tile_state:
+				tiles.append(tile_state.create_shop_copy())
+				_shop_source_tiles.append(tile)
+	return tiles
+
+
+## Get random modifiers from available pool.
+func get_shop_modifiers(count: int) -> Array[ModifierTypes.Type]:
+	var pool = _get_available_modifiers()
+	var selected: Array[ModifierTypes.Type] = []
+	for i in range(count):
+		if pool.is_empty():
+			break
+		selected.append(pool[randi() % pool.size()])
+	return selected
+
+
+## Commit modifier assignments from the shop session back to actual Tile objects in the bag.
+func finalize_shop_commit(final_tiles: Array[TileState]) -> void:
+	var applied_count: int = 0
+	for i in range(mini(final_tiles.size(), _shop_source_tiles.size())):
+		var tile_state: TileState = final_tiles[i]
+		var source_tile: Tile = _shop_source_tiles[i]
+		var active_modifier = tile_state.get_active_modifier()
+		if active_modifier != null:
+			source_tile.update_state(tile_state)
+			applied_count += 1
+			var keys: Array = ModifierTypes.Type.keys()
+			var name: String = keys[active_modifier.type] if active_modifier.type < keys.size() else str(active_modifier.type)
+			print("[RunManager] Committed modifier '%s' to tile '%s'" % [name, tile_state.get_letter()])
+	_shop_source_tiles.clear()
+	print("[RunManager] Shop commit finalized: %d modifier(s) applied" % applied_count)
+
+
+func _get_available_modifiers() -> Array[ModifierTypes.Type]:
+	# Return shop-available modifier types (exclude NONE and LOCKED)
+	# LOCKED is a special state managed by the game, not a player-selectable modifier
+	var available: Array[ModifierTypes.Type] = []
+	for type in ModifierTypes.Type.values():
+		if type != ModifierTypes.Type.NONE and type != ModifierTypes.Type.LOCKED:
+			available.append(type)
+	return available
+
+
 ## Returns the active Run object (null if not initialized).
 func get_active_run() -> Run:
 	return _active_run
