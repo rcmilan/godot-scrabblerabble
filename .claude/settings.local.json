@@ -6,7 +6,10 @@
       "Bash(xargs cat:*)",
       "Bash(powershell.exe:*)",
       "Bash(mkdir *)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }
