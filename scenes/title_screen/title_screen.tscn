@@ -19,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.15, 0.15, 0.2, 1)
+color = Color(0, 0.502, 0.502, 1)
 
 [node name="MenuView" type="Control" parent="." unique_id=2129416341]
 layout_mode = 1
@@ -29,20 +29,38 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="MenuView" unique_id=693319305]
+[node name="Win95Window" type="Panel" parent="MenuView" unique_id=3001234567]
 layout_mode = 1
-anchors_preset = 5
+anchors_preset = 8
 anchor_left = 0.5
+anchor_top = 0.5
 anchor_right = 0.5
-offset_left = -200.0
-offset_top = 100.0
-offset_right = 200.0
-offset_bottom = 180.0
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -80.0
+offset_right = 160.0
+offset_bottom = 80.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
-theme_override_font_sizes/font_size = 48
-text = "Scrabblerabble"
-horizontal_alignment = 1
+grow_vertical = 2
+theme_type_variation = &"WindowPanel"
+
+[node name="TitleBar" type="Panel" parent="MenuView/Win95Window" unique_id=3001234568]
+layout_mode = 1
+anchor_right = 1.0
+offset_bottom = 26.0
+grow_horizontal = 2
+theme_type_variation = &"TitleBarActive"
+
+[node name="TitleBarLabel" type="Label" parent="MenuView/Win95Window/TitleBar" unique_id=3001234569]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"TitleBarLabel"
+text = "Wordatro"
+horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="MenuContainer" type="Control" parent="MenuView" unique_id=1904872867]
@@ -53,9 +71,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -100.0
-offset_top = -40.0
+offset_top = -20.0
 offset_right = 100.0
-offset_bottom = 40.0
+offset_bottom = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -78,14 +96,12 @@ theme_override_constants/separation = 10
 layout_mode = 2
 focus_neighbor_top = NodePath("../ExitButton")
 focus_neighbor_bottom = NodePath("../ExitButton")
-theme_override_font_sizes/font_size = 24
 text = "New Game"
 
 [node name="ExitButton" type="Button" parent="MenuView/MenuContainer/VBoxContainer" unique_id=1265654041]
 layout_mode = 2
 focus_neighbor_top = NodePath("../NewGameButton")
 focus_neighbor_bottom = NodePath("../NewGameButton")
-theme_override_font_sizes/font_size = 24
 text = "Exit"
 
 [node name="ControlHint" type="Label" parent="MenuView" unique_id=1661605468]
@@ -101,8 +117,6 @@ offset_right = 250.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
-theme_override_font_sizes/font_size = 14
 text = "W/S: Navigate | A/D: First/Last | Enter: Confirm"
 horizontal_alignment = 1
 

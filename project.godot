@@ -29,6 +29,7 @@ TileAnimator="*res://autoload/tile_animator.gd"
 RunManager="*res://autoload/run_manager.gd"
 KeybindingConfig="*res://scripts/managers/keybinding_config.gd"
 BackgroundManager="*res://autoload/background_manager.gd"
+ThemeSetup="*res://theme/ThemeSetup.gd"
 
 [dotnet]
 
@@ -120,6 +121,11 @@ switch_zone={
 ]
 }
 
+[gui]
+
+theme/custom="res://theme/webcore_theme.tres"
+
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="mobile"

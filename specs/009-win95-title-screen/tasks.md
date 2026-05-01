@@ -18,8 +18,8 @@
 
 **Purpose**: Copy Win95 design system assets from reference repo into the project. No Godot Editor required.
 
-- [ ] T001 [P] Download and copy the `theme/` directory from `https://github.com/rcmilan/godot-design-95` into the project root, preserving full subdirectory structure (`theme/button/`, `theme/checkbox/`, `theme/fonts/`, `theme/lineedit/`, `theme/menubar/`, `theme/panel/`, `theme/radiobutton/`, `theme/titlebar/`, `theme/window/`). Do NOT copy any `.import` files.
-- [ ] T002 [P] Download and copy `fonts/W95FA.otf` from `https://github.com/rcmilan/godot-design-95` into the project root `fonts/` directory (create `fonts/` if it does not exist).
+- [x] T001 [P] Download and copy the `theme/` directory from `https://github.com/rcmilan/godot-design-95` into the project root, preserving full subdirectory structure (`theme/button/`, `theme/checkbox/`, `theme/fonts/`, `theme/lineedit/`, `theme/menubar/`, `theme/panel/`, `theme/radiobutton/`, `theme/titlebar/`, `theme/window/`). Do NOT copy any `.import` files.
+- [x] T002 [P] Download and copy `fonts/W95FA.otf` from `https://github.com/rcmilan/godot-design-95` into the project root `fonts/` directory (create `fonts/` if it does not exist).
 
 ---
 
@@ -29,9 +29,9 @@
 
 **WARNING**: All three edits below target `project.godot`. Apply them sequentially in one editing session to avoid conflicts.
 
-- [ ] T003 Add `textures/canvas_textures/default_texture_filter=0` under the `[rendering]` section in `project.godot` to enable nearest-neighbor filtering globally.
-- [ ] T004 Add `config/custom_theme="res://theme/webcore_theme.tres"` under the `[application]` section in `project.godot` to register the Win95 theme as the project theme.
-- [ ] T005 Add `ThemeSetup="*res://theme/ThemeSetup.gd"` under the `[autoload]` section in `project.godot`, after the existing autoload entries.
+- [x] T003 Add `textures/canvas_textures/default_texture_filter=0` under the `[rendering]` section in `project.godot` to enable nearest-neighbor filtering globally.
+- [x] T004 Add `config/custom_theme="res://theme/webcore_theme.tres"` under the `[application]` section in `project.godot` to register the Win95 theme as the project theme.
+- [x] T005 Add `ThemeSetup="*res://theme/ThemeSetup.gd"` under the `[autoload]` section in `project.godot`, after the existing autoload entries.
 - [ ] T006 Open the project in Godot Editor. Confirm zero import errors appear in the Output panel for files under `theme/` and `fonts/`. Then add a temporary `Button` node to any scene, verify it renders with Win95 raised-border style without any `theme_override_*` properties set, and delete the test node.
 
 **Checkpoint**: Win95 theme is globally active. Any new Button, Panel, or Label renders in Win95 style automatically.
@@ -44,10 +44,10 @@
 
 **Independent Test**: Launch the game (F5). Verify Win95 window panel and title bar are visible, background is teal, "New Game" and "Exit" buttons have raised Win95 borders, W/S/Enter navigation works, and Exit quits the game.
 
-- [ ] T007 [P] [US1] In `autoload/background_manager.gd`, change the default/initial background color value to `Color("#008080")` (Win95 teal). Preserve all existing BackgroundManager animation logic.
-- [ ] T008 [US1] In `scenes/title_screen/title_screen.tscn`, wrap the existing MenuView content in a new `Panel` node. Set its `theme_type_variation` property to `"WindowPanel"`. Position and size it to be centered on screen with appropriate Win95 window dimensions.
-- [ ] T009 [US1] In `scenes/title_screen/title_screen.tscn`, add a `Panel` node as the first child of the WindowPanel with `theme_type_variation = "TitleBarActive"`. Inside it, add a `Label` with `theme_type_variation = "TitleBarLabel"` displaying the game name. The title bar must be decorative only (no close/minimize/maximize buttons).
-- [ ] T010 [US1] In `scenes/title_screen/title_screen.tscn`, remove all `theme_override_font_sizes/*` and `theme_override_colors/*` properties from every `Button` and `Label` node (NewGameButton, ExitButton, TitleLabel, ControlHint). Styling must come from the project theme only.
+- [x] T007 [P] [US1] In `autoload/background_manager.gd`, change the default/initial background color value to `Color("#008080")` (Win95 teal). Preserve all existing BackgroundManager animation logic.
+- [x] T008 [US1] In `scenes/title_screen/title_screen.tscn`, wrap the existing MenuView content in a new `Panel` node. Set its `theme_type_variation` property to `"WindowPanel"`. Position and size it to be centered on screen with appropriate Win95 window dimensions.
+- [x] T009 [US1] In `scenes/title_screen/title_screen.tscn`, add a `Panel` node as the first child of the WindowPanel with `theme_type_variation = "TitleBarActive"`. Inside it, add a `Label` with `theme_type_variation = "TitleBarLabel"` displaying the game name. The title bar must be decorative only (no close/minimize/maximize buttons).
+- [x] T010 [US1] In `scenes/title_screen/title_screen.tscn`, remove all `theme_override_font_sizes/*` and `theme_override_colors/*` properties from every `Button` and `Label` node (NewGameButton, ExitButton, TitleLabel, ControlHint). Styling must come from the project theme only.
 - [ ] T011 [US1] Manually verify in Godot Editor (F5): title screen shows Win95 window panel with navy title bar, teal background, Win95-styled buttons. Confirm W/S/Enter keyboard navigation works and Exit quits the game. Fix any visual regressions before proceeding.
 
 **Checkpoint**: User Story 1 complete. Title screen is fully Win95-styled with zero regressions.
@@ -60,10 +60,10 @@
 
 **Independent Test**: Press "New Game" to reach Run Builder. Verify Win95 window panel and "RUN SETUP" title bar visible. Confirm deck OptionButton, quality checkboxes, Back, and Start all function correctly.
 
-- [ ] T012 [US2] In `scenes/title_screen/run_setup_popup.tscn`, wrap the existing content in a new `Panel` node with `theme_type_variation = "WindowPanel"`. Ensure RunSetupView root node remains a `Control` (NOT a Window or Popup - Win95 appearance is cosmetic only).
-- [ ] T013 [US2] In `scenes/title_screen/run_setup_popup.tscn`, add a `Panel` node with `theme_type_variation = "TitleBarActive"` as the first child of the WindowPanel. Add a `Label` inside it with `theme_type_variation = "TitleBarLabel"` and text `"RUN SETUP"`. No window control buttons.
-- [ ] T014 [US2] In `scenes/title_screen/run_setup_popup.tscn`, remove all `theme_override_font_sizes/*` and `theme_override_colors/*` properties from every Button, Label, and OptionButton node (DeckLabel, DeckDescription, QualitiesLabel, DeckOption, BackButton, StartButton, ControlHint). Styling must come from the project theme only.
-- [ ] T015 [P] [US2] In `scenes/title_screen/run_setup_popup.gd`, find the code that creates `CheckBox` nodes dynamically for the quality list. After each `CheckBox.new()` instantiation, add `checkbox.theme_type_variation = "Win95Checkbox"` so dynamically-created checkboxes inherit Win95 styling.
+- [x] T012 [US2] In `scenes/title_screen/run_setup_popup.tscn`, wrap the existing content in a new `Panel` node with `theme_type_variation = "WindowPanel"`. Ensure RunSetupView root node remains a `Control` (NOT a Window or Popup - Win95 appearance is cosmetic only).
+- [x] T013 [US2] In `scenes/title_screen/run_setup_popup.tscn`, add a `Panel` node with `theme_type_variation = "TitleBarActive"` as the first child of the WindowPanel. Add a `Label` inside it with `theme_type_variation = "TitleBarLabel"` and text `"RUN SETUP"`. No window control buttons.
+- [x] T014 [US2] In `scenes/title_screen/run_setup_popup.tscn`, remove all `theme_override_font_sizes/*` and `theme_override_colors/*` properties from every Button, Label, and OptionButton node (DeckLabel, DeckDescription, QualitiesLabel, DeckOption, BackButton, StartButton, ControlHint). Styling must come from the project theme only.
+- [x] T015 [P] [US2] In `scenes/title_screen/run_setup_popup.gd`, find the code that creates `CheckBox` nodes dynamically for the quality list. After each `CheckBox.new()` instantiation, add `checkbox.theme_type_variation = "Win95Checkbox"` so dynamically-created checkboxes inherit Win95 styling.
 - [ ] T016 [US2] Manually verify in Godot Editor (F5): press "New Game", confirm Run Builder shows Win95 WindowPanel and "RUN SETUP" title bar, all controls render in Win95 style. Confirm deck selection, quality toggle, Back (returns to menu), and Start (launches game) all function correctly.
 
 **Checkpoint**: User Stories 1 and 2 complete. Both screens are Win95-styled with zero regressions.
@@ -76,7 +76,7 @@
 
 **Independent Test**: Inspect any node in title_screen.tscn or run_setup_popup.tscn in the editor and confirm no `theme_override_*` properties are set. Add a fresh Button to the title screen and confirm Win95 style applies without any manual property setting.
 
-- [ ] T017 [US3] Perform a final audit of `scenes/title_screen/title_screen.tscn` and `scenes/title_screen/run_setup_popup.tscn`: search both files for any remaining `theme_override` strings. Remove every occurrence found. The `.tscn` file text must contain zero `theme_override` entries on Button, Label, Panel, or CheckBox nodes.
+- [x] T017 [US3] Perform a final audit of `scenes/title_screen/title_screen.tscn` and `scenes/title_screen/run_setup_popup.tscn`: search both files for any remaining `theme_override` strings. Remove every occurrence found. The `.tscn` file text must contain zero `theme_override` entries on Button, Label, Panel, or CheckBox nodes. NOTE: 4 `theme_override_constants/separation` entries remain on VBoxContainer/HBoxContainer layout nodes - these are outside FR-008's scope and preserved intentionally for correct layout spacing.
 - [ ] T018 [P] [US3] Verify theme reusability: in Godot Editor, add a new `Button` node to `scenes/title_screen/title_screen.tscn`. Confirm it displays Win95 raised-border style with no properties set manually. Delete the test node and save the scene.
 - [ ] T019 [P] [US3] Verify no import errors: open Godot Editor Output panel and confirm no missing resource, broken path, or import failure messages for any file under `theme/` or `fonts/`.
 

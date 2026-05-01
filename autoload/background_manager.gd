@@ -5,7 +5,7 @@ extends Node
 ## Resets to default on new game start.
 
 # Constants
-const DEFAULT_COLOR: Color = Color(0.85, 0.88, 0.92, 1.0)  # Blue-gray
+const DEFAULT_COLOR: Color = Color(0, 0.502, 0.502, 1.0)  # Win95 teal (#008080)
 const BOSS_COLOR: Color = Color(1.0, 0.85, 0.85, 1.0)      # Light red
 const TRANSITION_DURATION: float = 1.0                       # seconds
 
