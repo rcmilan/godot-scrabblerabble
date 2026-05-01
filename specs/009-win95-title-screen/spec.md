@@ -5,6 +5,14 @@
 **Status**: Draft
 **Input**: User description: "Win95 UI overhaul applied to title screen and run builder using godot-design-95 as reference"
 
+## Clarifications
+
+### Session 2026-05-01
+
+- Q: Should the Win95 theme be applied globally (all scenes) or scoped only to the title screen? -> A: Global from day one - Win95 theme applies to all scenes immediately; other screens receive Win95 styling automatically as they are redesigned.
+- Q: Should the Win95 title bar include close/minimize/maximize buttons? -> A: Decorative only - title text only, no window control buttons.
+- Q: How should the animated background be handled with the Win95 redesign? -> A: Replace default background color with Win95 teal (#008080); all other BackgroundManager behavior (animated color transitions) is preserved unchanged.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Win95 Theme Applied to Main Menu (Priority: P1)
@@ -61,28 +69,29 @@ The Win95 design system is integrated as a proper Godot theme resource (`webcore
 - What happens if the Win95 bitmap font fails to load? The game must still be playable with a fallback font, not a crash.
 - How does keyboard focus render on Win95-styled buttons? Focused state must be visually distinct (Win95 dotted focus rectangle or equivalent highlight).
 - How does the OptionButton (deck selector) render with the Win95 theme? If no dedicated OptionButton style exists in the reference repo, the standard Win95 button style is applied as a fallback.
-- What is the background behind the window panel? A solid Win95 desktop teal (#008080) is the assumed default; if the team prefers the existing dark background, that is acceptable.
+- The background behind the window panel starts as Win95 teal (#008080) and transitions via `BackgroundManager` animations; the window panel must remain legible over any tween state.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The project MUST include all asset files from `godot-design-95` (font `W95FA.otf`, theme `webcore_theme.tres`, all 9-slice textures for button, panel, window, titlebar, lineedit, checkbox, radiobutton, menubar) copied under a dedicated path such as `assets/theme/win95/`.
-- **FR-002**: The project MUST register `ThemeSetup.gd` as an autoload singleton so the Win95 theme is applied globally at runtime.
+- **FR-001**: The project MUST include all asset files from `godot-design-95` (font `W95FA.otf`, theme `webcore_theme.tres`, all 9-slice textures for button, panel, window, titlebar, lineedit, checkbox, radiobutton, menubar) copied to `theme/` at the project root and `fonts/W95FA.otf` at the project root `fonts/` directory. These paths match the internal `res://theme/...` resource references hardcoded in `webcore_theme.tres` and must not be changed.
+- **FR-002**: The project MUST register `ThemeSetup.gd` as an autoload singleton so the Win95 theme is applied globally at runtime. This is intentional: all scenes will receive Win95 styling as they are progressively redesigned; scenes not yet redesigned are considered acceptable temporary collateral.
 - **FR-003**: Texture filtering MUST be set to nearest-neighbor (either globally or per-viewport) to preserve the pixel-accurate appearance of all 9-slice textures.
-- **FR-004**: The title screen MUST use a Win95 window panel as its root container, with a navy title bar displaying the game title, matching the `WindowPanel` and `TitleBar` components from `godot-design-95`.
+- **FR-004**: The title screen MUST use a Win95 window panel as its root container, with a navy title bar displaying the game title. The title bar is decorative only (no close/minimize/maximize buttons). It MUST match the `WindowPanel` and `TitleBar` components from `godot-design-95`.
 - **FR-005**: The "New Game" and "Exit" buttons on the main menu MUST use the Win95 Button style (raised 3D border, gray background, bitmap font label).
-- **FR-006**: The Run Builder MUST be styled as a Win95 dialog: `WindowPanel` container, `TitleBar` with "RUN SETUP" label, and all form controls (OptionButton, CheckBox, Buttons) using Win95-themed variants.
+- **FR-006**: The Run Builder MUST be styled as a Win95 dialog: `WindowPanel` container, `TitleBar` with "RUN SETUP" label (decorative only, no window control buttons), and all form controls (OptionButton, CheckBox, Buttons) using Win95-themed variants.
 - **FR-007**: All text on the title screen and run builder MUST render using the `W95FA.otf` bitmap font at sizes that preserve pixel-correct rendering.
 - **FR-008**: No per-node style override properties MUST be set on any Button, Label, Panel, or CheckBox node in the title screen or run builder scenes; all styling MUST be inherited from the project theme resource.
 - **FR-009**: All existing functionality (keyboard navigation, deck selection, quality toggles, run start, exit) MUST continue to work without regression after the visual overhaul.
 - **FR-010**: The `title_screen.tscn` and `run_setup_popup.tscn` scenes MUST be restructured to use Win95 reusable components wired to the Win95 theme, not bare Control nodes with manual inline styling.
+- **FR-011**: The default background color of the title screen MUST be changed to Win95 teal (#008080). The `BackgroundManager` animated color-transition behavior MUST be preserved unchanged.
 
 ### Key Entities
 
 - **Win95 Theme Resource** (`webcore_theme.tres`): Master Godot Theme resource defining all styleboxes, fonts, and colors for Win95 components. Copied from reference repo; referenced by ThemeSetup autoload.
 - **ThemeSetup Autoload**: GDScript singleton that registers the Win95 theme at startup. Copied from reference repo and registered in `project.godot`.
-- **Win95 Asset Bundle**: Font (`W95FA.otf`) and 9-slice texture PNGs from the reference repo, stored under `assets/theme/win95/`.
+- **Win95 Asset Bundle**: Font (`W95FA.otf`) stored under `fonts/` at project root; 9-slice texture PNGs and theme resources stored under `theme/` at project root. These paths are required by `webcore_theme.tres` internal resource references (`res://theme/...`).
 - **TitleScreen Scene** (`title_screen.tscn`): Main menu scene restructured to use Win95 window/panel/button components.
 - **RunSetupPopup Scene** (`run_setup_popup.tscn`): Run configuration dialog restructured to use Win95 dialog/form components.
 
@@ -101,8 +110,8 @@ The Win95 design system is integrated as a proper Godot theme resource (`webcore
 
 - The reference repository (`https://github.com/rcmilan/godot-design-95`) is publicly accessible and its assets are freely usable in this project.
 - The Win95 design system targets Godot 4.x, which is compatible with Wordatro running on Godot 4.6.
-- Only `title_screen.tscn` and `run_setup_popup.tscn` are in scope; no gameplay, shop, or HUD scenes are affected by this overhaul.
+- Only `title_screen.tscn` and `run_setup_popup.tscn` are in scope for this iteration; the Win95 theme is registered globally so gameplay, shop, and HUD scenes will also receive Win95 styling automatically (acceptable side-effect, addressed in future iterations).
 - The existing keyboard navigation logic in `MenuController` and `run_setup_popup.gd` is preserved as-is; only the visual layer changes.
 - Mobile and touch support are out of scope; the Win95 aesthetic is inherently desktop-oriented.
-- The `BackgroundManager` color-tween behavior on the title screen background may be replaced or simplified to show a static Win95 teal desktop color.
+- The `BackgroundManager` is preserved as-is. Only the default/starting background color changes to Win95 teal (#008080); all animated color transition behavior remains unchanged.
 - The `OptionButton` for deck selection will use the closest available Win95 component from the design system; if no dedicated dropdown style exists, the standard Win95 button style is applied as a fallback.
