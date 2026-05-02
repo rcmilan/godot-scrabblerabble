@@ -16,8 +16,8 @@
 
 **Purpose**: Import external assets and verify prerequisites are in place before any scene work begins.
 
-- [ ] T001 Copy exe_icon.png, dll_icon.png, bat_icon.png from godot-design-95 (theme/icon/) into scenes/shop/icons/ in this project
-- [ ] T002 Verify webcore_theme.tres exists in the project and ThemeSetup is listed as an autoload in project.godot; document findings - no code change if already present
+- [x] T001 Copy exe_icon.png, dll_icon.png, bat_icon.png from godot-design-95 (theme/icon/) into scenes/shop/icons/ in this project
+- [x] T002 Verify webcore_theme.tres exists in the project and ThemeSetup is listed as an autoload in project.godot; document findings - no code change if already present
 
 ---
 
@@ -27,9 +27,9 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Create scripts/domain/shop/shop_item.gd - pure GDScript class (no Godot node base), define Type enum (EXE=0, DLL=1, BAT=2), readonly fields `type: Type` and `index: int`, static factory `create(type: Type, index: int) -> ShopItem`
-- [ ] T004 Create scenes/shop/shop_overlay.tscn - replace existing file entirely; build scene tree: ShopOverlay (Control, full-rect anchor, z_index=10) > BrowserWindow (Panel, theme_type_variation="WindowPanel", anchored center, min_size 640x420) > VBoxContainer > [TitleBar Panel (theme "TitleBarActive", min_height 20) containing HBoxContainer > [Title Label (theme "TitleBarLabel", text "shop.com - Internet Explorer", size_flags expand), CloseButton (Button, theme "TitleBarButton", text "X", custom_minimum_size 20x20)]] > [Toolbar Panel (theme "Win95MenuBar", min_height 26) containing HBoxContainer > [RefreshButton (Button, text "Refresh"), UrlBar (LineEdit, text "shop.com", editable false, size_flags expand)]] > [ContentArea Panel, size_flags expand+fill, containing GridContainer (ItemGrid, columns 3, alignment center) containing 9x ShopItemCell (Button, custom_minimum_size 80x80, FOCUS_ALL, each containing TextureRect "Icon" 32x32 + ColorRect "DimOverlay" full-rect semi-transparent + Label "SoonLabel" text "?" centered)]
-- [ ] T005 Create scenes/shop/shop_overlay.gd - replace existing file entirely; class_name ShopOverlay extends Control; declare signal continue_requested; declare @onready refs for CloseButton, RefreshButton, UrlBar, ItemGrid, and all 9 ShopItemCell nodes; _ready() connects no signals yet (leave for story phases), calls hide()
+- [x] T003 Create scripts/domain/shop/shop_item.gd - pure GDScript class (no Godot node base), define Type enum (EXE=0, DLL=1, BAT=2), readonly fields `type: Type` and `index: int`, static factory `create(type: Type, index: int) -> ShopItem`
+- [x] T004 Create scenes/shop/shop_overlay.tscn - replace existing file entirely; build scene tree: ShopOverlay (Control, full-rect anchor, z_index=10) > BrowserWindow (Panel, theme_type_variation="WindowPanel", anchored center, min_size 640x420) > VBoxContainer > [TitleBar Panel (theme "TitleBarActive", min_height 20) containing HBoxContainer > [Title Label (theme "TitleBarLabel", text "shop.com - Internet Explorer", size_flags expand), CloseButton (Button, theme "TitleBarButton", text "X", custom_minimum_size 20x20)]] > [Toolbar Panel (theme "Win95MenuBar", min_height 26) containing HBoxContainer > [RefreshButton (Button, text "Refresh"), UrlBar (LineEdit, text "shop.com", editable false, size_flags expand)]] > [ContentArea Panel, size_flags expand+fill, containing GridContainer (ItemGrid, columns 3, alignment center) containing 9x ShopItemCell (Button, custom_minimum_size 80x80, FOCUS_ALL, each containing TextureRect "Icon" 32x32 + ColorRect "DimOverlay" full-rect semi-transparent + Label "SoonLabel" text "?" centered)]
+- [x] T005 Create scenes/shop/shop_overlay.gd - replace existing file entirely; class_name ShopOverlay extends Control; declare signal continue_requested; declare @onready refs for CloseButton, RefreshButton, UrlBar, ItemGrid, and all 9 ShopItemCell nodes; _ready() connects no signals yet (leave for story phases), calls hide()
 
 **Checkpoint**: ShopItem type exists, scene tree is built, script skeleton compiles. Open the scene in Godot editor to confirm no errors before proceeding.
 

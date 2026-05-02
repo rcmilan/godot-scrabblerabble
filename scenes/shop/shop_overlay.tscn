@@ -1,110 +1,390 @@
-[gd_scene load_steps=3 format=3]
-
-[ext_resource type="Script" path="res://scenes/shop/shop_overlay.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://scenes/shop/debug_round_config_popup.tscn" id="2_debug_popup"]
+[gd_scene load_steps=1 format=3 uid="uid://c5pwmwm26a3h5"]
 
 [node name="ShopOverlay" type="Control"]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_script")
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+z_index = 10
 
-[node name="Background" type="ColorRect" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.85, 0.88, 0.92, 1)
+[node name="BrowserWindow" type="Panel" parent="."]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -320.0
+offset_top = -210.0
+offset_right = 320.0
+offset_bottom = 210.0
+custom_minimum_size = Vector2(640, 420)
+theme_type_variation = "WindowPanel"
 
-[node name="Overlay" type="ColorRect" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.1, 0.1, 0.15, 0.9)
+[node name="VBox" type="VBoxContainer" parent="BrowserWindow"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
 
-[node name="TitleLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -150.0
-offset_top = 40.0
-offset_right = 150.0
-offset_bottom = 100.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 24
-text = "SHOP"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="TitleBar" type="Panel" parent="BrowserWindow/VBox"]
+custom_minimum_size = Vector2(0, 20)
+theme_type_variation = "TitleBarActive"
 
-[node name="ContentContainer" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -120.0
-offset_right = 200.0
-offset_bottom = 120.0
-grow_horizontal = 2
-grow_vertical = 2
-focus_mode = 1
-theme_override_constants/separation = 15
+[node name="HBox" type="HBoxContainer" parent="BrowserWindow/VBox/TitleBar"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
 
-[node name="RoundLabel" type="Label" parent="ContentContainer"]
+[node name="Title" type="Label" parent="BrowserWindow/VBox/TitleBar/HBox"]
 layout_mode = 2
-text = "Round 1 Complete!"
-horizontal_alignment = 1
+size_flags_horizontal = 3
+theme_type_variation = "TitleBarLabel"
+text = "shop.com - Internet Explorer"
 
-[node name="ScoreLabel" type="Label" parent="ContentContainer"]
+[node name="CloseButton" type="Button" parent="BrowserWindow/VBox/TitleBar/HBox"]
 layout_mode = 2
-text = "Score: 0"
-horizontal_alignment = 1
+custom_minimum_size = Vector2(20, 20)
+theme_type_variation = "TitleBarButton"
+text = "X"
 
-[node name="NextBoardLabel" type="Label" parent="ContentContainer"]
+[node name="Toolbar" type="Panel" parent="BrowserWindow/VBox"]
+custom_minimum_size = Vector2(0, 26)
+theme_type_variation = "Win95MenuBar"
+
+[node name="HBox" type="HBoxContainer" parent="BrowserWindow/VBox/Toolbar"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+
+[node name="RefreshButton" type="Button" parent="BrowserWindow/VBox/Toolbar/HBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Next: Round 2 (7x7 board, Target: 150)"
-horizontal_alignment = 1
+text = "Refresh"
 
-[node name="HSeparator" type="HSeparator" parent="ContentContainer"]
+[node name="UrlBar" type="LineEdit" parent="BrowserWindow/VBox/Toolbar/HBox"]
 layout_mode = 2
+size_flags_horizontal = 3
+text = "shop.com"
+editable = false
 
-[node name="ContinueButton" type="Button" parent="ContentContainer"]
+[node name="ContentArea" type="Panel" parent="BrowserWindow/VBox"]
 layout_mode = 2
-focus_neighbor_bottom = NodePath("../DebugConfigButton")
-text = "Continue"
+size_flags_vertical = 3
 
-[node name="DebugConfigButton" type="Button" parent="ContentContainer"]
+[node name="ItemGrid" type="GridContainer" parent="BrowserWindow/VBox/ContentArea"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+columns = 3
+alignment = 1
+
+[node name="ShopItemCell0" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
 layout_mode = 2
-focus_neighbor_top = NodePath("../ContinueButton")
-theme_override_font_sizes/font_size = 11
-text = "Debug: Next Round Config"
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
 
-[node name="ControlHint" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -250.0
-offset_top = -50.0
-offset_right = 250.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_font_sizes/font_size = 14
-text = "Press Enter to continue"
-horizontal_alignment = 1
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell0"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
 
-[node name="DebugRoundConfigPopup" parent="." instance=ExtResource("2_debug_popup")]
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell0"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell0"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell1" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell1"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell1"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell1"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell2" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell2"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell2"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell2"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell3" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell3"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell3"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell3"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell4" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell4"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell4"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell4"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell5" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell5"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell5"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell5"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell6" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell6"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell6"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell6"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell7" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell7"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell7"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell7"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
+
+[node name="ShopItemCell8" type="Button" parent="BrowserWindow/VBox/ContentArea/ItemGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+focus_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell8"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+custom_minimum_size = Vector2(32, 32)
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell8"]
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/ItemGrid/ShopItemCell8"]
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+text = "?"
