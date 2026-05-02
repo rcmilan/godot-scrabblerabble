@@ -41,9 +41,9 @@
 
 **Independent Test**: Complete a round in-game. Browser window appears. Press TAB 11 times and confirm focus returns to RefreshButton. Press Shift+TAB and confirm focus goes to CloseButton. Confirm URL bar cannot be typed in.
 
-- [ ] T006 [US1] In scenes/shop/shop_overlay.gd _ready(): wire focus chain using focus_next and focus_previous NodePath properties in code - RefreshButton.focus_next points to Cell0, Cell0..Cell7 each point to next cell, Cell8.focus_next points to CloseButton, CloseButton.focus_next wraps back to RefreshButton; mirror all in reverse for focus_previous
-- [ ] T007 [P] [US1] In scenes/shop/shop_overlay.gd: define ITEM_TYPES constant array [EXE, DLL, EXE, DLL, BAT, EXE, BAT, DLL, BAT] (3 of each) and ICON_MAP dictionary mapping ShopItem.Type to preloaded Texture2D from scenes/shop/icons/; implement show_shop(round_number: int) to iterate cells, assign Icon.texture from ICON_MAP, then call show() and RefreshButton.grab_focus()
-- [ ] T008 [P] [US1] In scenes/main.gd _on_shop_requested(): remove ShopController instantiation, ShopSlideAnimation entrance, RunManager.get_shop_tiles, RunManager.get_shop_modifiers, and ShopSession.new calls; replace with: brief pause (existing timer), _deactivate_gameplay(), _hide_gameplay_ui(), shop_overlay.show_shop(round_number)
+- [x] T006 [US1] In scenes/shop/shop_overlay.gd _ready(): wire focus chain using focus_next and focus_previous NodePath properties in code - RefreshButton.focus_next points to Cell0, Cell0..Cell7 each point to next cell, Cell8.focus_next points to CloseButton, CloseButton.focus_next wraps back to RefreshButton; mirror all in reverse for focus_previous
+- [x] T007 [P] [US1] In scenes/shop/shop_overlay.gd: define ITEM_TYPES constant array [EXE, DLL, EXE, DLL, BAT, EXE, BAT, DLL, BAT] (3 of each) and ICON_MAP dictionary mapping ShopItem.Type to preloaded Texture2D from scenes/shop/icons/; implement show_shop(round_number: int) to iterate cells, assign Icon.texture from ICON_MAP, then call show() and RefreshButton.grab_focus()
+- [x] T008 [P] [US1] In scenes/main.gd _on_shop_requested(): remove ShopController instantiation, ShopSlideAnimation entrance, RunManager.get_shop_tiles, RunManager.get_shop_modifiers, and ShopSession.new calls; replace with: brief pause (existing timer), _deactivate_gameplay(), _hide_gameplay_ui(), shop_overlay.show_shop(round_number)
 
 **Checkpoint**: Launch game, complete a round, verify browser window appears. TAB cycles correctly through 11 elements. UrlBar cannot be edited. All cells show icons.
 
@@ -55,9 +55,9 @@
 
 **Independent Test**: Open shop, press ESC - shop closes, next round starts. Open shop again (if possible to replay), press TAB until CloseButton is focused, press ENTER - same result. Click X with mouse - same result.
 
-- [ ] T009 [US2] In scenes/shop/shop_overlay.gd: implement _close_shop() - calls hide() then emits continue_requested; in _ready() connect CloseButton.pressed to _close_shop
-- [ ] T010 [US2] In scenes/shop/shop_overlay.gd: implement _input(event) with visibility guard (return if not visible); check event.is_action_pressed("ui_cancel") -> call _close_shop() and get_viewport().set_input_as_handled()
-- [ ] T011 [US2] In scenes/main.gd _on_shop_continue(): remove ShopController finalize block and ShopSlideAnimation exit call; simplify to: shop_overlay.hide(), RunManager.proceed_from_shop()
+- [x] T009 [US2] In scenes/shop/shop_overlay.gd: implement _close_shop() - calls hide() then emits continue_requested; in _ready() connect CloseButton.pressed to _close_shop
+- [x] T010 [US2] In scenes/shop/shop_overlay.gd: implement _input(event) with visibility guard (return if not visible); check event.is_action_pressed("ui_cancel") -> call _close_shop() and get_viewport().set_input_as_handled()
+- [x] T011 [US2] In scenes/main.gd _on_shop_continue(): remove ShopController finalize block and ShopSlideAnimation exit call; simplify to: shop_overlay.hide(), RunManager.proceed_from_shop()
 
 **Checkpoint**: ESC closes shop and next round loads. Keyboard ENTER on CloseButton does the same. Mouse click on X does the same. No crash. No leftover _shop_controller variable errors (remove the field declaration if present).
 
@@ -69,8 +69,8 @@
 
 **Independent Test**: Open shop, TAB through each of the 9 cells. Each shows a visible dimmed overlay and "?" label. Press ENTER on each - nothing happens except focus stays on the cell. All 9 cells visible without scrolling.
 
-- [ ] T012 [US3] In scenes/shop/shop_overlay.gd _ready(): for each of the 9 ShopItemCell nodes, ensure DimOverlay and SoonLabel are visible (they should be visible by default from scene; confirm in code that no code hides them); connect each cell's pressed signal to a no-op lambda or empty function _on_cell_pressed(index: int) that does nothing
-- [ ] T013 [P] [US3] In scenes/shop/shop_overlay.gd _ready(): connect RefreshButton.pressed to a no-op function _on_refresh_pressed() that does nothing (placeholder for future reload logic)
+- [x] T012 [US3] In scenes/shop/shop_overlay.gd _ready(): for each of the 9 ShopItemCell nodes, ensure DimOverlay and SoonLabel are visible (they should be visible by default from scene; confirm in code that no code hides them); connect each cell's pressed signal to a no-op lambda or empty function _on_cell_pressed(index: int) that does nothing
+- [x] T013 [P] [US3] In scenes/shop/shop_overlay.gd _ready(): connect RefreshButton.pressed to a no-op function _on_refresh_pressed() that does nothing (placeholder for future reload logic)
 
 **Checkpoint**: All 9 cells focusable. DimOverlay and SoonLabel visible on each. ENTER on any cell = no effect. ENTER on RefreshButton = no effect. No crash in any interaction.
 
@@ -80,8 +80,8 @@
 
 **Purpose**: Final wiring cleanup, input isolation, and full manual verification pass.
 
-- [ ] T014 Verify input isolation in scenes/shop/shop_overlay.gd: confirm the visibility guard (if not visible: return) at the top of _input() prevents ESC from firing when shop is hidden; manually test by pressing ESC during normal gameplay (shop closed) and confirming no side effect occurs
-- [ ] T015 [P] Remove _shop_controller field declaration and any remaining ShopController/ShopSlideAnimation references from scenes/main.gd; confirm the file compiles without errors in Godot
+- [x] T014 Verify input isolation in scenes/shop/shop_overlay.gd: confirm the visibility guard (if not visible: return) at the top of _input() prevents ESC from firing when shop is hidden; manually test by pressing ESC during normal gameplay (shop closed) and confirming no side effect occurs
+- [x] T015 [P] Remove _shop_controller field declaration and any remaining ShopController/ShopSlideAnimation references from scenes/main.gd; confirm the file compiles without errors in Godot
 - [ ] T016 Run full manual verification checklist from plan.md Phase F in Godot editor play mode: complete round, verify browser appears; TAB/Shift+TAB cycle; URL read-only; ENTER on close; mouse click on X; ESC; ENTER on refresh (no crash); ENTER on cell (no crash); all 9 cells + icons visible; no input leaks to gameplay
 
 ---

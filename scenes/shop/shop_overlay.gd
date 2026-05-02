@@ -27,9 +27,50 @@ const ICON_MAP = {
 }
 
 func _ready() -> void:
+	# Gather all ShopItemCell nodes (cells 0-8)
+	for i in range(9):
+		var cell: Button = ItemGrid.get_child(i) as Button
+		if cell:
+			_shop_item_cells.append(cell)
+
+	# Wire focus chain: RefreshButton -> Cell0..8 -> CloseButton -> (wrap to Refresh)
+	if _shop_item_cells.size() == 9:
+		RefreshButton.focus_next = NodePath("../ItemGrid/ShopItemCell0")
+		for i in range(9):
+			if i < 8:
+				_shop_item_cells[i].focus_next = NodePath("../ItemGrid/ShopItemCell%d" % (i + 1))
+			else:
+				_shop_item_cells[i].focus_next = NodePath("../../TitleBar/HBox/CloseButton")
+
+		CloseButton.focus_next = NodePath("../../Toolbar/HBox/RefreshButton")
+
+		# Wire reverse focus (Shift+TAB): mirror the forward chain
+		CloseButton.focus_previous = NodePath("../../ContentArea/ItemGrid/ShopItemCell8")
+		for i in range(8, -1, -1):
+			if i > 0:
+				_shop_item_cells[i].focus_previous = NodePath("../ItemGrid/ShopItemCell%d" % (i - 1))
+			else:
+				_shop_item_cells[i].focus_previous = NodePath("../../Toolbar/HBox/RefreshButton")
+
+		RefreshButton.focus_previous = NodePath("../../TitleBar/HBox/CloseButton")
+
+		# Connect cell pressed signals to no-op handler
+		for i in range(9):
+			_shop_item_cells[i].pressed.connect(_on_cell_pressed.bindv([i]))
+
+	CloseButton.pressed.connect(_close_shop)
+	RefreshButton.pressed.connect(_on_refresh_pressed)
 	hide()
 
 func show_shop(round_number: int) -> void:
+	# Assign icons to cells from ITEM_TYPES
+	for i in range(min(ITEM_TYPES.size(), _shop_item_cells.size())):
+		var item_type: ShopItem.Type = ITEM_TYPES[i]
+		var cell: Button = _shop_item_cells[i]
+		var icon_texture_rect: TextureRect = cell.get_node("Icon") as TextureRect
+		if icon_texture_rect and item_type in ICON_MAP:
+			icon_texture_rect.texture = ICON_MAP[item_type]
+
 	show()
 	RefreshButton.grab_focus()
 
@@ -43,3 +84,9 @@ func _input(event: InputEvent) -> void:
 func _close_shop() -> void:
 	hide()
 	continue_requested.emit()
+
+func _on_cell_pressed(index: int) -> void:
+	pass
+
+func _on_refresh_pressed() -> void:
+	pass

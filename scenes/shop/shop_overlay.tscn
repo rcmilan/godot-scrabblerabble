@@ -1,6 +1,9 @@
-[gd_scene load_steps=1 format=3 uid="uid://c5pwmwm26a3h5"]
+[gd_scene load_steps=2 format=3 uid="uid://c5pwmwm26a3h5"]
+
+[ext_resource type="Script" path="res://scenes/shop/shop_overlay.gd" id="1_overlay"]
 
 [node name="ShopOverlay" type="Control"]
+script = ExtResource("1_overlay")
 anchors_left = 0.0
 anchors_top = 0.0
 anchors_right = 1.0
