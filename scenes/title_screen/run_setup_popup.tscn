@@ -12,20 +12,38 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_setup")
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="Win95Window" type="Panel" parent="."]
 layout_mode = 1
-anchors_preset = 5
+anchors_preset = 8
 anchor_left = 0.5
+anchor_top = 0.5
 anchor_right = 0.5
-offset_left = -200.0
-offset_top = 40.0
-offset_right = 200.0
-offset_bottom = 100.0
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -210.0
+offset_right = 230.0
+offset_bottom = 175.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
-theme_override_font_sizes/font_size = 32
+grow_vertical = 2
+theme_type_variation = &"WindowPanel"
+
+[node name="TitleBar" type="Panel" parent="Win95Window"]
+layout_mode = 1
+anchor_right = 1.0
+offset_bottom = 26.0
+grow_horizontal = 2
+theme_type_variation = &"TitleBarActive"
+
+[node name="TitleBarLabel" type="Label" parent="Win95Window/TitleBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"TitleBarLabel"
 text = "RUN SETUP"
-horizontal_alignment = 1
+horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="ContentContainer" type="VBoxContainer" parent="."]
@@ -35,18 +53,18 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -100.0
-offset_right = 200.0
-offset_bottom = 100.0
+offset_left = -210.0
+offset_top = -172.0
+offset_right = 210.0
+offset_bottom = 158.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 15
 
 [node name="DeckLabel" type="Label" parent="ContentContainer"]
 layout_mode = 2
+theme_type_variation = &"SectionLabel"
 text = "Deck:"
-theme_override_font_sizes/font_size = 14
 
 [node name="DeckOption" type="OptionButton" parent="ContentContainer"]
 layout_mode = 2
@@ -55,15 +73,13 @@ custom_minimum_size = Vector2(400, 0)
 [node name="DeckDescription" type="Label" parent="ContentContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(400, 40)
-theme_override_font_sizes/font_size = 12
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 text = ""
 autowrap_mode = 3
 
 [node name="QualitiesLabel" type="Label" parent="ContentContainer"]
 layout_mode = 2
+theme_type_variation = &"SectionLabel"
 text = "Qualities:"
-theme_override_font_sizes/font_size = 14
 
 [node name="QualityList" type="VBoxContainer" parent="ContentContainer"]
 layout_mode = 2
@@ -80,13 +96,11 @@ theme_override_constants/separation = 15
 [node name="BackButton" type="Button" parent="ContentContainer/ButtonContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 24
 text = "Back"
 
 [node name="StartButton" type="Button" parent="ContentContainer/ButtonContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 24
 text = "Start Run"
 
 [node name="ControlHint" type="Label" parent="."]
@@ -102,7 +116,5 @@ offset_right = 250.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
-theme_override_font_sizes/font_size = 14
 text = "W/S: Navigate | Enter: Confirm"
 horizontal_alignment = 1

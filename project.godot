@@ -29,10 +29,15 @@ TileAnimator="*res://autoload/tile_animator.gd"
 RunManager="*res://autoload/run_manager.gd"
 KeybindingConfig="*res://scripts/managers/keybinding_config.gd"
 BackgroundManager="*res://autoload/background_manager.gd"
+ThemeSetup="*res://theme/ThemeSetup.gd"
 
 [dotnet]
 
 project/assembly_name="Wordatro"
+
+[gui]
+
+theme/custom="res://theme/webcore_theme.tres"
 
 [input]
 
@@ -122,4 +127,5 @@ switch_zone={
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="mobile"
