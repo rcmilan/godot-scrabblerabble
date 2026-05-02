@@ -10,7 +10,7 @@ signal continue_requested
 @onready var CloseButton: Button = $BrowserWindow/VBox/TitleBar/HBox/CloseButton
 @onready var RefreshButton: Button = $BrowserWindow/VBox/Toolbar/HBox/RefreshButton
 @onready var UrlBar: LineEdit = $BrowserWindow/VBox/Toolbar/HBox/UrlBar
-@onready var ItemGrid: GridContainer = $BrowserWindow/VBox/ContentArea/ItemGrid
+@onready var ItemGrid: GridContainer = $BrowserWindow/VBox/ContentArea/Margin/ItemGrid
 
 var _shop_item_cells: Array[Button] = []
 
@@ -35,24 +35,24 @@ func _ready() -> void:
 
 	# Wire focus chain: RefreshButton -> Cell0..8 -> CloseButton -> (wrap to Refresh)
 	if _shop_item_cells.size() == 9:
-		RefreshButton.focus_next = NodePath("../ItemGrid/ShopItemCell0")
+		RefreshButton.focus_next = NodePath("../../../ContentArea/Margin/ItemGrid/ShopItemCell0")
 		for i in range(9):
 			if i < 8:
-				_shop_item_cells[i].focus_next = NodePath("../ItemGrid/ShopItemCell%d" % (i + 1))
+				_shop_item_cells[i].focus_next = NodePath("../ShopItemCell%d" % (i + 1))
 			else:
-				_shop_item_cells[i].focus_next = NodePath("../../TitleBar/HBox/CloseButton")
+				_shop_item_cells[i].focus_next = NodePath("../../../../TitleBar/HBox/CloseButton")
 
-		CloseButton.focus_next = NodePath("../../Toolbar/HBox/RefreshButton")
+		CloseButton.focus_next = NodePath("../../../Toolbar/HBox/RefreshButton")
 
 		# Wire reverse focus (Shift+TAB): mirror the forward chain
-		CloseButton.focus_previous = NodePath("../../ContentArea/ItemGrid/ShopItemCell8")
+		CloseButton.focus_previous = NodePath("../../../ContentArea/Margin/ItemGrid/ShopItemCell8")
 		for i in range(8, -1, -1):
 			if i > 0:
-				_shop_item_cells[i].focus_previous = NodePath("../ItemGrid/ShopItemCell%d" % (i - 1))
+				_shop_item_cells[i].focus_previous = NodePath("../ShopItemCell%d" % (i - 1))
 			else:
-				_shop_item_cells[i].focus_previous = NodePath("../../Toolbar/HBox/RefreshButton")
+				_shop_item_cells[i].focus_previous = NodePath("../../../../Toolbar/HBox/RefreshButton")
 
-		RefreshButton.focus_previous = NodePath("../../TitleBar/HBox/CloseButton")
+		RefreshButton.focus_previous = NodePath("../../../TitleBar/HBox/CloseButton")
 
 		# Connect cell pressed signals to no-op handler
 		for i in range(9):
