@@ -35,6 +35,10 @@ ThemeSetup="*res://theme/ThemeSetup.gd"
 
 project/assembly_name="Wordatro"
 
+[gui]
+
+theme/custom="res://theme/webcore_theme.tres"
+
 [input]
 
 ui_accept={
@@ -120,10 +124,6 @@ switch_zone={
 , Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":5,"axis_value":1.0,"script":null)
 ]
 }
-
-[gui]
-
-theme/custom="res://theme/webcore_theme.tres"
 
 [rendering]
 
