@@ -1,110 +1,652 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://c5pwmwm26a3h5"]
 
-[ext_resource type="Script" path="res://scenes/shop/shop_overlay.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://scenes/shop/debug_round_config_popup.tscn" id="2_debug_popup"]
+[ext_resource type="Script" uid="uid://bdpqrsrkpylwa" path="res://scenes/shop/shop_overlay.gd" id="1_overlay"]
 
-[node name="ShopOverlay" type="Control"]
-visible = false
+[node name="ShopOverlay" type="Control" unique_id=763057571]
+z_index = 10
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+script = ExtResource("1_overlay")
 
-[node name="Background" type="ColorRect" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.85, 0.88, 0.92, 1)
-
-[node name="Overlay" type="ColorRect" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.1, 0.1, 0.15, 0.9)
-
-[node name="TitleLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -150.0
-offset_top = 40.0
-offset_right = 150.0
-offset_bottom = 100.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 24
-text = "SHOP"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ContentContainer" type="VBoxContainer" parent="."]
+[node name="BrowserWindow" type="Panel" parent="." unique_id=1093658415]
+custom_minimum_size = Vector2(640, 460)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -120.0
-offset_right = 200.0
-offset_bottom = 120.0
+offset_left = -320.0
+offset_top = -230.0
+offset_right = 320.0
+offset_bottom = 230.0
 grow_horizontal = 2
 grow_vertical = 2
-focus_mode = 1
-theme_override_constants/separation = 15
+theme_type_variation = &"WindowPanel"
 
-[node name="RoundLabel" type="Label" parent="ContentContainer"]
-layout_mode = 2
-text = "Round 1 Complete!"
-horizontal_alignment = 1
-
-[node name="ScoreLabel" type="Label" parent="ContentContainer"]
-layout_mode = 2
-text = "Score: 0"
-horizontal_alignment = 1
-
-[node name="NextBoardLabel" type="Label" parent="ContentContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Next: Round 2 (7x7 board, Target: 150)"
-horizontal_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="ContentContainer"]
-layout_mode = 2
-
-[node name="ContinueButton" type="Button" parent="ContentContainer"]
-layout_mode = 2
-focus_neighbor_bottom = NodePath("../DebugConfigButton")
-text = "Continue"
-
-[node name="DebugConfigButton" type="Button" parent="ContentContainer"]
-layout_mode = 2
-focus_neighbor_top = NodePath("../ContinueButton")
-theme_override_font_sizes/font_size = 11
-text = "Debug: Next Round Config"
-
-[node name="ControlHint" type="Label" parent="."]
+[node name="VBox" type="VBoxContainer" parent="BrowserWindow" unique_id=515497011]
 layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
+anchors_preset = 15
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -250.0
-offset_top = -50.0
-offset_right = 250.0
-offset_bottom = -20.0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = -3.0
+offset_bottom = -3.0
 grow_horizontal = 2
-grow_vertical = 0
-theme_override_font_sizes/font_size = 14
-text = "Press Enter to continue"
-horizontal_alignment = 1
+grow_vertical = 2
+theme_override_constants/separation = 2
 
-[node name="DebugRoundConfigPopup" parent="." instance=ExtResource("2_debug_popup")]
+[node name="TitleBar" type="Panel" parent="BrowserWindow/VBox" unique_id=365126670]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_type_variation = &"TitleBarActive"
+
+[node name="HBox" type="HBoxContainer" parent="BrowserWindow/VBox/TitleBar" unique_id=721173887]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_right = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="BrowserWindow/VBox/TitleBar/HBox" unique_id=1633192240]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"TitleBarLabel"
+text = "shop.com - Microsoft Internet Explorer"
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="BrowserWindow/VBox/TitleBar/HBox" unique_id=401509301]
+custom_minimum_size = Vector2(20, 18)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TitleBarButton"
+text = "X"
+
+[node name="MenuBar" type="Panel" parent="BrowserWindow/VBox" unique_id=1980000001]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_type_variation = &"Win95MenuBar"
+
+[node name="HBox" type="HBoxContainer" parent="BrowserWindow/VBox/MenuBar" unique_id=1980000002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_right = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="FileMenu" type="Label" parent="BrowserWindow/VBox/MenuBar/HBox" unique_id=1980000003]
+layout_mode = 2
+size_flags_vertical = 4
+text = "File"
+vertical_alignment = 1
+
+[node name="EditMenu" type="Label" parent="BrowserWindow/VBox/MenuBar/HBox" unique_id=1980000004]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Edit"
+vertical_alignment = 1
+
+[node name="ViewMenu" type="Label" parent="BrowserWindow/VBox/MenuBar/HBox" unique_id=1980000005]
+layout_mode = 2
+size_flags_vertical = 4
+text = "View"
+vertical_alignment = 1
+
+[node name="FavoritesMenu" type="Label" parent="BrowserWindow/VBox/MenuBar/HBox" unique_id=1980000006]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Favorites"
+vertical_alignment = 1
+
+[node name="ToolsMenu" type="Label" parent="BrowserWindow/VBox/MenuBar/HBox" unique_id=1980000007]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Tools"
+vertical_alignment = 1
+
+[node name="HelpMenu" type="Label" parent="BrowserWindow/VBox/MenuBar/HBox" unique_id=1980000008]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Help"
+vertical_alignment = 1
+
+[node name="Toolbar" type="Panel" parent="BrowserWindow/VBox" unique_id=1316926215]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_type_variation = &"Win95MenuBar"
+
+[node name="HBox" type="HBoxContainer" parent="BrowserWindow/VBox/Toolbar" unique_id=253249012]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = -4.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="BackButton" type="Button" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1980000009]
+custom_minimum_size = Vector2(54, 0)
+layout_mode = 2
+disabled = true
+text = "<- Back"
+
+[node name="ForwardButton" type="Button" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1980000010]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+disabled = true
+text = "Forward ->"
+
+[node name="StopButton" type="Button" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1980000011]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+disabled = true
+text = "Stop"
+
+[node name="RefreshButton" type="Button" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1866882338]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+text = "Refresh"
+
+[node name="HomeButton" type="Button" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1980000012]
+custom_minimum_size = Vector2(54, 0)
+layout_mode = 2
+disabled = true
+text = "Home"
+
+[node name="VSep1" type="VSeparator" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1980000013]
+layout_mode = 2
+
+[node name="AddressLabel" type="Label" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1980000014]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Address"
+vertical_alignment = 1
+
+[node name="UrlBar" type="LineEdit" parent="BrowserWindow/VBox/Toolbar/HBox" unique_id=1366096387]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "http://www.shop.com/"
+editable = false
+
+[node name="ContentArea" type="Panel" parent="BrowserWindow/VBox" unique_id=3940605]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="BrowserWindow/VBox/ContentArea" unique_id=1980000015]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ItemGrid" type="GridContainer" parent="BrowserWindow/VBox/ContentArea/Margin" unique_id=745460853]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+columns = 3
+
+[node name="ShopItemCell0" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=1305251440]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell0" unique_id=1243933141]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell0" unique_id=1582887402]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell0" unique_id=1200172765]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell1" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=513747450]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell1" unique_id=613452254]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell1" unique_id=641095206]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell1" unique_id=133940184]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell2" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=1051016736]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell2" unique_id=121843037]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell2" unique_id=713729934]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell2" unique_id=1495393781]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell3" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=1061362281]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell3" unique_id=1049885845]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell3" unique_id=924005553]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell3" unique_id=718031134]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell4" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=832936531]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell4" unique_id=263741955]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell4" unique_id=2088582358]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell4" unique_id=446646395]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell5" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=1738850145]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell5" unique_id=182202337]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell5" unique_id=851192636]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell5" unique_id=210621564]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell6" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=1806795465]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell6" unique_id=1286296199]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell6" unique_id=1690742850]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell6" unique_id=773226374]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell7" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=1746936960]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell7" unique_id=1097030164]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell7" unique_id=384374789]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell7" unique_id=1495119705]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShopItemCell8" type="Button" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid" unique_id=370049381]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell8" unique_id=793194047]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell8" unique_id=1129609616]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="SoonLabel" type="Label" parent="BrowserWindow/VBox/ContentArea/Margin/ItemGrid/ShopItemCell8" unique_id=1123075713]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusBar" type="Panel" parent="BrowserWindow/VBox" unique_id=1980000016]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_type_variation = &"Win95MenuBar"
+
+[node name="StatusLabel" type="Label" parent="BrowserWindow/VBox/StatusBar" unique_id=1980000017]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_right = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Done"
+vertical_alignment = 1
