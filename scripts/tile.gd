@@ -28,12 +28,13 @@ func _refresh_visual() -> void:
 
 # --- Drag and drop source ---
 func _get_drag_data(_at_position: Vector2) -> Variant:
-	# Cannot drag a tile that is already locked on the board.
 	if location == "board":
 		return null
-	# Build a visual preview that follows the mouse.
+	# Wrap the preview in a Control so we can offset it to be centered on cursor.
+	var preview_root := Control.new()
 	var preview := duplicate() as Control
 	preview.modulate = Color(1, 1, 1, 0.85)
-	set_drag_preview(preview)
-	# The data we pass to the drop target is this Tile node itself.
+	preview.position = -size / 2.0
+	preview_root.add_child(preview)
+	set_drag_preview(preview_root)
 	return self

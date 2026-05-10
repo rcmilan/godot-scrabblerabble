@@ -54,9 +54,10 @@ func clear_pending() -> void:
 		label.text = locked_letter
 
 func lock_pending() -> void:
-	# Called at end of turn: the placed tile becomes a permanent letter.
 	if current_tile != null:
 		locked_letter = current_tile.letter
+		if current_tile.get_parent():
+			current_tile.get_parent().remove_child(current_tile)
 		current_tile.queue_free()
 		current_tile = null
 

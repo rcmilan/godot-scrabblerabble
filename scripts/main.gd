@@ -77,25 +77,31 @@ func on_tile_returned_to_rack(tile: Tile) -> void:
 	var prev_cell := board.get_cell(tile.board_pos)
 	if prev_cell:
 		prev_cell.clear_pending()
-	pending_cells.erase(prev_cell)
+		pending_cells.erase(prev_cell)
 	tile.location = "rack"
 	tile.board_pos = Vector2i(-1, -1)
+	tile.visible = true
 	if tile.get_parent():
 		tile.get_parent().remove_child(tile)
 	rack.add_child(tile)
 	rack.tiles_in_hand.append(tile)
 	_update_hud()
-
+	
 func _place_tile_on_cell(tile: Tile, cell: BoardCell) -> void:
 	rack.remove_tile(tile)
-	cell.add_child(tile)  # for drag preview parenting consistency (optional)
 	cell.place_tile(tile)
+	# Hide the tile node: the cell's Label already shows the letter.
+	# We keep the Tile alive (parented to Main, hidden) so drag/return logic
+	# can still reference it until lock_pending() frees it.
+	if tile.get_parent():
+		tile.get_parent().remove_child(tile)
+	add_child(tile)
+	tile.visible = false
 	pending_cells.append(cell)
 	_update_hud()
-	# Auto-confirma o turno quando atinge TILES_PER_TURN.
 	if pending_cells.size() >= TILES_PER_TURN:
 		_on_end_turn_pressed()
-
+		
 # ---------- Final do turno: pontuar ----------
 func _on_end_turn_pressed() -> void:
 	if pending_cells.is_empty():
